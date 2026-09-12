@@ -1,0 +1,17 @@
+.venv/
+.venv-*/
+venv/
+logs/
+reports/
+mlruns/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+data/
+!data/news/README.md
+models/
+*.png
+*.log
+.env

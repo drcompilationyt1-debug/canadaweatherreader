@@ -1,0 +1,268 @@
+# StockBot default configuration.  Copy to config/local.yaml and override what you need,
+# or pass --set key.path=value on the command line.  Secrets (API keys) are read from
+# environment variables, never from this file:
+#   OPENROUTER_API_KEY / GROQ_API_KEY / GEMINI_API_KEY (free LLM tiers), ANTHROPIC_API_KEY,
+#   OPENAI_API_KEY, ALPACA_API_KEY / ALPACA_SECRET_KEY (Alpaca paper or live account),
+#   FINNHUB_API_KEY (TradingAgents), FINANCIAL_DATASETS_API_KEY (ai-hedge-fund)
+
+universe:                   # 30 liquid US names across sectors + the two index ETFs
+  - SPY
+  - QQQ
+  - AAPL
+  - MSFT
+  - NVDA
+  - AMZN
+  - GOOGL
+  - META
+  - JPM
+  - XOM
+  - JNJ
+  - UNH
+  - COST
+  - BRK-B
+  - V
+  - TSLA
+  - AVGO
+  - NFLX
+  - LLY
+  - HD
+  - PG
+  - KO
+  - MRK
+  - CVX
+  - WMT
+  - ORCL
+  - ADBE
+  - AMD
+  - BAC
+  - DIS
+
+models_dir: models
+
+data:
+  # Daily bars from Yahoo Finance (free, no key) cached as parquet under cache_dir.  A cached
+  # ticker is re-downloaded automatically when it is older than refresh_days, so every
+  # `trade` / `retrain` / `fetch-data` run works on fresh data.
+  start: "2008-01-01"
+  end: null              # null = today
+  interval: "1d"
+  cache_dir: data/cache
+  train_end: "2022-12-31"   # everything after this is held-out test / walk-forward data
+  refresh_days: 1
+
+signals:
+  # Tier A - native, always available ------------------------------------------------
+  technical:     { enabled: true }
+  candles:       { enabled: true, horizons: [1, 5, 20], decay: [1.0, 0.6, 0.3] }     # 19 hand-coded patterns + stats
+  trend:         { enabled: true }
+  alpha_factors: { enabled: true, horizon: 5, min_train_years: 3, refit_every: 1 }   # qlib-lite factor model
+  market_regime: { enabled: true, window: 252 }                                        # FinRL-style turbulence
+  # Tier B - optional, auto-enabled when the dependency / key is present -------------
+  talib_candles: { enabled: true, horizons: [1, 5, 20], decay: [1.0, 0.6, 0.3] }     # TA-Lib's 61 recognisers
+  trendet:       { enabled: true }
+  sentiment:     { enabled: true, lookback_days: 3 }                     # VADER (stocksight-style)
+  # score_history: let the LLM score past headlines (one call per week per ticker, resumable, capped
+  # per run by max_history_calls) so the block has a training history - needs data/news/*.csv
+  # rag_grading: retrieve -> grade relevance -> generate (stocks-insights-ai-agent's news graph), one extra call
+  news_llm:      { enabled: true, lookback_days: 3, max_items: 25, score_history: false, max_history_calls: 200, history_granularity: week, rag_grading: false }
+  qlib:          { enabled: true, predictions: models/qlib/pred.parquet }
+  freqtrade:     { enabled: true }
+  # Tier C - opt-in LLM multi-agent frameworks (many LLM calls per ticker per day).  They run in
+  # their own virtualenvs: python scripts/setup_agent_envs.py   (python: null = auto-detect)
+  # Free models: llm_provider openai + backend_url https://openrouter.ai/api/v1 uses OPENROUTER_API_KEY.
+  trading_agents: { enabled: false, python: null, llm_provider: openai, deep_think_llm: gpt-4o-mini, quick_think_llm: gpt-4o-mini, backend_url: null, max_debate_rounds: 1, timeout: 1800 }
+  ai_hedge_fund:  { enabled: false, python: null, mandate: null, timeout: 1800 }
+  # Ports of the reference repos (Lean algorithms, huseinzol05 agents, akurgat indications,
+  # the LSTM-style forecasters) - cheap extra opinions for the policy ------------------
+  strategy_zoo:  { enabled: true }
+  # es_agent / dqn_agent are fitted on bars ending `holdout_years` before data.train_end and their
+  # outputs over their own fit window are masked, so the policy only ever sees them out of sample
+  es_agent:      { enabled: true, window_size: 20, layer_size: 64, iterations: 100, train_bars: 1500, holdout_years: 4 }
+  dl_forecast:   { enabled: true, window: 30, horizon: 5, hidden: 32, epochs: 3, min_train_years: 3, refit_every: 2 }
+  dqn_agent:     { enabled: true, look_back: 15, episodes: 12, train_bars: 1000, hidden: 32, holdout_years: 4 }   # AI-Stock-Trader + stockBot port
+  llm_trader:    { enabled: true }                                                              # nofx-style LLM decision (live, needs an LLM backend)
+  ta_keras:      { enabled: true, python: null, timeout: 900, latest_bars: 400 }                 # akurgat's Keras models (needs .venv-tf)
+
+fees:
+  # The broker's real fee schedule, charged in the simulator, by the built-in paper broker and -
+  # virtually - on Alpaca's free paper account, so the policy learns with the costs it will pay
+  # at moomoo.  moomoo = per-share commission + platform fee with per-order minimums (Canada /
+  # international schedule, the most expensive); moomoo_us = commission-free (regulatory fees only);
+  # moomoo_intl = flat $0.99 per order; bps = the old proportional env.commission; none.
+  preset: moomoo
+  max_cost_bps: 25          # an order whose fixed minimums exceed this share of its value is not placed
+  # overrides (USD): commission_per_share, commission_min, platform_per_share, platform_min, per_order,
+  # sec_fee_rate, finra_taf_per_share, fractional_pct, fractional_max
+
+env:
+  episode_length: 252
+  warmup: 260               # bars of history needed before the first observation
+  initial_cash: 100000
+  commission: 0.0005        # 5 bps per side - only used with fees.preset: bps; otherwise the simulator charges the
+                            # fees.preset schedule as if one position were execution.max_position of real equity
+  slippage: 0.0005          # 5 bps per side
+  # Shorting single large caps lost money on every name where the policy used it in the 2023-2026
+  # evaluation, so it is off by default; --set env.allow_short=true re-enables it (with the penalty).
+  allow_short: false
+  max_leverage: 1.0         # |exposure| <= 1
+  short_borrow_rate_annual: 0.03
+  short_penalty: 0.05       # extra reward penalty per unit of short exposure per day (x reward_scale)
+  turnover_penalty: 0.3     # reward penalty per unit of exposure traded (churn costs money)
+  reward: log_return        # log_return | excess_log_return
+  benchmark_mix: 1.0        # 0..1  subtract this fraction of buy-and-hold log return: the reward is excess return over
+                            # the stock itself, so "match the market, deviate only with conviction" is the default behaviour
+  vol_target: 0.35          # annualised volatility a full-conviction position is sized to (0 = plain exposure)
+  vol_window: 20
+  vol_max_scale: 1.5        # never scale a position up by more than this
+  variance_penalty: 0.0
+  drawdown_penalty: 0.0
+  reward_scale: 100.0
+  signal_dropout: 0.15      # prob. that a signal block is hidden for a whole episode (robustness)
+  deadband: 0.10            # |target - current| below this -> no trade
+  blowup_equity_frac: 0.3   # episode ends if equity drops below this fraction
+
+train:
+  algo: ppo                 # ppo | sac
+  total_timesteps: 1000000
+  seeds: 3                  # independent policies whose actions are averaged (ensemble); 1 = single policy
+  ensemble_min_score: 0.0   # members whose best out-of-sample score is below this are left out (best one always kept)
+  eval_bars: 750            # bars of held-out data used by the periodic evaluation
+  n_envs: 8
+  vec_env: auto             # auto | dummy | subproc
+  seed: 0
+  device: cpu               # cpu is usually faster for MLP policies; use cuda for large nets
+  learning_rate: 0.0003
+  n_steps: 512
+  batch_size: 256
+  n_epochs: 10
+  gamma: 0.99
+  gae_lambda: 0.95
+  ent_coef: 0.001
+  clip_range: 0.2
+  net_arch: [256, 256]
+  checkpoint_dir: models/policy
+  eval_freq: 20000
+  eval_tickers: 12          # tickers used for the periodic out-of-sample evaluation / checkpoint selection
+  recent_bias: 0.0          # prob. that an episode starts inside the last `recent_days` of history
+  recent_days: 400
+
+llm:
+  # Backends are tried in this order; the first that answers wins, the rest are fallbacks.
+  # Free options first:
+  #   openrouter - free models (":free" suffix)  https://openrouter.ai/models?q=free   OPENROUTER_API_KEY
+  #   groq       - free tier                     https://console.groq.com               GROQ_API_KEY
+  #   gemini     - Google AI Studio free tier    https://aistudio.google.com            GEMINI_API_KEY
+  #   ollama     - local models, no key          https://ollama.com
+  #   anthropic  - Claude, paid, best quality                                           ANTHROPIC_API_KEY
+  #   openai     - OpenAI, or any OpenAI-compatible server via base_url                 OPENAI_API_KEY
+  order: [openrouter, groq, gemini, ollama, anthropic, openai]
+  cooldown_seconds: 3600                  # default rest after a quota / rate-limit error
+  state_file: data/llm_state.json
+  openrouter:
+    model: meta-llama/llama-3.3-70b-instruct:free
+    fallback_models: [deepseek/deepseek-chat-v3-0324:free, qwen/qwen3-235b-a22b:free]   # OpenRouter tries these when the first is busy
+    cooldown_seconds: 900                 # free models are rate limited per minute and per day
+    max_tokens: 1024
+  groq:
+    model: llama-3.3-70b-versatile
+    cooldown_seconds: 600
+    max_tokens: 1024
+  gemini:
+    model: gemini-2.5-flash
+    cooldown_seconds: 900
+    max_tokens: 1024
+  ollama:
+    model: llama3.1
+    host: http://localhost:11434
+    timeout: 120
+  anthropic:
+    model: claude-opus-5
+    max_tokens: 2048
+    effort: medium                        # low | medium | high | xhigh | max
+    server_fallbacks: true                # let Anthropic re-route a refused request to a fallback model
+  openai:
+    model: gpt-4o-mini
+    base_url: null                        # e.g. http://localhost:1234/v1 for LM Studio (no key needed)
+    api_key_env: OPENAI_API_KEY
+    max_tokens: 2048
+
+news:
+  # All free: yfinance headlines (no key), Google News RSS (no key), local CSVs, GDELT (no key).
+  # `stockbot news-history` builds the training history in local_csv_dir from Google News RSS
+  # (date-range search, 2015+) or GDELT (--source gdelt, 2017+, heavily throttled per IP).
+  sources: [yfinance, google_rss, local_csv]
+  local_csv_dir: data/news
+  cache_dir: data/news_cache
+  max_age_hours: 12
+  gdelt_sleep: 6.0          # GDELT allows one request every 5 seconds
+  company_names:            # better GDELT queries than raw tickers (others fall back to yfinance's short name)
+    SPY: "Wall Street"
+    QQQ: Nasdaq
+    AAPL: Apple
+    MSFT: Microsoft
+    NVDA: Nvidia
+    AMZN: Amazon
+    GOOGL: Alphabet
+    META: Meta Platforms
+    JPM: JPMorgan
+    XOM: ExxonMobil
+    JNJ: "Johnson & Johnson"
+    UNH: UnitedHealth
+    COST: Costco
+    BRK-B: "Berkshire Hathaway"
+    V: Visa
+
+execution:
+  # paper  = built-in simulator broker (free, unlimited, no account)
+  # alpaca = Alpaca account (paper or real, alpaca-py, ALPACA_API_KEY / ALPACA_SECRET_KEY)
+  # moomoo = moomoo / Futu OpenAPI through the OpenD gateway (paper "simulate" account or real)
+  mode: paper
+  state_file: data/paper/state.json
+  max_gross_exposure: 1.0     # sum of |weights|
+  max_position: 0.10          # capital slice per ticker (fraction of equity); 30 names x 10% = fully invested at most
+  min_trade_usd: 50
+  # Real brokers (alpaca / moomoo / live) only get orders while the exchange is open, so every fill
+  # happens at a live price and the move after it can be watched.  `stockbot trade --allow-closed`
+  # overrides this once; the built-in paper simulator is not affected.
+  require_market_open: true
+  alpaca:
+    paper: true               # true = Alpaca's free paper-trading account (web dashboard included)
+    fractional: true
+  moomoo:
+    env: simulate             # simulate (paper account) | real (needs MOOMOO_TRADE_PASSWORD + --i-understand-real-money)
+    host: 127.0.0.1           # OpenD gateway
+    port: 11111
+    security_firm: FUTUCA     # FUTUCA (moomoo Canada) | FUTUINC (moomoo US) | FUTUSECURITIES (HK) | FUTUSG | FUTUAU | FUTUJP | FUTUMY
+    market: US
+    allow_short: false
+
+feedback:
+  experience_file: data/experience/trades.jsonl
+  direction_file: data/experience/direction.jsonl   # per-model up/down votes and how they turned out (`stockbot forecast`)
+
+session:                      # `stockbot session`: the daily market-hours run (also what the GitHub workflow does)
+  hours: 4                    # trade at the open, then watch the positions for this long
+  after_open_minutes: 5       # let the opening auction settle before sending orders
+  max_wait_minutes: 80        # started before the open: wait at most this long for it
+  snapshot_minutes: 15        # log prices / equity / move-since-open this often
+  end_margin_minutes: 15      # the background trainer must finish this long before the session ends
+  train: true                 # keep training the policy in the background while the market is watched
+  train_minutes: 0            # 0 = whatever is left of the session after the margin
+  train_timesteps: 2000000    # PPO steps per ensemble member per session (the time budget usually wins)
+  train_n_envs: 3             # parallel simulators (the runner has 4 cores, one stays free for the trading loop)
+  train_seeds: null           # null = train.seeds
+  reuse_dataset_days: 1       # reuse models/dataset when it is younger than this (skips the slow sub-model refit)
+  rolling_train_end_months: 12   # train on everything up to N months ago (0 = keep data.train_end fixed)
+  log_dir: data/paper/sessions
+
+autopilot:                    # `stockbot autopilot`: trade every weekday, retrain monthly
+  trade_time: "16:30"         # exchange time, after the close
+  timezone: America/New_York
+  retrain_every_days: 30
+  retrain_timesteps: 100000
+  initial_timesteps: 300000   # used only when no policy exists yet
+  report: true
+  state_file: data/autopilot.json
+
+report:
+  out: reports/dashboard.html

@@ -1,0 +1,122 @@
+name: session
+
+# Every weekday: start a few minutes before the New York open, trade at the open, watch the
+# positions for four hours and keep training the policy in the background; then save the
+# models / experience / dashboard to the `state` branch.  Two cron slots cover daylight-saving
+# and standard time; `--gate-minutes` lets only the one near the open run (and skips holidays).
+on:
+  schedule:
+    - cron: "15 13 * * 1-5"      # 09:15 New York while daylight-saving time is in force (Mar-Nov)
+    - cron: "15 14 * * 1-5"      # 09:15 New York in standard time (Nov-Mar)
+  workflow_dispatch:
+    inputs:
+      hours:
+        description: "session length after the open"
+        default: "4"
+      dry_run:
+        description: "decide and watch, send nothing"
+        type: boolean
+        default: false
+      train:
+        description: "train in the background during the session"
+        type: boolean
+        default: true
+      gate:
+        description: "only run near the open (uncheck to run a session right now, waiting for the open if needed)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: stockbot-state
+  cancel-in-progress: false
+
+jobs:
+  session:
+    runs-on: ubuntu-latest
+    timeout-minutes: 345         # GitHub's hard limit is 360: ~15 min wait + 4 h session + trainer wind-down + save
+    permissions:
+      contents: write
+    env:
+      ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+      ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      MPLBACKEND: Agg
+      PYTHONUNBUFFERED: "1"
+      OMP_NUM_THREADS: "3"
+      TZ: America/New_York
+    steps:
+      - name: session slot?
+        id: gate
+        if: ${{ github.event_name == 'schedule' || inputs.gate == true }}
+        run: |
+          # cheap pre-install check: proceed only between 08:45 and 10:00 New York on a weekday
+          python3 - <<'EOF' >> "$GITHUB_OUTPUT"
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+          now = datetime.now(ZoneInfo("America/New_York"))
+          ok = now.weekday() < 5 and (8, 45) <= (now.hour, now.minute) <= (10, 0)
+          print(f"proceed={'true' if ok else 'false'}")
+          print(f"now={now:%a %Y-%m-%d %H:%M %Z}")
+          EOF
+          cat "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
+        with:
+          fetch-depth: 1
+          submodules: false
+      - name: third-party code the signals need
+        if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
+        run: git submodule update --init --depth 1 third_party/automating-technical-analysis
+      - uses: actions/setup-python@v5
+        if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: install
+        if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
+        run: |
+          python -m pip install -U pip
+          pip install -e ".[all]" tzdata alpaca-py
+          pip install technical || echo "technical / TA-Lib unavailable on this runner - those blocks stay masked"
+      - uses: actions/cache@v4
+        if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
+        with:
+          path: .venv-tf
+          key: tf-env-${{ runner.os }}-${{ hashFiles('scripts/setup_agent_envs.py') }}
+      - name: TensorFlow env for the Keras models
+        if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
+        run: python scripts/setup_agent_envs.py --only tf
+      - name: restore state
+        if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
+        run: python scripts/ci_state.py restore
+      - name: market status
+        if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
+        run: python -m stockbot market-status
+      - name: session
+        if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
+        run: >
+          python -m stockbot session --mode alpaca
+          --hours ${{ inputs.hours || '4' }}
+          ${{ (github.event_name == 'schedule' || inputs.gate == true) && '--gate-minutes 90' || '' }}
+          ${{ inputs.dry_run == true && '--dry-run' || '' }}
+          ${{ inputs.train == false && '--no-train' || '' }}
+      - name: forecast scorecard
+        if: ${{ always() && (steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true') }}
+        run: python -m stockbot forecast --no-refresh || true
+      - name: experience
+        if: ${{ always() && (steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true') }}
+        run: python -m stockbot experience || true
+      - name: save state
+        if: ${{ always() && !(inputs.dry_run == true) && (steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true') }}
+        run: python scripts/ci_state.py save
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() && (steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true') }}
+        with:
+          name: session-${{ github.run_number }}
+          path: |
+            reports/dashboard.html
+            data/paper/sessions/session_*.json
+            data/paper/sessions/session_*.jsonl
+          if-no-files-found: ignore

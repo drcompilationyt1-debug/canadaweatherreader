@@ -1,0 +1,24 @@
+# Core runtime (always needed)
+numpy>=1.24
+pandas>=2.0
+pyarrow>=14
+pyyaml>=6
+requests>=2.30
+yfinance>=0.2.40
+gymnasium>=0.29
+stable-baselines3>=2.3
+torch>=2.0
+scikit-learn>=1.3
+feedparser>=6.0
+vaderSentiment>=3.3
+tqdm>=4.65
+
+# Optional signal providers / backends (safe to leave uninstalled - the bot skips them)
+anthropic>=1.0        # Claude news reader backend
+openai>=1.0           # OpenAI news reader backend (also used for OpenAI-compatible local servers)
+backtrader>=1.9       # cross-check backtests
+lightgbm>=4.0         # qlib-lite factor model
+matplotlib>=3.7       # evaluation plots
+
+# Dev
+pytest>=7.0

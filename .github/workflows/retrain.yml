@@ -1,0 +1,82 @@
+name: retrain
+
+on:
+  schedule:
+    - cron: "0 6 * * 6"          # Saturday 06:00 UTC, markets closed
+  workflow_dispatch:
+    inputs:
+      timesteps:
+        description: "PPO steps per ensemble member (about 100k steps per 1.5 minutes on a runner)"
+        default: "400000"
+      seeds:
+        description: "ensemble members"
+        default: "3"
+      from_scratch:
+        description: "ignore the current policy and train fresh"
+        type: boolean
+        default: false
+
+concurrency:
+  group: stockbot-state
+  cancel-in-progress: false
+
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340         # GitHub's hard limit is 360
+    permissions:
+      contents: write
+    env:
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      MPLBACKEND: Agg
+      PYTHONUNBUFFERED: "1"
+      OMP_NUM_THREADS: "4"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          submodules: false
+      - name: third-party code the signals need
+        run: git submodule update --init --depth 1 third_party/automating-technical-analysis
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: install
+        run: |
+          python -m pip install -U pip
+          pip install -e ".[all]" tzdata alpaca-py
+          pip install technical || echo "technical / TA-Lib unavailable on this runner - those blocks stay masked"
+      - uses: actions/cache@v4
+        with:
+          path: .venv-tf
+          key: tf-env-${{ runner.os }}-${{ hashFiles('scripts/setup_agent_envs.py') }}
+      - name: TensorFlow env for the Keras models
+        run: python scripts/setup_agent_envs.py --only tf
+      - name: restore state
+        run: python scripts/ci_state.py restore
+      - name: news history (incremental)
+        run: timeout 20m python -m stockbot news-history --start 2018-01-01 || echo "news history partial - resumes next time"
+      - name: retrain
+        run: >
+          python -m stockbot retrain
+          --timesteps ${{ inputs.timesteps || '400000' }}
+          --seeds ${{ inputs.seeds || '3' }}
+          --n-envs 4
+          --max-minutes 280
+          ${{ inputs.from_scratch == true && '--from-scratch' || '' }}
+      - name: evaluate
+        run: python -m stockbot evaluate --plot eval.png
+      - name: save state
+        run: python scripts/ci_state.py save
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: evaluation-${{ github.run_number }}
+          path: |
+            eval.png
+            models/policy/ensemble.json
+            models/policy/best.json
+          if-no-files-found: ignore

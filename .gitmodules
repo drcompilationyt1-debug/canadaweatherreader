@@ -1,0 +1,62 @@
+[submodule "third_party/qlib"]
+	path = third_party/qlib
+	url = https://github.com/microsoft/qlib
+	shallow = true
+[submodule "third_party/FinRL"]
+	path = third_party/FinRL
+	url = https://github.com/AI4Finance-Foundation/FinRL
+	shallow = true
+[submodule "third_party/backtrader"]
+	path = third_party/backtrader
+	url = https://github.com/mementum/backtrader
+	shallow = true
+[submodule "third_party/trendet"]
+	path = third_party/trendet
+	url = https://github.com/alvarobartt/trendet
+	shallow = true
+[submodule "third_party/stocksight"]
+	path = third_party/stocksight
+	url = https://github.com/shirosaidev/stocksight
+	shallow = true
+[submodule "third_party/TradingAgents"]
+	path = third_party/TradingAgents
+	url = https://github.com/TauricResearch/TradingAgents
+	shallow = true
+[submodule "third_party/ai-hedge-fund"]
+	path = third_party/ai-hedge-fund
+	url = https://github.com/virattt/ai-hedge-fund
+	shallow = true
+[submodule "third_party/freqtrade"]
+	path = third_party/freqtrade
+	url = https://github.com/freqtrade/freqtrade
+	shallow = true
+[submodule "third_party/automating-technical-analysis"]
+	path = third_party/automating-technical-analysis
+	url = https://github.com/akurgat/automating-technical-analysis
+	shallow = true
+[submodule "third_party/AI-Stock-Trader"]
+	path = third_party/AI-Stock-Trader
+	url = https://github.com/henryboisdequin/AI-Stock-Trader
+	shallow = true
+[submodule "third_party/stockBot"]
+	shallow = true
+[submodule "third_party/stocks-insights-ai-agent"]
+	path = third_party/stocks-insights-ai-agent
+	url = https://github.com/vinay-gatech/stocks-insights-ai-agent
+	shallow = true
+[submodule "third_party/Stock-Market-AI-GUI"]
+	path = third_party/Stock-Market-AI-GUI
+	url = https://github.com/crypto-code/Stock-Market-AI-GUI
+	shallow = true
+[submodule "third_party/nofx"]
+	path = third_party/nofx
+	url = https://github.com/NoFxAiOS/nofx
+	shallow = true
+[submodule "third_party/Stock-Prediction-Models"]
+	path = third_party/Stock-Prediction-Models
+	url = https://github.com/huseinzol05/Stock-Prediction-Models
+	shallow = true
+[submodule "third_party/Lean"]
+	path = third_party/Lean
+	url = https://github.com/QuantConnect/Lean
+	shallow = true

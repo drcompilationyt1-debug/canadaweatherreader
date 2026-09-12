@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "stockbot"
+version = "0.1.0"
+description = "time series research toolkit"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "pyarrow>=14",
+    "pyyaml>=6",
+    "requests>=2.30",
+    "tzdata>=2024.1",
+    "yfinance>=0.2.40",
+    "gymnasium>=0.29",
+    "stable-baselines3>=2.3",
+    "torch>=2.0",
+    "scikit-learn>=1.3",
+    "feedparser>=6.0",
+    "vaderSentiment>=3.3",
+    "tqdm>=4.65",
+]
+
+[project.optional-dependencies]
+llm = ["anthropic>=1.0", "openai>=1.0"]
+backtest = ["backtrader>=1.9"]
+qlib = ["pyqlib>=0.9", "lightgbm>=4.0"]
+live = ["alpaca-py>=0.20"]
+viz = ["matplotlib>=3.7"]
+dev = ["pytest>=7.0"]
+all = ["anthropic>=1.0", "openai>=1.0", "backtrader>=1.9", "lightgbm>=4.0", "matplotlib>=3.7", "pytest>=7.0"]
+
+[project.scripts]
+stockbot = "stockbot.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["stockbot*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["ignore::DeprecationWarning", "ignore::FutureWarning"]
