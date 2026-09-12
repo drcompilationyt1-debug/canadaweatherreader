@@ -437,7 +437,7 @@ def cmd_forecast(cfg, args) -> int:
                 print(f"\nmost bullish consensus: {bulls}\nmost bearish consensus: {bears}")
         for horizon in ("session", "daily"):
             sc = board.scorecard(horizon)
-            print(f"\n== scorecard, {horizon} horizon ({'open -> end of session' if horizon == 'session' else 'close -> next close'}) ==")
+            print(f"\n== scorecard, {horizon} horizon ({'open -> end of session' if horizon == 'session' else 'decision -> next close'}) ==")
             if sc is None or len(sc) == 0:
                 print("  nothing settled yet")
             else:
