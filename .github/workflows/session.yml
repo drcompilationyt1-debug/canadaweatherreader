@@ -99,6 +99,9 @@ jobs:
       - name: restore state
         if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
         run: python scripts/ci_state.py restore
+      - name: doctor (which inputs are live on this runner)
+        if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
+        run: python -m stockbot doctor
       - name: market status
         if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
         run: python -m stockbot market-status

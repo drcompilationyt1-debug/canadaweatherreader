@@ -162,9 +162,12 @@ llm:
   cooldown_seconds: 3600                  # default rest after a quota / rate-limit error
   state_file: data/llm_state.json
   openrouter:
-    model: meta-llama/llama-3.3-70b-instruct:free
-    fallback_models: [deepseek/deepseek-chat-v3-0324:free, qwen/qwen3-235b-a22b:free]   # OpenRouter tries these when the first is busy
-    cooldown_seconds: 900                 # free models are rate limited per minute and per day
+    # Free roster as of 2026-09-12 (it changes; check https://openrouter.ai/collections/free-models):
+    # ling-3.0-flash-fin is a 124B MoE tuned for finance, the Nemotron 3 models are the strongest
+    # general free reasoners, openrouter/free auto-routes to whatever free model is available.
+    model: inclusionai/ling-3.0-flash-fin:free
+    fallback_models: [nvidia/nemotron-3-super-120b-a12b:free, nvidia/nemotron-3-ultra-550b-a55b:free, openrouter/free]
+    cooldown_seconds: 900                 # free models: 20 req/min, 50 req/day (1000/day once $10 of credits were ever bought)
     max_tokens: 1024
   groq:
     model: llama-3.3-70b-versatile

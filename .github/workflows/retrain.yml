@@ -1,16 +1,27 @@
 name: retrain
 
+# Weekend jobs while the market is closed (one run per day, under the 6 h limit):
+#   Saturday  - refresh data + news history, refit every third-party / sub-model (candlestick
+#               statistics, factor model, GRU forecaster, ES / DQN agents, Keras models, qlib
+#               LightGBM), then continue training the policy on the parallel simulators.
+#   Sunday    - reuse Saturday's dataset and give the policy another full day of simulation.
+# Both end by saving models / experience / dashboard to the `state` branch.
 on:
   schedule:
-    - cron: "0 6 * * 6"          # Saturday 06:00 UTC, markets closed
+    - cron: "0 6 * * 6"          # Saturday 06:00 UTC
+    - cron: "0 6 * * 0"          # Sunday 06:00 UTC
   workflow_dispatch:
     inputs:
       timesteps:
         description: "PPO steps per ensemble member (about 100k steps per 1.5 minutes on a runner)"
-        default: "400000"
+        default: "4000000"
       seeds:
         description: "ensemble members"
         default: "3"
+      refit:
+        description: "refit the third-party sub-models (Saturday behaviour); off = policy only on the cached dataset"
+        type: boolean
+        default: true
       from_scratch:
         description: "ignore the current policy and train fresh"
         type: boolean
@@ -34,12 +45,23 @@ jobs:
       PYTHONUNBUFFERED: "1"
       OMP_NUM_THREADS: "4"
     steps:
+      - name: which day
+        id: day
+        run: |
+          dow=$(date -u +%u)   # 6 = Saturday, 7 = Sunday
+          refit=false
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then refit="${{ inputs.refit }}"; elif [ "$dow" = "6" ]; then refit=true; fi
+          echo "dow=$dow" >> "$GITHUB_OUTPUT"
+          echo "refit=$refit" >> "$GITHUB_OUTPUT"
+          echo "day $dow, refit third-party sub-models: $refit"
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
           submodules: false
       - name: third-party code the signals need
-        run: git submodule update --init --depth 1 third_party/automating-technical-analysis
+        run: |
+          git submodule update --init --depth 1 third_party/automating-technical-analysis
+          git submodule update --init --depth 1 third_party/trendet || true
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -61,27 +83,36 @@ jobs:
         run: python scripts/setup_agent_envs.py --only tf
       - name: restore state
         run: python scripts/ci_state.py restore
-      - name: news history (incremental)
+      - name: doctor
+        run: python -m stockbot doctor
+      - name: news history (incremental, Saturday)
+        if: ${{ steps.day.outputs.refit == 'true' }}
         run: timeout 20m python -m stockbot news-history --start 2018-01-01 || echo "news history partial - resumes next time"
       - uses: actions/cache@v4
+        if: ${{ steps.day.outputs.refit == 'true' }}
         with:
           path: ~/.qlib
           key: qlib-us-data-${{ runner.os }}
-      - name: qlib model (Alpha158 -> LightGBM, weekly)
+      - name: qlib model (Alpha158 -> LightGBM, Saturday)
+        if: ${{ steps.day.outputs.refit == 'true' }}
         run: |
           pip install pyqlib lightgbm && timeout 30m python scripts/qlib_train.py --download \
             || echo "qlib unavailable this week - the qlib block keeps last week's predictions or stays masked"
       - name: retrain
         run: >
           python -m stockbot retrain
-          --timesteps ${{ inputs.timesteps || '400000' }}
+          --timesteps ${{ inputs.timesteps || '4000000' }}
           --seeds ${{ inputs.seeds || '3' }}
           --n-envs 4
-          --max-minutes 280
+          --max-minutes 270
+          ${{ steps.day.outputs.refit == 'true' && '' || '--reuse-dataset-days 3' }}
           ${{ inputs.from_scratch == true && '--from-scratch' || '' }}
       - name: evaluate
         run: python -m stockbot evaluate --plot eval.png
+      - name: forecast scorecard
+        run: python -m stockbot forecast --no-refresh || true
       - name: save state
+        if: always()
         run: python scripts/ci_state.py save
       - uses: actions/upload-artifact@v4
         if: always()
@@ -91,4 +122,5 @@ jobs:
             eval.png
             models/policy/ensemble.json
             models/policy/best.json
+            reports/dashboard.html
           if-no-files-found: ignore
