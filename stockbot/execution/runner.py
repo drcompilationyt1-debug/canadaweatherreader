@@ -47,6 +47,7 @@ class TradingRunner:
         self.board = DirectionBoard(cfg.path("feedback.direction_file", "data/experience/direction.jsonl"))
         self.last_votes: dict[str, dict[str, dict[str, float]]] = {}
         self.last_cycle_note = ""
+        self.agent_tickers: list[str] = []
         self.env_cfg = env_settings(cfg)
         self.max_position = float(self.ex.get("max_position", 0.25))
         self.deadband = float(self.env_cfg.get("deadband", 0.05))
@@ -142,13 +143,64 @@ class TradingRunner:
         return self.last_close(ticker)
 
     # ------------------------------------------------------------------ signals
-    def latest_vectors(self) -> tuple[dict[str, dict[str, np.ndarray | None]], dict[str, str]]:
+    def agent_settings(self) -> tuple[int, float]:
+        """(top_n, budget_minutes) for the tier-C agent frameworks (signals.agents)."""
+        a = self.cfg.section("signals.agents")
+        return int(a.get("top_n", 5) or 0), float(a.get("budget_minutes", 20) or 0)
+
+    def agent_providers(self) -> list[SignalProvider]:
+        """The LLM multi-agent frameworks: live only, tier C, run on the top-N consensus tickers."""
+        return [p for p in self.providers if p.enabled and p.live_only and p.tier == "C" and p.name in ("trading_agents", "ai_hedge_fund")]
+
+    def has_agent_frameworks(self) -> bool:
+        return self.agent_settings()[0] > 0 and any(p.availability()[0] for p in self.agent_providers())
+
+    def _compute_provider(self, p: SignalProvider, frames: dict[str, pd.DataFrame], vectors: dict[str, dict]) -> None:
+        custom_latest = type(p).compute_latest is not SignalProvider.compute_latest
+        if p.needs_universe:
+            try:
+                arrs = p.compute_history_all(frames)
+            except Exception as e:  # noqa: BLE001
+                log.warning("signal %s failed: %s", p.name, e)
+                arrs = {t: None for t in frames}
+            for t in frames:
+                a = arrs.get(t)
+                vectors[t][p.name] = None if a is None or len(a) == 0 or np.isnan(a[-1]).any() else a[-1]
+        elif p.live_only or custom_latest:
+            for t in frames:
+                vectors[t][p.name] = p.safe_latest(t, frames[t])
+        else:
+            for t in frames:
+                a = p.safe_history(t, frames[t])
+                vectors[t][p.name] = None if a is None or len(a) == 0 or np.isnan(a[-1]).any() else a[-1]
+
+    def select_agent_tickers(self, vectors: dict[str, dict], top_n: int) -> list[str]:
+        """The ``top_n`` tickers where the other models agree most (largest |consensus|, bullish first on ties)."""
+        scores = {}
+        for t, vecs in vectors.items():
+            sig = self.bundle.layout.assemble_latest(vecs)
+            scores[t] = consensus(votes_from_vector(self.bundle.layout, sig))
+        return sorted(scores, key=lambda t: (-abs(scores[t]), -scores[t]))[:max(0, top_n)]
+
+    def latest_vectors(self, budget_minutes: float | None = None, skip: set[str] | None = None
+                       ) -> tuple[dict[str, dict[str, np.ndarray | None]], dict[str, str]]:
+        """Every provider's latest vector per ticker.  The LLM agent frameworks are computed last and
+        only for the top-N consensus tickers (``signals.agents``), within a time budget."""
         frames = self.frames
         self.ctx.extra["frames"] = frames
         vectors: dict[str, dict[str, np.ndarray | None]] = {t: {} for t in frames}
         reasons: dict[str, str] = {}
+        top_n, budget = self.agent_settings()
+        if budget_minutes is not None:
+            budget = float(budget_minutes)
+        agents = self.agent_providers() if top_n > 0 else []
+        skip = skip or set()
         for p in self.providers:
-            if not p.enabled:
+            if not p.enabled or p in agents:
+                continue
+            if p.name in skip:
+                for t in frames:
+                    vectors[t][p.name] = None
                 continue
             ok, why = p.availability()
             reasons[p.name] = why
@@ -156,25 +208,36 @@ class TradingRunner:
                 for t in frames:
                     vectors[t][p.name] = None
                 continue
-            custom_latest = type(p).compute_latest is not SignalProvider.compute_latest
-            if p.needs_universe:
-                try:
-                    arrs = p.compute_history_all(frames)
-                except Exception as e:  # noqa: BLE001
-                    log.warning("signal %s failed: %s", p.name, e)
-                    arrs = {t: None for t in frames}
+            self._compute_provider(p, frames, vectors)
+        self.agent_tickers = []
+        if agents:
+            selected = self.select_agent_tickers(vectors, top_n)
+            self.agent_tickers = selected
+            deadline = time.time() + budget * 60.0 if budget > 0 else None
+            log.info("agent frameworks %s on the top-%d consensus tickers %s (budget %.0f min)",
+                     [p.name for p in agents], top_n, selected, budget)
+            for p in agents:
+                ok, why = p.availability()
+                reasons[p.name] = why
                 for t in frames:
-                    a = arrs.get(t)
-                    row = None if a is None or len(a) == 0 or np.isnan(a[-1]).any() else a[-1]
-                    vectors[t][p.name] = row
-            elif p.live_only or custom_latest:
-                for t in frames:
-                    vectors[t][p.name] = p.safe_latest(t, frames[t])
-            else:
-                for t in frames:
-                    a = p.safe_history(t, frames[t])
-                    vectors[t][p.name] = None if a is None or len(a) == 0 or np.isnan(a[-1]).any() else a[-1]
+                    if not ok or t not in selected:
+                        vectors[t][p.name] = None
+                    elif deadline is not None and time.time() >= deadline:
+                        vectors[t][p.name] = None
+                        log.warning("agent %s: budget exhausted before %s", p.name, t)
+                    else:
+                        vectors[t][p.name] = p.safe_latest(t, frames[t])
         return vectors, reasons
+
+    def prewarm_agents(self, refresh: bool = True, budget_minutes: float | None = None) -> list[str]:
+        """Before the open: run the agent frameworks on the top-N tickers so the cycle finds their answers cached.
+
+        The LLM news / trader blocks are skipped here (they would spend quota twice); the consensus
+        that picks the tickers comes from the quantitative blocks."""
+        self.frames = self.frames_loader(refresh)
+        self.ctx.extra["positions"] = {}
+        self.latest_vectors(budget_minutes=budget_minutes, skip={"news_llm", "llm_trader"})
+        return list(self.agent_tickers)
 
     def portfolio_state(self, ticker: str, price: float, equity: float) -> tuple[np.ndarray, float]:
         slice_cap = max(equity * self.max_position, 1e-9)

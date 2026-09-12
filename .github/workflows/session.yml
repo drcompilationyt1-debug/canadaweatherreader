@@ -6,8 +6,8 @@ name: session
 # and standard time; `--gate-minutes` lets only the one near the open run (and skips holidays).
 on:
   schedule:
-    - cron: "15 13 * * 1-5"      # 09:15 New York while daylight-saving time is in force (Mar-Nov)
-    - cron: "15 14 * * 1-5"      # 09:15 New York in standard time (Nov-Mar)
+    - cron: "50 12 * * 1-5"      # 08:50 New York while daylight-saving time is in force (Mar-Nov)
+    - cron: "50 13 * * 1-5"      # 08:50 New York in standard time (Nov-Mar)
   workflow_dispatch:
     inputs:
       mode:
@@ -43,8 +43,11 @@ jobs:
       ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
       ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      OPENROUTER_API_KEYS: ${{ secrets.OPENROUTER_API_KEYS }}
       GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      GROQ_API_KEYS: ${{ secrets.GROQ_API_KEYS }}
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_API_KEYS: ${{ secrets.GEMINI_API_KEYS }}
       MPLBACKEND: Agg
       PYTHONUNBUFFERED: "1"
       OMP_NUM_THREADS: "3"
@@ -54,12 +57,12 @@ jobs:
         id: gate
         if: ${{ github.event_name == 'schedule' || inputs.gate == true }}
         run: |
-          # cheap pre-install check: proceed only between 08:45 and 10:00 New York on a weekday
+          # cheap pre-install check: proceed only between 08:30 and 10:00 New York on a weekday
           python3 - <<'EOF' >> "$GITHUB_OUTPUT"
           from datetime import datetime
           from zoneinfo import ZoneInfo
           now = datetime.now(ZoneInfo("America/New_York"))
-          ok = now.weekday() < 5 and (8, 45) <= (now.hour, now.minute) <= (10, 0)
+          ok = now.weekday() < 5 and (8, 30) <= (now.hour, now.minute) <= (10, 0)
           print(f"proceed={'true' if ok else 'false'}")
           print(f"now={now:%a %Y-%m-%d %H:%M %Z}")
           EOF
@@ -71,7 +74,10 @@ jobs:
           submodules: false
       - name: third-party code the signals need
         if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
-        run: git submodule update --init --depth 1 third_party/automating-technical-analysis
+        run: |
+          git submodule update --init --depth 1 third_party/automating-technical-analysis
+          git submodule update --init --depth 1 third_party/TradingAgents || echo "TradingAgents clone failed - block stays masked"
+          git submodule update --init --depth 1 third_party/ai-hedge-fund || echo "ai-hedge-fund clone failed - block stays masked"
       - uses: actions/setup-python@v5
         if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
         with:
@@ -96,12 +102,27 @@ jobs:
       - name: TensorFlow env for the Keras models
         if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
         run: python scripts/setup_agent_envs.py --only tf
+      - uses: actions/cache@v4
+        if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
+        with:
+          path: |
+            .venv-tradingagents
+            .venv-aihf
+          key: agent-envs-${{ runner.os }}-${{ hashFiles('scripts/setup_agent_envs.py', '.gitmodules') }}
+      - name: LLM agent frameworks (TradingAgents, ai-hedge-fund) in their own envs
+        if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
+        run: |
+          python scripts/setup_agent_envs.py --only tradingagents || echo "TradingAgents env failed - block stays masked"
+          python scripts/setup_agent_envs.py --only aihf || echo "ai-hedge-fund env failed - block stays masked"
       - name: restore state
         if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
         run: python scripts/ci_state.py restore
       - name: doctor (which inputs are live on this runner)
         if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
         run: python -m stockbot doctor
+      - name: llm smoke (one headline score through the key pools)
+        if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
+        run: python -m stockbot news --ticker SPY --days 1 --no-cache | tail -12 || true
       - name: market status
         if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
         run: python -m stockbot market-status

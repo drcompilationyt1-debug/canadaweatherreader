@@ -43,14 +43,28 @@ class AIHedgeFundSignal(SignalProvider):
         self.mandate = self.cfg.get("mandate") or str(THIRD_PARTY / "ai-hedge-fund" / "hedge_fund" / "fund" / "example.yaml")
         self.timeout = float(self.cfg.get("timeout", 1800))
 
+    def _llm_env(self) -> dict:
+        """Env for the subprocess: the configured model and, for Google models, the next Gemini key of the pool."""
+        from ...llm.keys import pool
+
+        extra: dict = {}
+        model = self.cfg.get("llm_model")
+        if model:
+            extra["HEDGE_FUND_LLM_MODEL"] = str(model)
+        if not os.environ.get("GOOGLE_API_KEY"):
+            key = pool("GEMINI_API_KEY").pick()
+            if key:
+                extra["GOOGLE_API_KEY"] = key
+        return extra
+
     def availability(self) -> tuple[bool, str]:
         if not self.enabled:
             return False, "disabled (signals.ai_hedge_fund.enabled)"
         py, why = resolve_python(self.cfg.get("python"), ".venv-aihf", "hedge_fund")
         if py is None:
             return False, why
-        if not any(os.environ.get(k) for k in LLM_KEYS):
-            return False, "set an LLM key (OPENAI_API_KEY / ANTHROPIC_API_KEY ...)"
+        if not any(os.environ.get(k) for k in LLM_KEYS) and not self._llm_env().get("GOOGLE_API_KEY"):
+            return False, "set an LLM key (GEMINI_API_KEY pool / OPENAI_API_KEY / ANTHROPIC_API_KEY ...)"
         if not Path(self.mandate).exists():
             return False, f"mandate file not found: {self.mandate}"
         fd = "FINANCIAL_DATASETS_API_KEY set" if os.environ.get("FINANCIAL_DATASETS_API_KEY") else "no FINANCIAL_DATASETS_API_KEY (free tickers only)"
@@ -59,14 +73,22 @@ class AIHedgeFundSignal(SignalProvider):
     def compute_history(self, ticker: str, df: pd.DataFrame) -> np.ndarray | None:
         return None
 
+    @staticmethod
+    def cache_day(df: pd.DataFrame) -> str:
+        """Cache key: the last complete bar's date, so a pre-open run and the open-time cycle share it."""
+        try:
+            return pd.Timestamp(df.index[-1]).strftime("%Y-%m-%d")
+        except Exception:  # noqa: BLE001
+            return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
     def compute_latest(self, ticker: str, df: pd.DataFrame) -> np.ndarray | None:
-        day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        day = self.cache_day(df)
         f = self.cache_dir / f"{ticker}_{day}.json"
         if f.exists():
             d = json.loads(f.read_text(encoding="utf-8"))
         else:
             py, _ = resolve_python(self.cfg.get("python"), ".venv-aihf", "hedge_fund")
-            d = run_agent(py, SCRIPT, [ticker, day, "--mandate", str(self.mandate)], self.timeout)
+            d = run_agent(py, SCRIPT, [ticker, day, "--mandate", str(self.mandate)], self.timeout, self._llm_env())
             f.parent.mkdir(parents=True, exist_ok=True)
             f.write_text(json.dumps(d), encoding="utf-8")
         vals = np.array([s["value"] for s in d.get("signals", [])], dtype=float)

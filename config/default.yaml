@@ -70,11 +70,19 @@ signals:
   news_llm:      { enabled: true, lookback_days: 3, max_items: 25, score_history: false, max_history_calls: 200, history_granularity: week, rag_grading: false }
   qlib:          { enabled: true, predictions: models/qlib/pred.parquet }
   freqtrade:     { enabled: true }
-  # Tier C - opt-in LLM multi-agent frameworks (many LLM calls per ticker per day).  They run in
-  # their own virtualenvs: python scripts/setup_agent_envs.py   (python: null = auto-detect)
-  # Free models: llm_provider openai + backend_url https://openrouter.ai/api/v1 uses OPENROUTER_API_KEY.
-  trading_agents: { enabled: false, python: null, llm_provider: openai, deep_think_llm: gpt-4o-mini, quick_think_llm: gpt-4o-mini, backend_url: null, max_debate_rounds: 1, timeout: 1800 }
-  ai_hedge_fund:  { enabled: false, python: null, mandate: null, timeout: 1800 }
+  # Tier C - LLM multi-agent frameworks (a dozen LLM calls per ticker).  They run in their own
+  # virtualenvs (python scripts/setup_agent_envs.py; python: null = auto-detect) and only on the
+  # `agents.top_n` tickers where the other models agree most (strongest |consensus|), within
+  # `agents.budget_minutes` per cycle; the session pre-computes them before the open so the
+  # orders at 09:35 are not delayed.  Results are cached per (ticker, bar date).
+  agents: { top_n: 5, budget_minutes: 20 }
+  # TradingAgents on Groq (OpenAI-compatible endpoint, GROQ_API_KEY pool); backend_url with
+  # "openrouter" / "generativelanguage" switches the key pool automatically, llm_provider google
+  # uses the GEMINI_API_KEY pool as GOOGLE_API_KEY.
+  trading_agents: { enabled: true, python: null, llm_provider: openai, backend_url: "https://api.groq.com/openai/v1",
+                    deep_think_llm: openai/gpt-oss-120b, quick_think_llm: openai/gpt-oss-20b, max_debate_rounds: 1, timeout: 600 }
+  # ai-hedge-fund on Gemini (its registry knows gemini-3.1-pro-preview as a Google model); GEMINI_API_KEY pool.
+  ai_hedge_fund:  { enabled: true, python: null, mandate: null, llm_model: gemini-3.1-pro-preview, timeout: 600 }
   # Ports of the reference repos (Lean algorithms, huseinzol05 agents, akurgat indications,
   # the LSTM-style forecasters) - cheap extra opinions for the policy ------------------
   strategy_zoo:  { enabled: true }
@@ -169,12 +177,19 @@ llm:
     fallback_models: [nvidia/nemotron-3-super-120b-a12b:free, nvidia/nemotron-3-ultra-550b-a55b:free, openrouter/free]
     cooldown_seconds: 900                 # free models: 20 req/min, 50 req/day (1000/day once $10 of credits were ever bought)
     max_tokens: 1024
+  # Every provider takes several keys (NAME, NAME_2.., or NAMES comma-separated): they are used in
+  # turn and a key that hits its daily cap rests while the others continue.
   groq:
-    model: llama-3.3-70b-versatile
+    # Groq roster as of 2026-09-12: gpt-oss-120b is the strongest reasoner (30 req/min, 1000/day per
+    # account), qwen3.8-27b and gpt-oss-20b are the fallbacks (llama-3.3-70b was retired).
+    model: openai/gpt-oss-120b
+    fallback_models: [qwen/qwen3.8-27b, openai/gpt-oss-20b]
     cooldown_seconds: 600
     max_tokens: 1024
   gemini:
-    model: gemini-2.5-flash
+    # Google AI Studio free tier; quotas are per model, so the fallbacks are real extra budget.
+    model: gemini-3.8-flash
+    fallback_models: [gemini-3.5-flash, gemini-2.5-flash, gemini-flash-lite-latest]
     cooldown_seconds: 900
     max_tokens: 1024
   ollama:

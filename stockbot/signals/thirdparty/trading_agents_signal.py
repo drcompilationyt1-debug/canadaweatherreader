@@ -56,12 +56,27 @@ class TradingAgentsSignal(SignalProvider):
         self.timeout = float(self.cfg.get("timeout", 1800))
 
     def _key_env(self) -> tuple[str | None, dict]:
-        """(missing key name or None, extra env for the subprocess)."""
+        """(missing key name or None, extra env for the subprocess).
+
+        OpenAI-compatible ``backend_url``s map to the matching key pool (OpenRouter, Groq, Gemini)
+        and every call takes the next key of the pool, so several free accounts share the load."""
+        from ...llm.keys import pool
+
         provider = str(self.cfg.get("llm_provider", "openai")).lower()
-        backend = str(self.cfg.get("backend_url") or "")
+        backend = str(self.cfg.get("backend_url") or "").lower()
         extra: dict = {}
-        if provider == "openai" and "openrouter" in backend and not os.environ.get("OPENAI_API_KEY") and os.environ.get("OPENROUTER_API_KEY"):
-            extra["OPENAI_API_KEY"] = os.environ["OPENROUTER_API_KEY"]
+        pool_env = None
+        if provider == "openai" and backend:
+            pool_env = ("OPENROUTER_API_KEY" if "openrouter" in backend else "GROQ_API_KEY" if "groq" in backend
+                        else "GEMINI_API_KEY" if "generativelanguage" in backend else None)
+            target = "OPENAI_API_KEY"
+        elif provider == "google":
+            pool_env, target = "GEMINI_API_KEY", "GOOGLE_API_KEY"
+        if pool_env:
+            key = pool(pool_env).pick() or (os.environ.get(target) if pool_env != "GEMINI_API_KEY" else None)
+            if not key:
+                return pool_env, extra
+            extra[target] = key
             return None, extra
         key = KEY_FOR_PROVIDER.get(provider, f"{provider.upper()}_API_KEY")
         if key and not os.environ.get(key):
@@ -82,8 +97,16 @@ class TradingAgentsSignal(SignalProvider):
     def compute_history(self, ticker: str, df: pd.DataFrame) -> np.ndarray | None:
         return None
 
+    @staticmethod
+    def cache_day(df: pd.DataFrame) -> str:
+        """Cache key: the last complete bar's date, so a pre-open run and the open-time cycle share it."""
+        try:
+            return pd.Timestamp(df.index[-1]).strftime("%Y-%m-%d")
+        except Exception:  # noqa: BLE001
+            return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
     def compute_latest(self, ticker: str, df: pd.DataFrame) -> np.ndarray | None:
-        day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        day = self.cache_day(df)
         f = self.cache_dir / f"{ticker}_{day}.json"
         if f.exists():
             d = json.loads(f.read_text(encoding="utf-8"))

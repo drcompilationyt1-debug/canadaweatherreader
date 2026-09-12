@@ -27,7 +27,7 @@ def test_presets_need_their_key(monkeypatch):
     ok, why = b.is_configured()
     assert ok and "openrouter.ai" in why and b.model.endswith(":free")
     kw = b.request_kwargs([{"role": "user", "content": "hi"}])
-    assert kw["extra_body"]["models"][0] == b.model and len(kw["extra_body"]["models"]) == 3
+    assert kw["extra_body"]["models"][0] == b.model and len(kw["extra_body"]["models"]) == 1 + len(b.fallback_models)
     assert "extra_body" not in GroqBackend({}).request_kwargs([])
     # a custom OpenAI-compatible server without a key is fine (local LM Studio etc.)
     assert OpenAIBackend({"base_url": "http://localhost:1234/v1"}).is_configured()[0]

@@ -64,6 +64,7 @@ class TradingSession:
         self.trainer: subprocess.Popen | None = None
         self.snapshots: list[dict] = []
         self.summary: dict = {}
+        self.prewarmed: dict = {}
 
     # ------------------------------------------------------------------ helpers
     def now(self) -> datetime:
@@ -156,6 +157,23 @@ class TradingSession:
                  len(positions), 100 * snap["mean_move"], f"{100 * snap['consensus_hit_rate']:.0f}%" if called else "-", top, bottom)
         return snap
 
+    def _prewarm(self, minutes_to_open: float) -> None:
+        """Run the LLM agent frameworks on the top-N consensus tickers before the open, so the
+        cycle at the open finds their answers cached and the orders are not delayed."""
+        try:
+            if self.runner is None:
+                self.runner = TradingRunner(self.cfg, mode=self.mode, offline=self.offline, with_llm=self.with_llm, clock=self.clock)
+            if not self.runner.has_agent_frameworks():
+                return
+            budget = max(1.0, min(self.runner.agent_settings()[1], minutes_to_open - 3.0))
+            log.info("pre-open: computing the agent frameworks (up to %.0f min before the open)", budget)
+            t0 = time.time()
+            tickers = self.runner.prewarm_agents(refresh=not self.offline, budget_minutes=budget)
+            self.prewarmed = {"tickers": tickers, "minutes": round((time.time() - t0) / 60.0, 1)}
+            log.info("pre-open done in %.1f min: %s", self.prewarmed["minutes"], tickers)
+        except Exception as e:  # noqa: BLE001 - never let the warm-up stop the session
+            log.warning("pre-open agent warm-up failed: %s", e)
+
     # ------------------------------------------------------------------ main
     def run(self, force: bool = False) -> dict:
         st = self.clock.status()
@@ -167,6 +185,8 @@ class TradingSession:
             log.info("no session: %s", self.summary["skipped"])
             return self.summary
         if not st.is_open:
+            if st.minutes_to_open <= self.max_wait_minutes:
+                self._prewarm(st.minutes_to_open)
             st = self.clock.wait_for_open(self.max_wait_minutes, sleep=self.sleep)
             if not st.is_open:
                 self.summary = {"skipped": f"market closed until {st.next_open.isoformat(timespec='minutes')}", "date": st.now.strftime("%Y-%m-%d")}
@@ -196,6 +216,9 @@ class TradingSession:
         self.summary["decisions"] = {d.ticker: d.action for d in decisions}
         self.summary["orders"] = sum(1 for d in decisions if d.action != "HOLD")
         self.summary["note"] = r.last_cycle_note
+        self.summary["agent_tickers"] = list(r.agent_tickers)
+        if self.prewarmed:
+            self.summary["prewarm"] = self.prewarmed
         self._append({"type": "decisions", "ts": self.now().isoformat(timespec="seconds"),
                       "decisions": [d.to_dict() for d in decisions], "votes": r.last_votes})
         log.info("%d decisions, %d orders; watching until %s", len(decisions), self.summary["orders"], end.strftime("%H:%M"))
