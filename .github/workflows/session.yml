@@ -82,7 +82,12 @@ jobs:
         run: |
           python -m pip install -U pip
           pip install -e ".[all]" tzdata alpaca-py
-          pip install technical || echo "technical / TA-Lib unavailable on this runner - those blocks stay masked"
+          pip install technical || echo "technical (freqtrade qtpylib) unavailable - that block stays masked"
+      - name: TA-Lib (61 candlestick recognisers)
+        if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
+        run: |
+          curl -sSL -o /tmp/ta-lib.deb https://github.com/ta-lib/ta-lib/releases/download/v0.6.4/ta-lib_0.6.4_amd64.deb \
+            && sudo dpkg -i /tmp/ta-lib.deb && pip install TA-Lib || echo "TA-Lib unavailable - talib_candles stays masked"
       - uses: actions/cache@v4
         if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
         with:

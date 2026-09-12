@@ -47,7 +47,10 @@ data:
   end: null              # null = today
   interval: "1d"
   cache_dir: data/cache
-  train_end: "2022-12-31"   # everything after this is held-out test / walk-forward data
+  # Everything after train_end is held-out test data.  "rolling:12" = the first day of the month 12
+  # months ago, so the paper-trading months become training data a year later while the last year
+  # stays a real out-of-sample check (a fixed date such as "2022-12-31" also works).
+  train_end: "rolling:12"
   refresh_days: 1
 
 signals:
@@ -251,8 +254,8 @@ session:                      # `stockbot session`: the daily market-hours run (
   train_timesteps: 2000000    # PPO steps per ensemble member per session (the time budget usually wins)
   train_n_envs: 3             # parallel simulators (the runner has 4 cores, one stays free for the trading loop)
   train_seeds: null           # null = train.seeds
-  reuse_dataset_days: 1       # reuse models/dataset when it is younger than this (skips the slow sub-model refit)
-  rolling_train_end_months: 12   # train on everything up to N months ago (0 = keep data.train_end fixed)
+  reuse_dataset_days: 7       # reuse models/dataset when younger than this: the weekly retrain refits every
+                              # third-party sub-model, the daily session spends its time on the policy
   log_dir: data/paper/sessions
 
 autopilot:                    # `stockbot autopilot`: trade every weekday, retrain monthly

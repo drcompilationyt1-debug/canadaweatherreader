@@ -226,9 +226,9 @@ def test_trading_session_end_to_end(cfg, frames, tmp_path):
     # a second run on the same day is refused unless forced
     again = TradingSession(cfg, mode="paper", hours=0.5, train=False, clock=clock, sleep=clock.sleep, runner=runner).run()
     assert "already ran" in again["skipped"]
-    # the trainer command carries the time budget, the dataset reuse and the rolling split
+    # the trainer command carries the time budget and the dataset reuse; the split comes from the config
     cmd = session.trainer_command(42.0)
-    assert "--max-minutes" in cmd and "--reuse-dataset-days" in cmd and any(a.startswith("data.train_end=2025-09-01") for a in cmd)
+    assert "--max-minutes" in cmd and "--reuse-dataset-days" in cmd and "--set" not in cmd
 
 
 def test_time_budget_stops_training(cfg, frames):
@@ -247,7 +247,11 @@ def test_rolling_train_end():
     from datetime import date
 
     from stockbot.agent.train import rolling_train_end
+    from stockbot.config import load_config
 
     assert rolling_train_end(12, date(2026, 9, 14)) == "2025-09-01"
     assert rolling_train_end(6, date(2026, 3, 1)) == "2025-09-01"
     assert rolling_train_end(0, date(2026, 9, 14)) == "2026-09-01"
+    resolved = load_config(overrides=["data.train_end=rolling:12"]).get_path("data.train_end")
+    assert resolved == rolling_train_end(12) and resolved.endswith("-01")
+    assert load_config(overrides=["data.train_end=2022-12-31"]).get_path("data.train_end") == "2022-12-31"

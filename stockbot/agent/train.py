@@ -134,7 +134,7 @@ class OOSEvalCallback(BaseCallback):
         self.best = -np.inf
         # scores are only comparable when the evaluation set and the environment economics are the same
         self.eval_key = hashlib.sha1(json.dumps({
-            "tickers": self.tickers, "max_bars": max_bars, "signature": layout.signature(),
+            "tickers": self.tickers, "max_bars": max_bars, "signature": layout.signature(), "train_end": str(meta.get("train_end")),
             "env": {k: env_cfg.get(k) for k in ("allow_short", "vol_target", "benchmark_mix", "turnover_penalty",
                                               "short_penalty", "deadband", "reward", "commission", "slippage")},
         }, sort_keys=True, default=str).encode()).hexdigest()[:12]
@@ -380,15 +380,4 @@ def retrain(cfg: Config, total_timesteps: int | None = None, n_envs: int | None 
     return train(cfg, total_timesteps=total_timesteps, resume=resume, dataset=ds, n_envs=n_envs, seeds=seeds, max_minutes=max_minutes)
 
 
-def rolling_train_end(months: int, today=None) -> str:
-    """First day of the month ``months`` months ago: the newest data the policy may train on.
-
-    Snapping to a month start keeps the split (and therefore the cached dataset) stable for a month
-    while the paper-trading days still flow into the training set a year later."""
-    from datetime import date
-
-    today = today or date.today()
-    m = today.month - 1 - int(months)
-    year = today.year + m // 12
-    month = m % 12 + 1
-    return f"{year:04d}-{month:02d}-01"
+from ..config import rolling_train_end  # noqa: E402,F401 - re-exported: `data.train_end: rolling:N` is resolved by load_config

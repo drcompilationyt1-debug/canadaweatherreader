@@ -48,7 +48,11 @@ jobs:
         run: |
           python -m pip install -U pip
           pip install -e ".[all]" tzdata alpaca-py
-          pip install technical || echo "technical / TA-Lib unavailable on this runner - those blocks stay masked"
+          pip install technical || echo "technical (freqtrade qtpylib) unavailable - that block stays masked"
+      - name: TA-Lib (61 candlestick recognisers)
+        run: |
+          curl -sSL -o /tmp/ta-lib.deb https://github.com/ta-lib/ta-lib/releases/download/v0.6.4/ta-lib_0.6.4_amd64.deb \
+            && sudo dpkg -i /tmp/ta-lib.deb && pip install TA-Lib || echo "TA-Lib unavailable - talib_candles stays masked"
       - uses: actions/cache@v4
         with:
           path: .venv-tf
@@ -59,6 +63,14 @@ jobs:
         run: python scripts/ci_state.py restore
       - name: news history (incremental)
         run: timeout 20m python -m stockbot news-history --start 2018-01-01 || echo "news history partial - resumes next time"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.qlib
+          key: qlib-us-data-${{ runner.os }}
+      - name: qlib model (Alpha158 -> LightGBM, weekly)
+        run: |
+          pip install pyqlib lightgbm && timeout 30m python scripts/qlib_train.py --download \
+            || echo "qlib unavailable this week - the qlib block keeps last week's predictions or stays masked"
       - name: retrain
         run: >
           python -m stockbot retrain

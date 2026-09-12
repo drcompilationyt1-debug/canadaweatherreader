@@ -56,8 +56,7 @@ class TradingSession:
         self.train_timesteps = int(s.get("train_timesteps", 2_000_000))
         self.train_n_envs = int(s.get("train_n_envs", 3))
         self.train_seeds = s.get("train_seeds")
-        self.reuse_dataset_days = float(s.get("reuse_dataset_days", 1))
-        self.rolling_train_end_months = int(s.get("rolling_train_end_months", 12) or 0)
+        self.reuse_dataset_days = float(s.get("reuse_dataset_days", 7))
         self.log_dir: Path = cfg.path("session.log_dir", "data/paper/sessions")
         self.clock = clock or MarketClock()
         self.sleep = sleep
@@ -87,16 +86,13 @@ class TradingSession:
 
     # ------------------------------------------------------------------ trainer
     def trainer_command(self, minutes: float) -> list[str]:
-        from ..agent.train import rolling_train_end
-
+        # the split (data.train_end, e.g. rolling:12) and the fee model come from the same config the runner uses
         cmd = [sys.executable, "-m", "stockbot", "retrain", "--max-minutes", f"{minutes:.1f}", "--timesteps", str(self.train_timesteps),
                "--n-envs", str(self.train_n_envs), "--reuse-dataset-days", str(self.reuse_dataset_days)]
         if self.train_seeds:
             cmd += ["--seeds", str(int(self.train_seeds))]
         if self.offline:
             cmd.append("--offline")
-        if self.rolling_train_end_months > 0:
-            cmd += ["--set", f"data.train_end={rolling_train_end(self.rolling_train_end_months, self.now().date())}"]
         return cmd
 
     def start_trainer(self, end: datetime) -> None:

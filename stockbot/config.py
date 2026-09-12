@@ -57,6 +57,29 @@ class Config(dict):
         return yaml.safe_dump(json.loads(json.dumps(self)), sort_keys=False)
 
 
+def rolling_train_end(months: int, today=None) -> str:
+    """First day of the month ``months`` months ago: the newest data the policy may train on.
+
+    Snapping to a month start keeps the split (and therefore the cached dataset) stable for a month
+    while the paper-trading days still flow into the training set once they are old enough."""
+    from datetime import date
+
+    today = today or date.today()
+    m = today.month - 1 - int(months)
+    return f"{today.year + m // 12:04d}-{m % 12 + 1:02d}-01"
+
+
+def resolve_train_end(cfg: Config) -> None:
+    """``data.train_end: rolling:12`` -> the concrete month-start date (in place)."""
+    from datetime import date, datetime
+
+    val = cfg.get_path("data.train_end")
+    if isinstance(val, str) and val.lower().startswith("rolling:"):
+        cfg.set_path("data.train_end", rolling_train_end(int(val.split(":", 1)[1] or 12)))
+    elif isinstance(val, (date, datetime)):  # `--set data.train_end=2022-12-31` is YAML-coerced to a date
+        cfg.set_path("data.train_end", val.strftime("%Y-%m-%d"))
+
+
 def env_settings(cfg: Config) -> dict:
     """The simulator's settings: the ``env`` section plus the fee schedule the brokers use, so the
     policy trains, is evaluated and trades with the same costs."""
@@ -98,4 +121,5 @@ def load_config(path: str | Path | None = None, overrides: Iterable[str] | None 
             raise ValueError(f"override must look like key.path=value, got {item!r}")
         key, val = item.split("=", 1)
         cfg.set_path(key.strip(), _coerce(val.strip()))
+    resolve_train_end(cfg)
     return cfg
