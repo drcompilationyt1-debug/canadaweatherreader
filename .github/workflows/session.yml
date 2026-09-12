@@ -10,6 +10,9 @@ on:
     - cron: "15 14 * * 1-5"      # 09:15 New York in standard time (Nov-Mar)
   workflow_dispatch:
     inputs:
+      mode:
+        description: "alpaca (paper account) | paper (built-in simulator, no keys needed)"
+        default: "alpaca"
       hours:
         description: "session length after the open"
         default: "4"
@@ -97,7 +100,7 @@ jobs:
       - name: session
         if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
         run: >
-          python -m stockbot session --mode alpaca
+          python -m stockbot session --mode ${{ inputs.mode || 'alpaca' }}
           --hours ${{ inputs.hours || '4' }}
           ${{ (github.event_name == 'schedule' || inputs.gate == true) && '--gate-minutes 90' || '' }}
           ${{ inputs.dry_run == true && '--dry-run' || '' }}
