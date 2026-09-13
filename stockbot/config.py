@@ -85,6 +85,7 @@ def env_settings(cfg: Config) -> dict:
     policy trains, is evaluated and trades with the same costs."""
     out = dict(cfg.section("env"))
     out.setdefault("fees", str(cfg.get_path("fees.preset", "moomoo") or "moomoo"))
+    out.setdefault("fees_by_market", {str(m): str(p) for m, p in (cfg.get_path("fees.by_market", {}) or {}).items()})
     out.setdefault("fee_scale", float(cfg.get_path("execution.max_position", 1.0) or 1.0))
     return out
 

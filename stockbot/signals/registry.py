@@ -54,6 +54,7 @@ PROVIDER_CLASSES: list[type[SignalProvider]] = [k for k in [
     _optional(".thirdparty.chronos_signal", "ChronosSignal"),
     _optional(".thirdparty.kronos_signal", "KronosSignal"),
     _optional(".thirdparty.timesfm_signal", "TimesFMSignal"),
+    _optional(".fundamentals", "FundamentalsSignal"),   # statements-based value / growth / quality / size
 ] if k is not None]
 
 

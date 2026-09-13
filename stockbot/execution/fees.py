@@ -27,6 +27,11 @@ PRESETS: dict[str, dict[str, float]] = {
                     "fractional_pct": 0.0099, "fractional_max": 0.99},
     "none": {"commission_per_share": 0.0, "commission_min": 0.0, "platform_per_share": 0.0, "platform_min": 0.0, "per_order": 0.0,
              "sec_fee_rate": 0.0, "sec_min": 0.0, "finra_taf_per_share": 0.0, "fractional_pct": 0.0, "fractional_max": 0.0},
+    # moomoo Canada, Canadian stocks (TSX / TSX-V, CAD): commission C$0.0049/sh min C$0.49 + platform C$0.01/sh min C$1.00,
+    # no SEC / FINRA fees (ECN fees depend on the venue and are ignored); whole shares only
+    "moomoo_ca": {"commission_per_share": 0.0049, "commission_min": 0.49, "platform_per_share": 0.01, "platform_min": 1.00,
+                  "per_order": 0.0, "sec_fee_rate": 0.0, "sec_min": 0.0, "finra_taf_per_share": 0.0,
+                  "fractional_pct": 0.0, "fractional_max": 0.0},
 }
 
 
@@ -109,4 +114,56 @@ class FeeSchedule:
                     f"(min ${self.platform_min:.2f})")
         else:
             base = "commission-free"
-        return f"{self.preset}: {base}; sells + SEC {1e6 * self.sec_fee_rate:.1f}/M + TAF ${self.finra_taf_per_share:.6f}/sh"
+        reg = f"; sells + SEC {1e6 * self.sec_fee_rate:.1f}/M + TAF ${self.finra_taf_per_share:.6f}/sh" if (self.sec_fee_rate or self.finra_taf_per_share) else ""
+        return f"{self.preset}: {base}{reg}"
+
+
+class FeeBook:
+    """One ``FeeSchedule`` per market (``us`` / ``ca``), looked up by ticker.
+
+    ``fees.preset`` is the US / default schedule; ``fees.by_market`` overrides per market
+    (default ``{ca: moomoo_ca}``).  ``FeeBook.for_ticker`` is what the simulator, the paper broker
+    and the runner use, so every market is charged its own broker fees."""
+
+    def __init__(self, default: "FeeSchedule | None", by_market: dict | None = None):
+        self.default = default
+        self.by_market: dict[str, FeeSchedule | None] = dict(by_market or {})
+
+    @classmethod
+    def from_config(cls, cfg) -> "FeeBook":
+        from .markets import MARKETS
+
+        default = FeeSchedule.from_config(cfg)
+        f = dict(cfg.section("fees")) if hasattr(cfg, "section") else dict(cfg or {})
+        overrides = dict(f.get("by_market") or {})
+        by_market: dict[str, FeeSchedule | None] = {}
+        for market, spec in MARKETS.items():
+            preset = overrides.get(market, spec["fees"] if market != "us" else None)
+            if preset is None:
+                continue
+            preset = str(preset).lower()
+            if preset == "bps":
+                by_market[market] = None
+            elif default is not None and preset == default.preset:
+                by_market[market] = default
+            else:
+                by_market[market] = FeeSchedule.from_preset(preset, max_cost_bps=f.get("max_cost_bps"))
+        return cls(default, by_market)
+
+    @classmethod
+    def from_names(cls, default: str | None, by_market: dict[str, str] | None = None) -> "FeeBook":
+        d = None if default in (None, "bps") else FeeSchedule.from_preset(str(default))
+        return cls(d, {m: (None if p == "bps" else FeeSchedule.from_preset(p)) for m, p in (by_market or {}).items()})
+
+    def for_market(self, market: str) -> "FeeSchedule | None":
+        return self.by_market.get(market, self.default)
+
+    def for_ticker(self, ticker: str) -> "FeeSchedule | None":
+        from .markets import market_of
+
+        return self.for_market(market_of(ticker))
+
+    def names(self) -> dict[str, str]:
+        out = {"default": self.default.preset if self.default else "bps"}
+        out.update({m: (s.preset if s else "bps") for m, s in self.by_market.items()})
+        return out

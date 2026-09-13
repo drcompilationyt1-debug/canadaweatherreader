@@ -52,14 +52,15 @@ class TradingRunner:
         self.max_position = float(self.ex.get("max_position", 0.25))
         self.deadband = float(self.env_cfg.get("deadband", 0.05))
         self.allow_short = bool(self.env_cfg.get("allow_short", True))
-        from .fees import FeeSchedule
+        from .fees import FeeBook
 
-        self.fees = FeeSchedule.from_config(cfg)  # moomoo's schedule; None = legacy proportional commission
-        # an order too small for the per-order minimums is not worth sending
+        self.fee_book = FeeBook.from_config(cfg)  # one broker schedule per market; None entries = legacy proportional commission
+        self.fees = self.fee_book.default
+        # an order too small for the per-order minimums is not worth sending (per market)
         self.min_trade_usd = float(self.ex.get("min_trade_usd", 50))
-        if self.fees is not None:
-            self.min_trade_usd = max(self.min_trade_usd, self.fees.min_trade_usd())
-            log.info("fees: %s -> orders below $%.0f are skipped", self.fees.describe(), self.min_trade_usd)
+        for market, sched in [("default", self.fees)] + list(self.fee_book.by_market.items()):
+            if sched is not None:
+                log.info("fees %s: %s -> orders below %.0f are skipped", market, sched.describe(), max(self.min_trade_usd, sched.min_trade_usd()))
         ckpt = cfg.path("train.checkpoint_dir", "models/policy")
         if bundle is None:
             if not PolicyBundle.exists(ckpt):
@@ -88,21 +89,68 @@ class TradingRunner:
                              offline=self.offline, refresh=refresh and not self.offline)
 
     def _make_broker(self) -> Broker:
-        if self.mode in ("alpaca", "live"):
+        """The broker for ``mode``; when the universe spans markets the main broker cannot trade
+        (``execution.routes``), a ``RoutedBroker`` sends those tickers to their own sleeve."""
+        from .markets import group_by_market
+        from .routed import RoutedBroker
+
+        main = self._single_broker(self.mode, "us")
+        routes = {str(m): str(b) for m, b in (self.ex.get("routes") or {}).items()}
+        markets = group_by_market(self.cfg.get("universe", []))
+        sleeves = {}
+        for market, broker_mode in routes.items():
+            if market in markets and market != "us" and broker_mode != self.mode:
+                sleeves[market] = self._single_broker(broker_mode, market)
+        if not sleeves or self.mode == "paper":
+            if self.mode == "paper" and len(markets) > 1:   # one simulator per market so each pays its own fees
+                sleeves = {m: self._single_broker("paper", m) for m in markets if m != "us"}
+                if sleeves:
+                    return RoutedBroker({"us": main, **sleeves}, default="us")
+            return main
+        return RoutedBroker({"us": main, **sleeves}, default="us")
+
+    def _single_broker(self, mode: str, market: str) -> Broker:
+        fees = self.fee_book.for_market(market)
+        if mode in ("alpaca", "live"):
             from .alpaca import AlpacaBroker
 
             return AlpacaBroker(paper=bool(self.ex.get_path("alpaca.paper", True)), fractional=bool(self.ex.get_path("alpaca.fractional", True)),
-                                fees=self.fees)
-        if self.mode == "moomoo":
+                                fees=fees)
+        if mode == "moomoo":
             from .moomoo import MoomooBroker
 
             mm = self.ex.section("moomoo")
             return MoomooBroker(env=str(mm.get("env", "simulate")), host=str(mm.get("host", "127.0.0.1")), port=int(mm.get("port", 11111)),
                                 security_firm=str(mm.get("security_firm", "FUTUCA")), market=str(mm.get("market", "US")),
-                                allow_short=bool(mm.get("allow_short", False)), fees=self.fees)
-        return PaperBroker(self.cfg.path("execution.state_file", "data/paper/state.json"), self.last_close,
-                           float(self.env_cfg.get("initial_cash", 100_000)), float(self.env_cfg.get("commission", 0.0005)),
-                           float(self.env_cfg.get("slippage", 0.0005)), self.allow_short, fees=self.fees)
+                                allow_short=bool(mm.get("allow_short", False)), fees=fees)
+        if market != "us":   # a sleeve keeps its own paper account (own currency, own file)
+            sleeve = self.ex.section("sleeves").section(market)
+            state_file = self.cfg.path(f"execution.sleeves.{market}.state_file", f"data/paper/state_{market}.json")
+            cash = float(sleeve.get("initial_cash", self.env_cfg.get("initial_cash", 100_000)))
+        else:
+            state_file = self.cfg.path("execution.state_file", "data/paper/state.json")
+            cash = float(self.env_cfg.get("initial_cash", 100_000))
+        return PaperBroker(state_file, self.last_close, cash, float(self.env_cfg.get("commission", 0.0005)),
+                           float(self.env_cfg.get("slippage", 0.0005)), self.allow_short, fees=fees)
+
+    def allocate_by_market(self, targets: dict[str, float], allow_short: bool) -> dict[str, float]:
+        """Gross-exposure cap per sleeve: a Canadian book and a US book are separate accounts."""
+        from .markets import group_by_market
+
+        gross = float(self.ex.get("max_gross_exposure", 1.0))
+        weights: dict[str, float] = {}
+        for market, names in group_by_market(targets).items():
+            weights.update(allocate({t: targets[t] for t in names}, self.max_position, gross, allow_short))
+        return weights
+
+    def equity_for(self, ticker: str) -> float:
+        """Equity of the sleeve that trades ``ticker`` (the whole account for a single broker)."""
+        eq = getattr(self.broker, "equity_for", None)
+        return float(eq(ticker)) if eq is not None else float(self.broker.equity())
+
+    def min_trade_for(self, ticker: str) -> float:
+        sched = self.fee_book.for_ticker(ticker)
+        return max(self.min_trade_usd, sched.min_trade_usd()) if sched is not None else self.min_trade_usd
 
     def _load_state(self) -> dict:
         if self.state_file.exists():
@@ -124,7 +172,8 @@ class TradingRunner:
 
     def market_is_open(self) -> bool:
         """The built-in paper simulator fills at the last close and never needs an open exchange."""
-        if isinstance(self.broker, PaperBroker):
+        sleeves = getattr(self.broker, "sleeves", None)
+        if isinstance(self.broker, PaperBroker) or (sleeves and all(isinstance(b, PaperBroker) for b in sleeves.values())):
             return True
         if self.clock is None:
             from .market_hours import MarketClock
@@ -272,6 +321,7 @@ class TradingRunner:
             dry_run = True
 
         equity = float(self.broker.equity())
+        eq_of = {t: self.equity_for(t) for t in tickers}   # each ticker is sized against its own sleeve
         if not self.state.get("initial_equity"):
             self.state["initial_equity"] = equity
         self.state["peak_equity"] = max(float(self.state.get("peak_equity") or equity), equity)
@@ -287,7 +337,7 @@ class TradingRunner:
             price = self.price(t)
             pnl = (price / pos.avg_price - 1.0) * 100.0 * (1.0 if pos.shares > 0 else -1.0)
             peaks[t] = max(float(peaks.get(t, pnl)), pnl)
-            positions[t] = {"exposure": float(np.clip(pos.shares * price / max(equity * self.max_position, 1e-9), -1, 1)),
+            positions[t] = {"exposure": float(np.clip(pos.shares * price / max(eq_of[t] * self.max_position, 1e-9), -1, 1)),
                             "pnl_pct": pnl, "peak_pnl_pct": peaks[t], "days": int(self.state.get("pos_age", {}).get(t, 0))}
         self.ctx.extra["positions"] = positions
 
@@ -296,7 +346,7 @@ class TradingRunner:
         for t in tickers:
             price = self.price(t)
             sig = self.bundle.layout.assemble_latest(vectors[t])
-            port, _ = self.portfolio_state(t, price, equity)
+            port, _ = self.portfolio_state(t, price, eq_of[t])
             obs = np.concatenate([sig, port]).astype(np.float32)
             obs_by[t] = obs
             avail_by[t] = self.bundle.layout.availability_of(sig)
@@ -310,14 +360,14 @@ class TradingRunner:
         log.info("signals ON: %s | OFF: %s", ", ".join(on) or "-", ", ".join(off) or "-")
 
         allow_short = self.allow_short and self.broker.supports_short
-        weights = allocate(targets, self.max_position, float(self.ex.get("max_gross_exposure", 1.0)), allow_short)
+        weights = self.allocate_by_market(targets, allow_short)
         decisions: list[Decision] = []
         for t in tickers:
             price = self.price(t)
-            slice_cap = equity * self.max_position
-            _, current = self.portfolio_state(t, price, equity)
+            slice_cap = eq_of[t] * self.max_position
+            _, current = self.portfolio_state(t, price, eq_of[t])
             target = weights[t] / self.max_position if self.max_position > 0 else 0.0
-            dec = decide(t, target, current, slice_cap, price, self.deadband, allow_short, self.min_trade_usd)
+            dec = decide(t, target, current, slice_cap, price, self.deadband, allow_short, self.min_trade_for(t))
             fills = []
             fees_paid = 0.0
             if dec.action != "HOLD" and not dry_run:
@@ -332,7 +382,7 @@ class TradingRunner:
                     fees_paid = float(fill.cost)
                     dec.note = f"filled {fill.qty:.3f} @ {fill.price:.2f} fees {fill.cost:.2f}"
                     self.state["fees_paid"] = float(self.state.get("fees_paid", 0.0)) + fees_paid
-            new_exp = self.portfolio_state(t, price, equity)[1]
+            new_exp = self.portfolio_state(t, price, eq_of[t])[1]
             ages = self.state.setdefault("pos_age", {})
             ages[t] = ages.get(t, 0) + 1 if abs(new_exp) > 0.01 and np.sign(new_exp) == np.sign(current if abs(current) > 0.01 else new_exp) else (1 if abs(new_exp) > 0.01 else 0)
             decisions.append(dec)
@@ -344,7 +394,7 @@ class TradingRunner:
             if not dry_run:
                 self.store.record(mode=self.mode, ticker=t, date=as_of, obs=obs_by[t], action=targets[t],
                                   target_exposure=dec.target_exposure, weight=weights[t], decision=dec.action,
-                                  price=price, equity=equity, availability=avail_by[t], fills=fills, fees=fees_paid)
+                                  price=price, equity=eq_of[t], availability=avail_by[t], fills=fills, fees=fees_paid)
                 self.board.record(ticker=t, date=as_of, price=price, votes=votes, mode=self.mode)
         if isinstance(self.broker, PaperBroker):
             self.broker.mark(as_of)

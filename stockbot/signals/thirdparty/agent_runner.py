@@ -37,7 +37,8 @@ def resolve_python(configured: str | None, default_env: str, module: str) -> tup
 
 
 def run_agent(python: Path, script: Path, args: list[str], timeout: float = 1800.0, env_extra: dict | None = None) -> dict:
-    env = {**os.environ, **(env_extra or {}), "PYTHONIOENCODING": "utf-8"}
+    # PYTHONUTF8: the frameworks open text files without an encoding; on a non-UTF-8 Windows locale that breaks
+    env = {**os.environ, **(env_extra or {}), "PYTHONIOENCODING": "utf-8", "PYTHONUTF8": "1"}
     cmd = [str(python), str(script), *args]
     log.info("running agent: %s (timeout %ds)", " ".join(cmd[1:3]), int(timeout))
     try:

@@ -54,10 +54,13 @@ class TradingEnv(gym.Env):
         self.recent_days = int(recent_days)
         self.reward_scale = float(c["reward_scale"])
         fees = c.get("fees")
+        self.fee_book = None
         if isinstance(fees, str):  # preset name from the config (e.g. "moomoo"); "bps" = proportional commission
-            from ..execution.fees import FeeSchedule
+            from ..execution.fees import FeeBook
 
-            fees = None if fees.lower() == "bps" else FeeSchedule.from_preset(fees.lower())
+            # one schedule per market: a Canadian episode pays moomoo Canada's fees, a US one moomoo's US fees
+            self.fee_book = FeeBook.from_names(fees.lower(), {m: str(p).lower() for m, p in (c.get("fees_by_market") or {}).items()})
+            fees = self.fee_book.default
         self.portfolio = Portfolio(c["initial_cash"], c["commission"], c["slippage"], c["allow_short"],
                                    c["short_borrow_rate_annual"], c["max_leverage"], fees=fees,
                                    fee_scale=float(c.get("fee_scale", 1.0) or 1.0))
@@ -106,6 +109,8 @@ class TradingEnv(gym.Env):
             self.rng = np.random.default_rng(seed)
         self.td, self.t, self.end = self._pick_window(options)
         self._vol = self._vol_for(self.td) if self.vol_target > 0 else None
+        if self.fee_book is not None:
+            self.portfolio.fees = self.fee_book.for_ticker(self.td.ticker)
         self.portfolio.reset()
         self.initial_equity = self.portfolio.initial_cash
         self.peak = self.initial_equity

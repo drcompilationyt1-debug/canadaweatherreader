@@ -31,10 +31,11 @@ class KronosSignal(SignalProvider):
 
     def __init__(self, cfg, ctx):
         super().__init__(cfg, ctx)
-        self.model_id = str(self.cfg.get("model", "NeoQuasar/Kronos-mini"))
+        self.model_id = str(self.cfg.get("model", "NeoQuasar/Kronos-small"))
         self.tokenizer_id = str(self.cfg.get("tokenizer") or TOKENIZER_FOR.get(self.model_id, "NeoQuasar/Kronos-Tokenizer-base"))
         self.context = int(self.cfg.get("context", 400))
         self.pred_len = int(self.cfg.get("pred_len", 5))
+        self.temperature = float(self.cfg.get("temperature", 0.8))   # <1 = less sampling noise in the predicted path
         self.batch_size = int(self.cfg.get("batch_size", 32))
         self.history_years = float(self.cfg.get("history_years", 6))
         self.stride = max(1, int(self.cfg.get("stride", 5)))
@@ -82,7 +83,7 @@ class KronosSignal(SignalProvider):
                 xts.append(pd.Series(x.index))
                 yts.append(pd.Series(pd.bdate_range(x.index[-1] + pd.Timedelta(days=1), periods=self.pred_len)))
             preds = pred.predict_batch(df_list=xs, x_timestamp_list=xts, y_timestamp_list=yts, pred_len=self.pred_len,
-                                       T=1.0, top_p=0.9, sample_count=1, verbose=False)
+                                       T=self.temperature, top_p=0.9, sample_count=1, verbose=False)
             for k, (r, p) in enumerate(zip(chunk, preds)):
                 last = float(bars["close"].iloc[r])
                 c = p["close"].to_numpy(float)

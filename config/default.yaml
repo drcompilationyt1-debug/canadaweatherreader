@@ -5,7 +5,30 @@
 #   OPENAI_API_KEY, ALPACA_API_KEY / ALPACA_SECRET_KEY (Alpaca paper or live account),
 #   FINNHUB_API_KEY (TradingAgents), FINANCIAL_DATASETS_API_KEY (ai-hedge-fund)
 
-universe:                   # 30 liquid US names across sectors + the two index ETFs
+universe:                   # 30 liquid US names + 12 TSX names (.TO, CAD) + 8 China / Hong Kong ADRs (US-listed)
+  # --- Canada (TSX; paper-traded on the built-in simulator with moomoo Canada fees, see execution.routes)
+  - RY.TO
+  - TD.TO
+  - SHOP.TO
+  - ENB.TO
+  - CNQ.TO
+  - CP.TO
+  - CNR.TO
+  - BMO.TO
+  - BNS.TO
+  - SU.TO
+  - ATD.TO
+  - MFC.TO
+  # --- China / Hong Kong exposure through US-listed ADRs (moomoo Canada cannot trade HK or A-shares)
+  - BABA
+  - JD
+  - PDD
+  - BIDU
+  - NTES
+  - TCOM
+  - YUMC
+  - HSBC
+  # --- United States
   - SPY
   - QQQ
   - AAPL
@@ -75,12 +98,13 @@ signals:
   # `agents.top_n` tickers where the other models agree most (strongest |consensus|), within
   # `agents.budget_minutes` per cycle; the session pre-computes them before the open so the
   # orders at 09:35 are not delayed.  Results are cached per (ticker, bar date).
-  agents: { top_n: 5, budget_minutes: 20 }
-  # TradingAgents on Groq (OpenAI-compatible endpoint, GROQ_API_KEY pool); backend_url with
-  # "openrouter" / "generativelanguage" switches the key pool automatically, llm_provider google
-  # uses the GEMINI_API_KEY pool as GOOGLE_API_KEY.
-  trading_agents: { enabled: true, python: null, llm_provider: openai, backend_url: "https://api.groq.com/openai/v1",
-                    deep_think_llm: openai/gpt-oss-120b, quick_think_llm: openai/gpt-oss-20b, max_debate_rounds: 1, timeout: 600 }
+  agents: { top_n: 4, budget_minutes: 25 }
+  # TradingAgents on Gemini (llm_provider google uses the GEMINI_API_KEY pool as GOOGLE_API_KEY).  One run is
+  # ~30 LLM calls with long prompts plus Reddit look-ups that back off on 429s: 5-10 minutes per ticker.
+  # Groq's free tier (8K tokens/min on gpt-oss-120b) throttled it past the timeout; an OpenAI-compatible
+  # backend_url containing "groq" / "openrouter" / "generativelanguage" picks the matching key pool.
+  trading_agents: { enabled: true, python: null, llm_provider: google, backend_url: null,
+                    deep_think_llm: gemini-3.8-flash, quick_think_llm: gemini-3.5-flash-lite, max_debate_rounds: 1, timeout: 900 }
   # ai-hedge-fund on Gemini (its registry knows gemini-3.1-pro-preview as a Google model); GEMINI_API_KEY pool.
   ai_hedge_fund:  { enabled: true, python: null, mandate: null, llm_model: gemini-3.1-pro-preview, timeout: 600 }
   # Ports of the reference repos (Lean algorithms, huseinzol05 agents, akurgat indications,
@@ -99,8 +123,9 @@ signals:
   alpha101:      { enabled: true }                                                              # WorldQuant 101 alphas (12 of them, cross-sectional ranks)
   finbert:       { enabled: true, model: ProsusAI/finbert, lookback_days: 3, max_texts: 2500 } # FinBERT headline sentiment; ~36 headlines/s on a CPU, newest scored first, cache grows weekly
   chronos:       { enabled: true, model: amazon/chronos-bolt-small, context: 256, batch_size: 64, history_years: 0, stride: 1 }   # zero-shot foundation forecaster
-  kronos:        { enabled: true, model: NeoQuasar/Kronos-mini, context: 400, pred_len: 5, batch_size: 32, history_years: 6, stride: 5 }   # K-line foundation model
+  kronos:        { enabled: true, model: NeoQuasar/Kronos-small, context: 400, pred_len: 5, batch_size: 16, temperature: 0.8, history_years: 5, stride: 10 }   # K-line foundation model (small: 0.4 s/forecast on a CPU)
   timesfm:       { enabled: true, model: google/timesfm-2.5-200m-pytorch, context: 512, batch_size: 32, history_years: 6, stride: 5 }      # Google TimesFM
+  fundamentals:  { enabled: true, lag_days: 60, refresh_days: 7 }                                # value / growth / profitability / leverage / size from Yahoo statements (point-in-time)
 
 fees:
   # The broker's real fee schedule, charged in the simulator, by the built-in paper broker and -
@@ -109,6 +134,7 @@ fees:
   # international schedule, the most expensive); moomoo_us = commission-free (regulatory fees only);
   # moomoo_intl = flat $0.99 per order; bps = the old proportional env.commission; none.
   preset: moomoo
+  by_market: { ca: moomoo_ca }   # Canadian stocks: C$0.0049/sh min C$0.49 + platform C$0.01/sh min C$1.00 (moomoo Canada)
   max_cost_bps: 25          # an order whose fixed minimums exceed this share of its value is not placed
   # overrides (USD): commission_per_share, commission_min, platform_per_share, platform_min, per_order,
   # sec_fee_rate, finra_taf_per_share, fractional_pct, fractional_max
@@ -240,6 +266,26 @@ news:
     COST: Costco
     BRK-B: "Berkshire Hathaway"
     V: Visa
+    RY.TO: "Royal Bank of Canada"
+    TD.TO: "TD Bank"
+    SHOP.TO: Shopify
+    ENB.TO: Enbridge
+    CNQ.TO: "Canadian Natural Resources"
+    CP.TO: "CPKC railway"
+    CNR.TO: "CN Rail"
+    BMO.TO: "Bank of Montreal"
+    BNS.TO: Scotiabank
+    SU.TO: Suncor
+    ATD.TO: "Alimentation Couche-Tard"
+    MFC.TO: Manulife
+    BABA: Alibaba
+    JD: JD.com
+    PDD: "PDD Holdings"
+    BIDU: Baidu
+    NTES: NetEase
+    TCOM: Trip.com
+    YUMC: "Yum China"
+    HSBC: HSBC
 
 execution:
   # paper  = built-in simulator broker (free, unlimited, no account)
@@ -247,7 +293,13 @@ execution:
   # moomoo = moomoo / Futu OpenAPI through the OpenD gateway (paper "simulate" account or real)
   mode: paper
   state_file: data/paper/state.json
-  max_gross_exposure: 1.0     # sum of |weights|
+  # Markets that the main broker cannot trade go to their own sleeve: Alpaca is US-only, so the
+  # Canadian names (.TO) paper-trade on the built-in simulator (moomoo Canada fees, CAD) until the
+  # moomoo OpenD gateway is set up.  Each sleeve has its own equity; exposure caps apply per sleeve.
+  routes: { ca: paper }
+  sleeves:
+    ca: { state_file: data/paper/state_ca.json, initial_cash: 100000 }
+  max_gross_exposure: 1.0     # sum of |weights| per sleeve
   max_position: 0.10          # capital slice per ticker (fraction of equity); 30 names x 10% = fully invested at most
   min_trade_usd: 50
   # Real brokers (alpaca / moomoo / live) only get orders while the exchange is open, so every fill
