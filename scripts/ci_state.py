@@ -20,8 +20,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-STATE_PATHS = ["models", "data/paper", "data/experience", "data/news_cache", "data/autopilot.json", "data/llm_state.json",
-               "reports/dashboard.html"]
+STATE_PATHS = ["models", "data/paper", "data/experience", "data/news_cache", "data/news", "data/autopilot.json", "data/llm_state.json",
+               "reports/dashboard.html"]   # data/news = the headline archive FinBERT / the LLM news history score (grows weekly)
 EXCLUDE = ["models/policy/checkpoints", "models/policy/ensemble/*/checkpoints", "models/policy/archive", "models/cache/*.parquet",
            "models/cache/ta_keras/*.parquet"]
 
