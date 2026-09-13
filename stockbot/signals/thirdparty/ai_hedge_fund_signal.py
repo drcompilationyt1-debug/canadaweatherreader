@@ -29,6 +29,8 @@ log = get_logger(__name__)
 
 LLM_KEYS = ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GOOGLE_API_KEY", "GROQ_API_KEY", "DEEPSEEK_API_KEY")
 SCRIPT = ROOT / "scripts" / "agents" / "run_ai_hedge_fund.py"
+# financialdatasets.ai serves these without a key; every other ticker needs FINANCIAL_DATASETS_API_KEY
+FREE_DATA_TICKERS = {"AAPL", "GOOGL", "MSFT", "NVDA", "TSLA"}
 
 
 class AIHedgeFundSignal(SignalProvider):
@@ -82,6 +84,9 @@ class AIHedgeFundSignal(SignalProvider):
             return datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
     def compute_latest(self, ticker: str, df: pd.DataFrame) -> np.ndarray | None:
+        if ticker.upper() not in FREE_DATA_TICKERS and not os.environ.get("FINANCIAL_DATASETS_API_KEY"):
+            log.info("ai_hedge_fund: %s needs FINANCIAL_DATASETS_API_KEY (free data covers %s) - skipped", ticker, ", ".join(sorted(FREE_DATA_TICKERS)))
+            return None
         day = self.cache_day(df)
         f = self.cache_dir / f"{ticker}_{day}.json"
         if f.exists():

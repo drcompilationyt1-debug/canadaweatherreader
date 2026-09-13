@@ -101,16 +101,14 @@ jobs:
         run: python -m stockbot doctor
       - name: news history (incremental, Saturday)
         if: ${{ steps.day.outputs.refit == 'true' }}
-        run: timeout 20m python -m stockbot news-history --start 2018-01-01 || echo "news history partial - resumes next time"
-      - uses: actions/cache@v4
-        if: ${{ steps.day.outputs.refit == 'true' }}
-        with:
-          path: ~/.qlib
-          key: qlib-us-data-${{ runner.os }}
-      - name: qlib model (Alpha158 -> LightGBM, Saturday)
+        run: timeout 35m python -m stockbot news-history --start 2018-01-01 || echo "news history partial - resumes next time"
+      - name: qlib model (bundle from our own Yahoo cache -> Alpha158 -> LightGBM, Saturday)
         if: ${{ steps.day.outputs.refit == 'true' }}
         run: |
-          pip install pyqlib lightgbm && timeout 30m python scripts/qlib_train.py --download \
+          git submodule update --init --depth 1 third_party/qlib \
+            && pip install pyqlib lightgbm \
+            && timeout 20m python scripts/qlib_build_bundle.py --refresh \
+            && timeout 30m python scripts/qlib_train.py \
             || echo "qlib unavailable this week - the qlib block keeps last week's predictions or stays masked"
       - name: retrain
         run: >
