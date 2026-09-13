@@ -126,6 +126,7 @@ signals:
   kronos:        { enabled: true, model: NeoQuasar/Kronos-small, context: 400, pred_len: 5, batch_size: 16, temperature: 0.8, history_years: 5, stride: 10 }   # K-line foundation model (small: 0.4 s/forecast on a CPU)
   timesfm:       { enabled: true, model: google/timesfm-2.5-200m-pytorch, context: 512, batch_size: 32, history_years: 6, stride: 5 }      # Google TimesFM
   fundamentals:  { enabled: true, lag_days: 60, refresh_days: 7 }                                # value / growth / profitability / leverage / size from Yahoo statements (point-in-time)
+  xs_rank:       { enabled: true, horizon: 20, min_train_years: 3, refit_every: 1, n_estimators: 300 }   # cross-sectional ranking head (LightGBM on all blocks above, walk-forward)
 
 fees:
   # The broker's real fee schedule, charged in the simulator, by the built-in paper broker and -

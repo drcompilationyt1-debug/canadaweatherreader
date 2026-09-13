@@ -197,7 +197,7 @@ def test_runner_refuses_orders_while_closed(cfg, frames):
     open_clock = FakeClock(ny("2026-09-14 10:00"))
     runner2 = TradingRunner(cfg, mode="alpaca", bundle=bundle, frames_loader=lambda refresh: frames, broker=RecordingBroker(), with_llm=False,
                             clock=open_clock)
-    assert runner2.min_trade_usd >= 700
+    assert runner2.min_trade_for("AAA") >= 700
     runner2.cycle(dry_run=False, refresh=False)
     assert len(runner2.broker.orders) == 3 and runner2.last_cycle_note == ""
     # --allow-closed overrides the guard

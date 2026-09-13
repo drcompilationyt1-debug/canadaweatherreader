@@ -238,6 +238,8 @@ class TradingRunner:
         frames = self.frames
         self.ctx.extra["frames"] = frames
         vectors: dict[str, dict[str, np.ndarray | None]] = {t: {} for t in frames}
+        self.ctx.extra["latest_vectors"] = vectors   # filled as providers run: the ranking head reads the other blocks
+        self.ctx.extra.pop("per_block", None)
         reasons: dict[str, str] = {}
         top_n, budget = self.agent_settings()
         if budget_minutes is not None:

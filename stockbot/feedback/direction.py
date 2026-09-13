@@ -45,6 +45,7 @@ VOTERS: dict[str, tuple[str, str]] = {
     "finbert": ("finbert", "fb_net"),                   # FinBERT headline sentiment
     "alpha101": ("alpha101", "a101_mean"),              # WorldQuant alphas composite (cross-sectional)
     "supertrend": ("pandas_ta", "pta_supertrend"),      # pandas-ta SuperTrend direction
+    "xs_rank": ("xs_rank", "xs_score"),                 # cross-sectional ranking head (relative to the universe)
     "momentum": ("technical", "ret_20"),                # baseline: last 20-day return, no model at all
 }
 VOTE_EPS = 1e-6

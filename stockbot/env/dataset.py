@@ -41,6 +41,8 @@ def compute_signal_arrays(frames: dict[str, pd.DataFrame], providers: list[Signa
     """Run every provider over every ticker -> {ticker: {block: array | None}}."""
     ctx.extra["frames"] = frames
     per_block: dict[str, dict[str, np.ndarray | None]] = {}
+    ctx.extra["per_block"] = per_block        # filled as providers run: later blocks (xs_rank) can read earlier ones
+    ctx.extra.pop("latest_vectors", None)
     for p in providers:
         if not p.enabled:
             continue
@@ -62,6 +64,7 @@ def compute_signal_arrays(frames: dict[str, pd.DataFrame], providers: list[Signa
             per_block[p.name] = {t: p.safe_history(t, df) for t, df in frames.items()}
         n_ok = sum(v is not None for v in per_block[p.name].values())
         log.info("signal %-16s computed for %d/%d tickers", p.name, n_ok, len(frames))
+    ctx.extra.pop("per_block", None)
     return {t: {b: per_block[b][t] for b in per_block} for t in frames}
 
 

@@ -466,7 +466,11 @@ def test_trading_agents_adapter_unavailable_without_env(cfg, tmp_path, monkeypat
     assert decision_code("FINAL TRANSACTION PROPOSAL: **BUY**") == 0.7 and decision_code("hold") == 0.0
     # OpenRouter key is passed through as OPENAI_API_KEY when backend_url points at OpenRouter
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    for name in ["OPENROUTER_API_KEYS"] + [f"OPENROUTER_API_KEY_{i}" for i in range(2, 10)]:
+        monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-test")
+    cfg.set_path("signals.trading_agents.llm_provider", "openai")
+    cfg.set_path("signals.trading_agents.backend_url", "https://openrouter.ai/api/v1")
     cfg.set_path("signals.trading_agents.backend_url", "https://openrouter.ai/api/v1")
     sig = TradingAgentsSignal(cfg, SignalContext(cfg=cfg, models_dir=tmp_path))
     missing, extra = sig._key_env()
