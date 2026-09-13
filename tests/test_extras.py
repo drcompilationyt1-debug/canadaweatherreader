@@ -18,7 +18,8 @@ from stockbot.report import build_dashboard
 # ---------------------------------------------------------------------- free LLM presets
 def test_presets_need_their_key(monkeypatch):
     for env in ("OPENROUTER_API_KEY", "GROQ_API_KEY", "GEMINI_API_KEY", "OPENAI_API_KEY"):
-        monkeypatch.delenv(env, raising=False)
+        for name in [env, env + "S"] + [f"{env}_{i}" for i in range(2, 10)]:   # whole key pools, not just the first key
+            monkeypatch.delenv(name, raising=False)
     assert OpenRouterBackend({}).is_configured()[0] is False
     assert GroqBackend({}).is_configured()[0] is False
     assert GeminiBackend({}).is_configured()[0] is False

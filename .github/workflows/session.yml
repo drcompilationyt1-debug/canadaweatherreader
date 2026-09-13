@@ -78,6 +78,8 @@ jobs:
           git submodule update --init --depth 1 third_party/automating-technical-analysis
           git submodule update --init --depth 1 third_party/TradingAgents || echo "TradingAgents clone failed - block stays masked"
           git submodule update --init --depth 1 third_party/ai-hedge-fund || echo "ai-hedge-fund clone failed - block stays masked"
+          git submodule update --init --depth 1 third_party/Kronos || echo "Kronos clone failed - block stays masked"
+          git submodule update --init --depth 1 third_party/WorldQuant_alpha101_code || echo "alpha101 clone failed - block stays masked"
       - uses: actions/setup-python@v5
         if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
         with:
@@ -89,6 +91,17 @@ jobs:
           python -m pip install -U pip
           pip install -e ".[all]" tzdata alpaca-py
           pip install technical || echo "technical (freqtrade qtpylib) unavailable - that block stays masked"
+      - name: foundation models + extra indicator libraries (Chronos, TimesFM, FinBERT, pandas-ta, PyPortfolioOpt, Kronos deps)
+        if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
+        run: |
+          pip install chronos-forecasting pandas-ta-classic PyPortfolioOpt transformers einops safetensors huggingface_hub || echo "some model libraries failed - those blocks stay masked"
+          pip install "timesfm[torch]" || echo "timesfm unavailable - block stays masked"
+      - uses: actions/cache@v4
+        if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
+        with:
+          path: ~/.cache/huggingface
+          key: hf-models-${{ runner.os }}-${{ hashFiles('config/default.yaml') }}
+          restore-keys: hf-models-${{ runner.os }}-
       - name: TA-Lib (61 candlestick recognisers)
         if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
         run: |

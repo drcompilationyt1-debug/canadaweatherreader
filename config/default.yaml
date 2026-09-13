@@ -93,6 +93,14 @@ signals:
   dqn_agent:     { enabled: true, look_back: 15, episodes: 12, train_bars: 1000, hidden: 32, holdout_years: 4 }   # AI-Stock-Trader + stockBot port
   llm_trader:    { enabled: true }                                                              # nofx-style LLM decision (live, needs an LLM backend)
   ta_keras:      { enabled: true, python: null, timeout: 900, latest_bars: 400 }                 # akurgat's Keras models (needs .venv-tf)
+  # Added 2026-09-13 - seven more third-party inputs, all CPU-only, cached under models/signals/<name>:
+  pandas_ta:     { enabled: true }                                                              # pandas-ta-classic: 12 indicators the native block lacks
+  pypfopt:       { enabled: true, window: 252, refit_every: 21 }                                # PyPortfolioOpt: HRP / inverse-vol weights, corr to market
+  alpha101:      { enabled: true }                                                              # WorldQuant 101 alphas (12 of them, cross-sectional ranks)
+  finbert:       { enabled: true, model: ProsusAI/finbert, lookback_days: 3, max_texts: 2500 } # FinBERT headline sentiment; ~36 headlines/s on a CPU, newest scored first, cache grows weekly
+  chronos:       { enabled: true, model: amazon/chronos-bolt-small, context: 256, batch_size: 64, history_years: 0, stride: 1 }   # zero-shot foundation forecaster
+  kronos:        { enabled: true, model: NeoQuasar/Kronos-mini, context: 400, pred_len: 5, batch_size: 32, history_years: 6, stride: 5 }   # K-line foundation model
+  timesfm:       { enabled: true, model: google/timesfm-2.5-200m-pytorch, context: 512, batch_size: 32, history_years: 6, stride: 5 }      # Google TimesFM
 
 fees:
   # The broker's real fee schedule, charged in the simulator, by the built-in paper broker and -

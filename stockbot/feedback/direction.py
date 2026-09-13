@@ -39,6 +39,12 @@ VOTERS: dict[str, tuple[str, str]] = {
     "trend": ("trend", "slope_30"),                     # 30-day regression slope
     "trading_agents": ("trading_agents", "ta_decision"),
     "ai_hedge_fund": ("ai_hedge_fund", "ahf_conviction"),
+    "chronos": ("chronos", "chr_ret_5"),                # Chronos-Bolt median 5-day forecast
+    "kronos": ("kronos", "kr_ret_5"),                   # Kronos K-line model 5-bar path
+    "timesfm": ("timesfm", "tfm_ret_5"),                # TimesFM 5-day forecast
+    "finbert": ("finbert", "fb_net"),                   # FinBERT headline sentiment
+    "alpha101": ("alpha101", "a101_mean"),              # WorldQuant alphas composite (cross-sectional)
+    "supertrend": ("pandas_ta", "pta_supertrend"),      # pandas-ta SuperTrend direction
     "momentum": ("technical", "ret_20"),                # baseline: last 20-day return, no model at all
 }
 VOTE_EPS = 1e-6

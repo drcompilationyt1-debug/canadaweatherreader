@@ -65,6 +65,8 @@ jobs:
         run: |
           git submodule update --init --depth 1 third_party/automating-technical-analysis
           git submodule update --init --depth 1 third_party/trendet || true
+          git submodule update --init --depth 1 third_party/Kronos || echo "Kronos clone failed - block stays masked"
+          git submodule update --init --depth 1 third_party/WorldQuant_alpha101_code || echo "alpha101 clone failed - block stays masked"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -74,6 +76,15 @@ jobs:
           python -m pip install -U pip
           pip install -e ".[all]" tzdata alpaca-py
           pip install technical || echo "technical (freqtrade qtpylib) unavailable - that block stays masked"
+      - name: foundation models + extra indicator libraries (Chronos, TimesFM, FinBERT, pandas-ta, PyPortfolioOpt, Kronos deps)
+        run: |
+          pip install chronos-forecasting pandas-ta-classic PyPortfolioOpt transformers einops safetensors huggingface_hub || echo "some model libraries failed - those blocks stay masked"
+          pip install "timesfm[torch]" || echo "timesfm unavailable - block stays masked"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-models-${{ runner.os }}-${{ hashFiles('config/default.yaml') }}
+          restore-keys: hf-models-${{ runner.os }}-
       - name: TA-Lib (61 candlestick recognisers)
         run: |
           curl -sSL -o /tmp/ta-lib.deb https://github.com/ta-lib/ta-lib/releases/download/v0.6.4/ta-lib_0.6.4_amd64.deb \
@@ -107,7 +118,7 @@ jobs:
           --timesteps ${{ inputs.timesteps || '4000000' }}
           --seeds ${{ inputs.seeds || '3' }}
           --n-envs 4
-          --max-minutes 270
+          --max-minutes 220
           ${{ steps.day.outputs.refit == 'true' && '' || '--reuse-dataset-days 3' }}
           ${{ inputs.from_scratch == true && '--from-scratch' || '' }}
       - name: evaluate

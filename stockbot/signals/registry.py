@@ -46,6 +46,14 @@ PROVIDER_CLASSES: list[type[SignalProvider]] = [k for k in [
     _optional(".dqn_agent", "DQNAgentSignal"),
     _optional(".llm_trader", "LLMTraderSignal"),
     _optional(".thirdparty.ta_keras_signal", "TAKerasSignal"),
+    # 2026-09-13: seven more third-party inputs (all CPU, all cached)
+    _optional(".thirdparty.pandas_ta_signal", "PandasTASignal"),
+    _optional(".thirdparty.portfolio_opt_signal", "PortfolioOptSignal"),
+    _optional(".thirdparty.alpha101_signal", "Alpha101Signal"),
+    _optional(".thirdparty.finbert_signal", "FinBERTSignal"),
+    _optional(".thirdparty.chronos_signal", "ChronosSignal"),
+    _optional(".thirdparty.kronos_signal", "KronosSignal"),
+    _optional(".thirdparty.timesfm_signal", "TimesFMSignal"),
 ] if k is not None]
 
 

@@ -36,6 +36,7 @@ def cfg(tmp_path):
         "signals.trading_agents.enabled=false",
         "signals.ai_hedge_fund.enabled=false",
         "train.n_envs=2",
+        "signals.chronos.enabled=false", "signals.kronos.enabled=false", "signals.timesfm.enabled=false", "signals.finbert.enabled=false",
         "train.seeds=1",
         "env.vol_target=0",
         "train.n_steps=64",

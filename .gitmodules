@@ -39,6 +39,8 @@
 	url = https://github.com/henryboisdequin/AI-Stock-Trader
 	shallow = true
 [submodule "third_party/stockBot"]
+	path = third_party/stockBot
+	url = https://github.com/romaingrx/stockBot
 	shallow = true
 [submodule "third_party/stocks-insights-ai-agent"]
 	path = third_party/stocks-insights-ai-agent
@@ -60,3 +62,24 @@
 	path = third_party/Lean
 	url = https://github.com/QuantConnect/Lean
 	shallow = true
+[submodule "third_party/chronos-forecasting"]
+	path = third_party/chronos-forecasting
+	url = https://github.com/amazon-science/chronos-forecasting
+[submodule "third_party/Kronos"]
+	path = third_party/Kronos
+	url = https://github.com/shiyu-coder/Kronos
+[submodule "third_party/timesfm"]
+	path = third_party/timesfm
+	url = https://github.com/google-research/timesfm
+[submodule "third_party/finBERT"]
+	path = third_party/finBERT
+	url = https://github.com/ProsusAI/finBERT
+[submodule "third_party/pandas-ta-classic"]
+	path = third_party/pandas-ta-classic
+	url = https://github.com/xgboosted/pandas-ta-classic
+[submodule "third_party/PyPortfolioOpt"]
+	path = third_party/PyPortfolioOpt
+	url = https://github.com/robertmartin8/PyPortfolioOpt
+[submodule "third_party/WorldQuant_alpha101_code"]
+	path = third_party/WorldQuant_alpha101_code
+	url = https://github.com/yli188/WorldQuant_alpha101_code
