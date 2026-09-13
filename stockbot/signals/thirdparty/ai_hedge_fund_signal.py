@@ -6,9 +6,9 @@ mandate (default: the repo's ``hedge_fund/fund/example.yaml``) in the framework'
 (``python scripts/setup_agent_envs.py``) and reports the average conviction plus the share of
 bullish / bearish models.
 
-Opt-in (``signals.ai_hedge_fund.enabled: true``), live only, cached per (ticker, day).  Needs an
-LLM key (OPENAI_API_KEY / ANTHROPIC_API_KEY ...) and FINANCIAL_DATASETS_API_KEY for tickers outside
-the free tier (AAPL, GOOGL, MSFT, NVDA, TSLA).
+Live only, cached per (ticker, bar date).  Needs an LLM key (the GEMINI_API_KEY pool is mapped to
+GOOGLE_API_KEY, or OPENAI_API_KEY / ANTHROPIC_API_KEY ...) and FINANCIAL_DATASETS_API_KEY: the
+framework's data source requires a key for every ticker (free sign-up at financialdatasets.ai).
 """
 from __future__ import annotations
 
@@ -29,8 +29,9 @@ log = get_logger(__name__)
 
 LLM_KEYS = ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GOOGLE_API_KEY", "GROQ_API_KEY", "DEEPSEEK_API_KEY")
 SCRIPT = ROOT / "scripts" / "agents" / "run_ai_hedge_fund.py"
-# financialdatasets.ai serves these without a key; every other ticker needs FINANCIAL_DATASETS_API_KEY
-FREE_DATA_TICKERS = {"AAPL", "GOOGL", "MSFT", "NVDA", "TSLA"}
+# financialdatasets.ai (the framework's data source) requires an API key for every ticker since 2026;
+# a free key comes from https://financialdatasets.ai - without it every model in the mandate fails
+DATA_KEY = "FINANCIAL_DATASETS_API_KEY"
 
 
 class AIHedgeFundSignal(SignalProvider):
@@ -69,8 +70,9 @@ class AIHedgeFundSignal(SignalProvider):
             return False, "set an LLM key (GEMINI_API_KEY pool / OPENAI_API_KEY / ANTHROPIC_API_KEY ...)"
         if not Path(self.mandate).exists():
             return False, f"mandate file not found: {self.mandate}"
-        fd = "FINANCIAL_DATASETS_API_KEY set" if os.environ.get("FINANCIAL_DATASETS_API_KEY") else "no FINANCIAL_DATASETS_API_KEY (free tickers only)"
-        return True, f"{why}; mandate={Path(self.mandate).name}; {fd}"
+        if not os.environ.get(DATA_KEY):
+            return False, f"set {DATA_KEY} (free key at financialdatasets.ai - its data API needs one for every ticker)"
+        return True, f"{why}; mandate={Path(self.mandate).name}; financialdatasets.ai key set"
 
     def compute_history(self, ticker: str, df: pd.DataFrame) -> np.ndarray | None:
         return None
@@ -84,8 +86,7 @@ class AIHedgeFundSignal(SignalProvider):
             return datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
     def compute_latest(self, ticker: str, df: pd.DataFrame) -> np.ndarray | None:
-        if ticker.upper() not in FREE_DATA_TICKERS and not os.environ.get("FINANCIAL_DATASETS_API_KEY"):
-            log.info("ai_hedge_fund: %s needs FINANCIAL_DATASETS_API_KEY (free data covers %s) - skipped", ticker, ", ".join(sorted(FREE_DATA_TICKERS)))
+        if not os.environ.get(DATA_KEY):
             return None
         day = self.cache_day(df)
         f = self.cache_dir / f"{ticker}_{day}.json"
