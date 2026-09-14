@@ -303,6 +303,7 @@ execution:
   max_gross_exposure: 1.0     # sum of |weights| per sleeve
   max_position: 0.10          # capital slice per ticker (fraction of equity); 30 names x 10% = fully invested at most
   min_trade_usd: 50
+  cash_reserve: 0.01          # never spend the last 1% of a sleeve's cash (fees, price moves before the fill); buys are cut to the cash on hand
   # Real brokers (alpaca / moomoo / live) only get orders while the exchange is open, so every fill
   # happens at a live price and the move after it can be watched.  `stockbot trade --allow-closed`
   # overrides this once; the built-in paper simulator is not affected.

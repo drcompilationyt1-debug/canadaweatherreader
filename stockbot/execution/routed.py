@@ -42,6 +42,9 @@ class RoutedBroker(Broker):
     def equity_for(self, ticker: str) -> float:
         return float(self.sleeve_for(ticker).equity())
 
+    def cash_for(self, ticker: str) -> float:
+        return float(self.sleeve_for(ticker).cash())
+
     def positions(self) -> dict[str, Position]:
         out: dict[str, Position] = {}
         for b in self.sleeves.values():

@@ -92,12 +92,34 @@ class PaperBroker(Broker):
         return eq
 
     # ------------------------------------------------------------------ orders
+    def affordable_qty(self, ticker: str, price: float) -> float:
+        """Largest buy (shares) the cash on hand covers, fees and slippage included."""
+        if price <= 0 or self._cash <= 0:
+            return 0.0
+        qty = self._cash / (price * (1.0 + self.slippage + (0.0 if self.fees is not None else self.commission)))
+        for _ in range(3):  # the per-order minimums make the fee non-linear: settle in a couple of passes
+            cost = (self.fees.cost(qty, price, "buy") if self.fees is not None else qty * price * self.commission) + qty * price * self.slippage
+            over = qty * price + cost - self._cash
+            if over <= 1e-6:
+                break
+            qty = max(0.0, qty - over / price)
+        return max(0.0, qty)
+
     def submit(self, order: Order) -> Fill | None:
         price = self.price(order.ticker)
         if price <= 0 or order.qty <= 0:
             return None
         signed = order.qty if order.side == "buy" else -order.qty
         pos = self._positions.get(order.ticker, Position(order.ticker))
+        if signed > 0:  # a real broker rejects a buy that exceeds the cash on hand: cap it (fees included)
+            affordable = self.affordable_qty(order.ticker, price)
+            if affordable <= 0:
+                log.warning("paper %s: no cash for %s (cash %.2f) - order skipped", self.state_file.stem, order.ticker, self._cash)
+                return None
+            if signed > affordable:
+                log.info("paper %s: %s buy cut from %.3f to %.3f shares to stay within cash %.2f", self.state_file.stem, order.ticker,
+                         signed, affordable, self._cash)
+                signed = affordable
         new_shares = pos.shares + signed
         if new_shares < -1e-9 and not self.supports_short:
             signed = -pos.shares  # sell down to flat only

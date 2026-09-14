@@ -58,6 +58,7 @@ class TradingRunner:
         self.fees = self.fee_book.default
         # an order too small for the per-order minimums is not worth sending (per market)
         self.min_trade_usd = float(self.ex.get("min_trade_usd", 50))
+        self.cash_reserve = float(self.ex.get("cash_reserve", 0.01))   # share of cash never spent (fees / price moves before the fill)
         for market, sched in [("default", self.fees)] + list(self.fee_book.by_market.items()):
             if sched is not None:
                 log.info("fees %s: %s -> orders below %.0f are skipped", market, sched.describe(), max(self.min_trade_usd, sched.min_trade_usd()))
@@ -147,6 +148,15 @@ class TradingRunner:
         """Equity of the sleeve that trades ``ticker`` (the whole account for a single broker)."""
         eq = getattr(self.broker, "equity_for", None)
         return float(eq(ticker)) if eq is not None else float(self.broker.equity())
+
+    def cash_for(self, ticker: str) -> float:
+        """Cash on hand in the sleeve that trades ``ticker``."""
+        fn = getattr(self.broker, "cash_for", None)
+        return float(fn(ticker)) if fn is not None else float(self.broker.cash())
+
+    def sleeve_of(self, ticker: str) -> str:
+        fn = getattr(self.broker, "market_for", None)
+        return str(fn(ticker)) if fn is not None else "main"
 
     def min_trade_for(self, ticker: str) -> float:
         sched = self.fee_book.for_ticker(ticker)
@@ -364,14 +374,38 @@ class TradingRunner:
         allow_short = self.allow_short and self.broker.supports_short
         weights = self.allocate_by_market(targets, allow_short)
         decisions: list[Decision] = []
+        # decide everything first, then execute sells before buys: the cash on hand is the hard limit for
+        # buys, and sale proceeds are not reused in the same cycle (they settle T+1 in a cash account)
+        planned: dict[str, tuple[Decision, float, float]] = {}
         for t in tickers:
             price = self.price(t)
             slice_cap = eq_of[t] * self.max_position
             _, current = self.portfolio_state(t, price, eq_of[t])
             target = weights[t] / self.max_position if self.max_position > 0 else 0.0
-            dec = decide(t, target, current, slice_cap, price, self.deadband, allow_short, self.min_trade_for(t))
+            planned[t] = (decide(t, target, current, slice_cap, price, self.deadband, allow_short, self.min_trade_for(t)), price, current)
+        cash_left: dict[str, float] = {}
+        order = sorted(tickers, key=lambda t: 0 if planned[t][0].shares < 0 else 1)   # sells / covers first
+        results: dict[str, tuple[Decision, list, float, float, float]] = {}
+        for t in order:
+            dec, price, current = planned[t]
             fills = []
             fees_paid = 0.0
+            if dec.action != "HOLD" and dec.shares > 0 and not dry_run:
+                sleeve = self.sleeve_of(t)
+                if sleeve not in cash_left:
+                    cash_left[sleeve] = self.cash_for(t)
+                avail = cash_left[sleeve] * (1.0 - self.cash_reserve)
+                notional = dec.shares * price
+                if notional > avail:
+                    if avail < self.min_trade_for(t):
+                        log.warning("%s: %s of $%.0f skipped - only $%.0f cash left in the %s sleeve", t, dec.action, notional, avail, sleeve)
+                        dec = Decision(t, "HOLD", dec.target_exposure, dec.current_exposure, 0.0, 0.0, 0.0, price,
+                                       f"insufficient cash (${avail:,.0f} left)")
+                    else:
+                        cut = avail / price
+                        log.info("%s: buy cut from %.3f to %.3f shares to stay within $%.0f cash", t, dec.shares, cut, avail)
+                        dec.shares, dec.amount_usd = cut, cut * price
+                        dec.note = f"cut to cash (${avail:,.0f} left)"
             if dec.action != "HOLD" and not dry_run:
                 try:
                     fill = self.broker.submit(Order(t, "buy" if dec.shares > 0 else "sell", abs(dec.shares), note=dec.action))
@@ -382,8 +416,13 @@ class TradingRunner:
                 if fill is not None:
                     fills.append(fill.to_dict())
                     fees_paid = float(fill.cost)
-                    dec.note = f"filled {fill.qty:.3f} @ {fill.price:.2f} fees {fill.cost:.2f}"
+                    dec.note = (dec.note + "; " if dec.note else "") + f"filled {fill.qty:.3f} @ {fill.price:.2f} fees {fill.cost:.2f}"
                     self.state["fees_paid"] = float(self.state.get("fees_paid", 0.0)) + fees_paid
+                    if dec.shares > 0:
+                        cash_left[self.sleeve_of(t)] -= fill.qty * fill.price + fill.cost
+            results[t] = (dec, fills, fees_paid, price, current)
+        for t in tickers:
+            dec, fills, fees_paid, price, current = results[t]
             new_exp = self.portfolio_state(t, price, eq_of[t])[1]
             ages = self.state.setdefault("pos_age", {})
             ages[t] = ages.get(t, 0) + 1 if abs(new_exp) > 0.01 and np.sign(new_exp) == np.sign(current if abs(current) > 0.01 else new_exp) else (1 if abs(new_exp) > 0.01 else 0)
