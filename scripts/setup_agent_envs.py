@@ -49,6 +49,8 @@ def setup(name: str) -> bool:
     else:
         print(f"[{name}] installing {repo} (this pulls langchain & co, a few minutes)")
         r = subprocess.run([str(py), "-m", "pip", "install", "-q", "-e", str(ROOT / repo)], cwd=ROOT)
+        if r.returncode == 0 and name == "aihf":   # our free Yahoo data client for ai-hedge-fund (replaces financialdatasets.ai)
+            r = subprocess.run([str(py), "-m", "pip", "install", "-q", "yfinance"], cwd=ROOT)
     if r.returncode != 0:
         print(f"[{name}] pip failed ({r.returncode})")
         return False

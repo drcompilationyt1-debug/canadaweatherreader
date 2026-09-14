@@ -105,8 +105,8 @@ signals:
   # backend_url containing "groq" / "openrouter" / "generativelanguage" picks the matching key pool.
   trading_agents: { enabled: true, python: null, llm_provider: google, backend_url: null,
                     deep_think_llm: gemini-3.8-flash, quick_think_llm: gemini-3.5-flash-lite, max_debate_rounds: 1, timeout: 900 }
-  # ai-hedge-fund on Gemini (its registry knows gemini-3.1-pro-preview as a Google model); GEMINI_API_KEY pool.
-  ai_hedge_fund:  { enabled: true, python: null, mandate: null, llm_model: gemini-3.1-pro-preview, timeout: 600 }
+  # ai-hedge-fund on Gemini flash (registered at runtime by our runner script) with free Yahoo data; GEMINI_API_KEY pool.
+  ai_hedge_fund:  { enabled: true, python: null, mandate: null, llm_model: gemini-3.8-flash, data: yfinance, timeout: 600 }
   # Ports of the reference repos (Lean algorithms, huseinzol05 agents, akurgat indications,
   # the LSTM-style forecasters) - cheap extra opinions for the policy ------------------
   strategy_zoo:  { enabled: true }

@@ -45,6 +45,7 @@ class AIHedgeFundSignal(SignalProvider):
         self.cache_dir = ctx.models_dir / "cache" / "ai_hedge_fund"
         self.mandate = self.cfg.get("mandate") or str(THIRD_PARTY / "ai-hedge-fund" / "hedge_fund" / "fund" / "example.yaml")
         self.timeout = float(self.cfg.get("timeout", 1800))
+        self.data = str(self.cfg.get("data", "yfinance")).lower()   # yfinance (free, default) | fd (financialdatasets.ai, paid credits)
 
     def _llm_env(self) -> dict:
         """Env for the subprocess: the configured model and, for Google models, the next Gemini key of the pool."""
@@ -75,9 +76,10 @@ class AIHedgeFundSignal(SignalProvider):
             return False, f"mandate file not found: {self.mandate}"
         from ...llm.keys import pool
 
-        if not pool(DATA_KEY).configured:
-            return False, f"set {DATA_KEY} (free key at financialdatasets.ai - its data API needs one for every ticker)"
-        return True, f"{why}; mandate={Path(self.mandate).name}; financialdatasets.ai {pool(DATA_KEY).describe()}"
+        if self.data == "fd" and not pool(DATA_KEY).configured:
+            return False, f"set {DATA_KEY} (financialdatasets.ai needs paid credits) or use data: yfinance"
+        source = "Yahoo Finance data (free)" if self.data != "fd" else f"financialdatasets.ai {pool(DATA_KEY).describe()}"
+        return True, f"{why}; mandate={Path(self.mandate).name}; {source}"
 
     def compute_history(self, ticker: str, df: pd.DataFrame) -> np.ndarray | None:
         return None
@@ -93,7 +95,7 @@ class AIHedgeFundSignal(SignalProvider):
     def compute_latest(self, ticker: str, df: pd.DataFrame) -> np.ndarray | None:
         from ...llm.keys import pool
 
-        if not pool(DATA_KEY).configured:
+        if self.data == "fd" and not pool(DATA_KEY).configured:
             return None
         day = self.cache_day(df)
         f = self.cache_dir / f"{ticker}_{day}.json"
@@ -101,7 +103,7 @@ class AIHedgeFundSignal(SignalProvider):
             d = json.loads(f.read_text(encoding="utf-8"))
         else:
             py, _ = resolve_python(self.cfg.get("python"), ".venv-aihf", "hedge_fund")
-            d = run_agent(py, SCRIPT, [ticker, day, "--mandate", str(self.mandate)], self.timeout, self._llm_env())
+            d = run_agent(py, SCRIPT, [ticker, day, "--mandate", str(self.mandate), "--data", self.data], self.timeout, self._llm_env())
             f.parent.mkdir(parents=True, exist_ok=True)
             f.write_text(json.dumps(d), encoding="utf-8")
         vals = np.array([s["value"] for s in d.get("signals", [])], dtype=float)
