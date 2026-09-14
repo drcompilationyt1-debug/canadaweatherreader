@@ -58,6 +58,9 @@ class AIHedgeFundSignal(SignalProvider):
             key = pool("GEMINI_API_KEY").pick()
             if key:
                 extra["GOOGLE_API_KEY"] = key
+        data_key = pool(DATA_KEY).pick()          # several financialdatasets.ai keys share the daily quota, round-robin
+        if data_key:
+            extra[DATA_KEY] = data_key
         return extra
 
     def availability(self) -> tuple[bool, str]:
@@ -70,9 +73,11 @@ class AIHedgeFundSignal(SignalProvider):
             return False, "set an LLM key (GEMINI_API_KEY pool / OPENAI_API_KEY / ANTHROPIC_API_KEY ...)"
         if not Path(self.mandate).exists():
             return False, f"mandate file not found: {self.mandate}"
-        if not os.environ.get(DATA_KEY):
+        from ...llm.keys import pool
+
+        if not pool(DATA_KEY).configured:
             return False, f"set {DATA_KEY} (free key at financialdatasets.ai - its data API needs one for every ticker)"
-        return True, f"{why}; mandate={Path(self.mandate).name}; financialdatasets.ai key set"
+        return True, f"{why}; mandate={Path(self.mandate).name}; financialdatasets.ai {pool(DATA_KEY).describe()}"
 
     def compute_history(self, ticker: str, df: pd.DataFrame) -> np.ndarray | None:
         return None
@@ -86,7 +91,9 @@ class AIHedgeFundSignal(SignalProvider):
             return datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
     def compute_latest(self, ticker: str, df: pd.DataFrame) -> np.ndarray | None:
-        if not os.environ.get(DATA_KEY):
+        from ...llm.keys import pool
+
+        if not pool(DATA_KEY).configured:
             return None
         day = self.cache_day(df)
         f = self.cache_dir / f"{ticker}_{day}.json"
