@@ -137,6 +137,14 @@ def test_exit_model_learns_when_to_sell(tmp_path):
     loaded = ExitModel.load(tmp_path / "exit")
     assert loaded is not None and abs(loaded.predict(features_at(pop, 9, 100.0, 99.5))[0] - adv["prob"]) < 1e-6
     assert ExitModel.load(tmp_path / "nothing") is None
+    # the same model file with Windows line endings (git autocrlf on a Linux-written file) still loads
+    f = tmp_path / "exit" / "model.txt"
+    if f.exists():                                                            # lightgbm build; the logistic fallback has no model.txt
+        f.write_bytes(f.read_bytes().replace(b"\n", b"\r\n"))
+        crlf = ExitModel.load(tmp_path / "exit")
+        assert crlf is not None and abs(crlf.predict(features_at(pop, 9, 100.0, 99.5))[0] - adv["prob"]) < 1e-6
+        f.write_text("tree\nversion=v4\n", encoding="utf-8")
+        assert ExitModel.load(tmp_path / "exit") is None                       # a truncated file is ignored, not fatal
     bars = {"AAPL": pd.DataFrame({"open": [100.0] * 26, "high": 0, "low": 0, "close": np.linspace(100, 101, 26), "volume": 1},
                                  index=pd.DatetimeIndex([b.astimezone(timezone.utc) for b in BARS_UTC]).tz_convert("America/New_York"))}
     p = paths_from_bars(bars)

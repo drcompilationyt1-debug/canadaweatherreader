@@ -196,7 +196,14 @@ class ExitModel:
             if meta.get("file") == "model.txt" and (folder / "model.txt").exists():
                 import lightgbm as lgb
 
-                return cls(_BoosterWrap(lgb.Booster(model_file=str(folder / "model.txt"))), meta)
+                # read the text ourselves with universal newlines: a model written on Linux and checked out on Windows
+                # (git autocrlf) carries CRLF, and LightGBM's file loader aborts the whole process on it
+                with open(folder / "model.txt", "r", encoding="utf-8", newline=None) as fh:
+                    text = fh.read()
+                if "Tree=0" not in text:
+                    log.warning("exit model in %s looks incomplete - ignored", folder)
+                    return None
+                return cls(_BoosterWrap(lgb.Booster(model_str=text)), meta)
             if (folder / "logistic.json").exists():
                 return cls(_Logistic.from_dict(json.loads((folder / "logistic.json").read_text(encoding="utf-8"))), meta)
         except Exception as e:  # noqa: BLE001
