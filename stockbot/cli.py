@@ -392,7 +392,7 @@ def cmd_session(cfg, args) -> int:
                              train=False if args.no_train else None, clock=clock, train_minutes=args.train_minutes,
                              train_timesteps=args.train_timesteps, train_seeds=args.train_seeds, train_n_envs=args.train_n_envs,
                              snapshot_minutes=args.snapshot_minutes, max_wait_minutes=args.max_wait_minutes,
-                             deadline_minutes=args.deadline_minutes)
+                             deadline_minutes=args.deadline_minutes, deadline_at=args.deadline_at or None)
     summary = session.run(force=args.force)
     print(json.dumps({k: v for k, v in summary.items() if k not in ("open_prices",)}, indent=1, default=str))
     return 0
@@ -408,24 +408,49 @@ def cmd_review(cfg, args) -> int:
     end = date.fromisoformat(args.end) if args.end else None
     results = {}
     if args.learn:
-        from .feedback.hindsight import learn
+        from .execution.market_hours import MarketClock
+        from .feedback.hindsight import learn, learn_due
 
-        rep = learn(cfg, force=args.force, today=end)
-        print("\n== learn from the paper trades (hindsight fine-tune) ==")
-        if rep.get("skipped"):
-            print("  skipped:", rep["skipped"], f"({rep.get('samples', 0)} samples)")
+        budget = args.max_minutes
+        if args.before_open_minutes is not None:
+            st = MarketClock().status()
+            if not st.is_open:
+                avail = st.minutes_to_open - float(args.before_open_minutes)
+                budget = avail if budget is None else min(budget, avail)
+                print(f"market opens in {st.minutes_to_open:.0f} min: {max(0.0, avail):.0f} min available for learning")
+        if budget is not None and budget < 2.0:
+            print("no time to learn before the open - skipped")
+            return 0
+        if args.due:
+            reps = learn_due(cfg, today=end, force=args.force, refresh=not args.offline, budget_minutes=budget)
+            if not reps:
+                print("nothing new to learn: every finished day / week / month / year was already learned")
         else:
-            print(f"  {rep['samples']} labelled decisions ({rep['settled_horizons']} settled horizons), mean target {rep['mean_target']:+.2f}")
+            reps = {p: learn(cfg, period=p, end=end, force=args.force, refresh=not args.offline, budget_minutes=budget)
+                    for p in (args.period or ["day"])}
+        for period, rep in reps.items():
+            print(f"\n== learn from the {period} ({rep.get('start')} to {rep.get('end')}) ==")
+            if rep.get("error"):
+                print("  failed:", rep["error"])
+                continue
+            if rep.get("skipped"):
+                print("  skipped:", rep["skipped"])
+                continue
+            print(f"  {rep['samples']} decisions; the best path held {rep['mean_level_best']:.2f} of a slice on average, we held "
+                  f"{rep['mean_level_ours']:.2f}")
             for name, m in rep["members"].items():
                 if m.get("error"):
                     print(f"  {name}: failed - {m['error']}")
                     continue
+                if m.get("skipped"):
+                    print(f"  {name}: {m['skipped']}")
+                    continue
                 sb, sa = m.get("score_before"), m.get("score_after")
-                print(f"  {name}: loss {m['loss_before']:.4f} -> {m['loss_after']:.4f}, score "
+                print(f"  {name}: loss {m['loss_before']:.4f} -> {m['loss_after']:.4f} in {m['epochs']} epochs, score "
                       f"{sb if sb is None else round(sb, 3)} -> {sa if sa is None else round(sa, 3)}: {'kept' if m.get('accepted') else 'rejected'}")
-            print(f"  accepted {rep['accepted']} of {len(rep['members'])} members")
-        if not args.due and not args.period:
-            return 0
+            print(f"  accepted {rep['accepted']} of {len(rep['members'])} members in {rep.get('seconds', 0):.0f}s "
+                  f"(yardstick {rep['yardstick']['tickers']} tickers x {rep['yardstick']['bars']} bars, {rep['yardstick']['epochs']} epochs)")
+        return 0
     if args.due:
         results = rev.run_due(end)
         if not results:
@@ -659,6 +684,7 @@ def build_parser() -> argparse.ArgumentParser:
                    help="with --gate-minutes: also run when the market opened less than MIN minutes ago (late cron)")
     p.add_argument("--force", action="store_true", help="run even if a session already ran today")
     p.add_argument("--deadline-minutes", type=float, help="finish everything (watch, review, trainer) within this many minutes of starting")
+    p.add_argument("--deadline-at", help="... or by this ISO 8601 time (the workflow anchors it on the job's start); the earlier one wins")
     p.add_argument("--offline", action="store_true")
     p.add_argument("--no-llm", action="store_true")
     p.add_argument("--i-understand-real-money", action="store_true")
@@ -668,8 +694,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--period", nargs="*", choices=["day", "week", "month", "year"], help="default: day (unless only --learn is asked)")
     p.add_argument("--end", help="period end date (YYYY-MM-DD); default today / latest session")
     p.add_argument("--due", action="store_true", help="run whichever week / month / year reviews are due")
-    p.add_argument("--learn", action="store_true", help="fine-tune the policy on the hindsight labels of the paper trades (guarded by the OOS score)")
-    p.add_argument("--force", action="store_true", help="with --learn: run even if nothing new has settled")
+    p.add_argument("--learn", action="store_true",
+                   help="learn from the paper trades instead of reporting: fine-tune the policy on the hindsight labels of one finished unit "
+                        "(--period day = yesterday, week = last week, ...; --due = every finished unit not learned yet), guarded by the OOS score")
+    p.add_argument("--force", action="store_true", help="with --learn: run even if that unit was already learned")
+    p.add_argument("--max-minutes", type=float, help="with --learn: wall-clock budget")
+    p.add_argument("--before-open-minutes", type=float, metavar="MIN",
+                   help="with --learn: stop MIN minutes before the next market open (the morning run leaves room for the pre-open warm-up)")
+    p.add_argument("--offline", action="store_true", help="with --learn: do not refresh the bars first")
     p.set_defaults(fn=cmd_review)
 
     p = sub.add_parser("market-status", help="is the exchange open? next open / close (Alpaca clock or built-in NYSE calendar)")

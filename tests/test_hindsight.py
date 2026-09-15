@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import time
 from datetime import date
 
 import numpy as np
@@ -109,10 +110,10 @@ def _record_decisions(cfg, frames, layout, days, rng):
     return store
 
 
-def test_hindsight_samples_and_guarded_finetune(cfg, frames, monkeypatch):
+def test_hindsight_learns_one_unit_at_a_time(cfg, frames, monkeypatch):
     from stockbot.agent.policy import PolicyBundle
     from stockbot.feedback import hindsight
-    from stockbot.feedback.hindsight import build_samples, finetune, learn, policy_mean
+    from stockbot.feedback.hindsight import build_samples, finetune, learn, learn_due, policy_mean
 
     cfg.set_path("feedback.hindsight.min_samples", 20)
     cfg.set_path("feedback.hindsight.epochs", 30)
@@ -124,55 +125,115 @@ def test_hindsight_samples_and_guarded_finetune(cfg, frames, monkeypatch):
     ds, layout = _train_small_bundle(cfg, frames)
     rng = np.random.default_rng(1)
     days = [d for d in frames["AAA"].index if pd.Timestamp("2019-10-01") <= d <= pd.Timestamp("2019-11-15")]
-    _record_decisions(cfg, frames, layout, days, rng)
-    samples = build_samples(cfg, layout.obs_dim, frames=frames, today=pd.Timestamp("2019-12-31"))
-    n = len(samples["meta"])
-    assert n == len(days) * 3 and samples["X"].shape == (n, layout.obs_dim)
-    assert np.all(np.abs(samples["y"]) <= 1.0) and np.all(samples["w"] > 0)
-    assert all(m["settled"] == 3 for m in samples["meta"])                       # 1, 5 and 21 bars all known by year end
-    # labels follow the realised move: names that went up over the month carry a higher target than names that fell
-    r21 = np.array([m["returns"][21] for m in samples["meta"]])
-    assert np.corrcoef(r21, samples["y"])[0, 1] > 0.5
-    # observations of another layout (older records) are ignored
+    _record_decisions(cfg, frames, layout, days, rng)                          # half a slice held every day
+    today = date(2019, 11, 16)
+
+    # the day unit: yesterday's decisions only, each labelled by yesterday's close (fee-aware: small moves keep the size)
+    s_day = build_samples(cfg, layout.obs_dim, period="day", frames=frames, today=today)
+    assert s_day["start"] == s_day["end"] == "2019-11-15" and len(s_day["meta"]) == 3
+    for m in s_day["meta"]:
+        assert m["level_best"] in (0.0, 0.25, 0.5, 0.75, 1.0)
+        assert (m["level_best"] >= 0.5) if m["r_day"] > 0 else (m["level_best"] <= 0.5)
+    # the month unit: all of October as ONE unit, labelled by the fee-aware best path through the month
+    s_month = build_samples(cfg, layout.obs_dim, period="month", end=date(2019, 10, 31), frames=frames, today=today)
+    oct_days = [d for d in days if d.month == 10]
+    n = len(s_month["meta"])
+    assert n == 3 * len(oct_days) and s_month["start"] == "2019-10-01" and s_month["X"].shape == (n, layout.obs_dim)
+    assert np.all(np.abs(s_month["y"]) <= 1.0) and np.all(s_month["w"] >= 0.1)
+    lv = np.array([m["level_best"] for m in s_month["meta"]])
+    rd = np.array([m["r_day"] for m in s_month["meta"]])
+    assert np.corrcoef(lv, rd)[0, 1] > 0.15                                     # the path holds more on the days that went up ...
+    for t in frames:                                                            # ... but does not flip on every wiggle (fees)
+        rows = [m for m in s_month["meta"] if m["ticker"] == t]
+        switches = int(np.sum(np.diff([m["level_best"] for m in rows]) != 0))
+        flips = int(np.sum(np.diff(np.sign([m["r_day"] for m in rows])) != 0))
+        assert switches <= flips
+    # a unit whose bars have not settled cannot be learned; records of another layout are ignored
+    assert len(build_samples(cfg, layout.obs_dim, period="week", end=date(2019, 11, 22), frames=frames, today=today)["meta"]) == 0
     from stockbot.feedback.experience import ExperienceStore
 
-    ExperienceStore(cfg.path("feedback.experience_file")).record(mode="paper", ticker="AAA", date="2019-11-01", obs=np.zeros(5), action=0.0,
+    ExperienceStore(cfg.path("feedback.experience_file")).record(mode="paper", ticker="AAA", date="2019-10-15", obs=np.zeros(5), action=0.0,
                                                                   target_exposure=0.0, weight=0.0, decision="HOLD", price=100.0, equity=1e5, availability={})
-    assert len(build_samples(cfg, layout.obs_dim, frames=frames, today=pd.Timestamp("2019-12-31"))["meta"]) == n
+    assert len(build_samples(cfg, layout.obs_dim, period="month", end=date(2019, 10, 31), frames=frames, today=today)["meta"]) == n
 
-    # the fine-tune itself moves the actor toward the labels and reports a lower loss
+    # the fine-tune moves the actor toward the labels, and stops at a deadline after at least one epoch
     bundle = PolicyBundle.load(cfg.path("train.checkpoint_dir"))
-    before = policy_mean(bundle.model, samples["X"])
-    fit = finetune(bundle.model, samples["X"], samples["y"], samples["w"], samples["X"][:16], epochs=30, lr=3e-3, anchor_weight=0.0)
-    after = policy_mean(bundle.model, samples["X"])
-    assert fit["loss_after"] < fit["loss_before"]
-    assert np.mean(np.abs(np.clip(after, -1, 1) - samples["y"])) < np.mean(np.abs(np.clip(before, -1, 1) - samples["y"]))
+    before = policy_mean(bundle.model, s_month["X"])
+    fit = finetune(bundle.model, s_month["X"], s_month["y"], s_month["w"], s_month["X"][:16], epochs=30, lr=3e-3, anchor_weight=0.0)
+    after = policy_mean(bundle.model, s_month["X"])
+    assert fit["loss_after"] < fit["loss_before"] and fit["epochs"] == 30
+    assert np.mean(np.abs(np.clip(after, -1, 1) - s_month["y"])) < np.mean(np.abs(np.clip(before, -1, 1) - s_month["y"]))
+    assert finetune(bundle.model, s_month["X"], s_month["y"], s_month["w"], s_month["X"][:16], epochs=5, deadline=time.time() - 1)["epochs"] == 1
 
     # learn(): the guard keeps an update only when the out-of-sample score holds
     path = cfg.path("train.checkpoint_dir") / "latest.zip"
     digest0 = hashlib.sha1(path.read_bytes()).hexdigest()
-    scores = iter([0.50, 0.20])                                                    # before 0.50, after 0.20: a big drop -> rejected
+    scores = iter([0.50, 0.20])                                                  # before 0.50, after 0.20: a big drop -> rejected
     monkeypatch.setattr(hindsight, "_score", lambda *a, **k: next(scores))
-    rep = learn(cfg, frames=frames, dataset=ds, today=pd.Timestamp("2019-12-31"))
-    assert rep["samples"] == n and rep["accepted"] == 0
+    rep = learn(cfg, period="month", end=date(2019, 10, 31), frames=frames, dataset=ds, today=today)
+    assert rep["samples"] == n and rep["accepted"] == 0 and rep["yardstick"]["tickers"] == 3   # no budget given -> the full yardstick (all 3 test names)
     member = next(iter(rep["members"].values()))
     assert member["accepted"] is False and member["score_before"] == 0.5
-    assert hashlib.sha1(path.read_bytes()).hexdigest() == digest0                 # the file was not touched
+    assert hashlib.sha1(path.read_bytes()).hexdigest() == digest0               # the file was not touched
     state = json.loads((cfg.path("train.checkpoint_dir") / "hindsight.json").read_text())
-    assert state["accepted"] == 0 and state["history"][-1]["samples"] == n
-    # same samples again: nothing new settled -> skipped without evaluating
-    rep2 = learn(cfg, frames=frames, dataset=ds, today=pd.Timestamp("2019-12-31"))
-    assert "nothing new" in rep2["skipped"]
-    # forced, with a score that holds -> accepted and saved
+    assert state["learned"]["month"] == "2019-10-31" and state["history"][-1]["samples"] == n
+    # the same unit again -> skipped as already learned; forced with a score that holds -> accepted and saved
+    assert "already learned" in learn(cfg, period="month", end=date(2019, 10, 31), frames=frames, dataset=ds, today=today)["skipped"]
     scores = iter([0.50, 0.49])
-    rep3 = learn(cfg, force=True, frames=frames, dataset=ds, today=pd.Timestamp("2019-12-31"))
-    assert rep3["accepted"] == 1
+    rep3 = learn(cfg, period="month", end=date(2019, 10, 31), force=True, frames=frames, dataset=ds, today=today, budget_minutes=5)
+    assert rep3["accepted"] == 1 and rep3["yardstick"]["bars"] == 60             # a short budget -> the quick yardstick
     assert hashlib.sha1(path.read_bytes()).hexdigest() != digest0
     reloaded = PolicyBundle.load(cfg.path("train.checkpoint_dir"))                # the fine-tuned weights are what got saved
     m = next(iter(rep3["members"].values()))
-    loss_reloaded = float(np.average((np.clip(policy_mean(reloaded.model, samples["X"]), -1, 1) - samples["y"]) ** 2,
-                                     weights=samples["w"] / samples["w"].mean()))
+    loss_reloaded = float(np.average((np.clip(policy_mean(reloaded.model, s_month["X"]), -1, 1) - s_month["y"]) ** 2,
+                                     weights=s_month["w"] / s_month["w"].mean()))
     assert abs(loss_reloaded - m["loss_after"]) < 1e-4 and loss_reloaded < m["loss_before"]
+    # learn_due: yesterday (3 decisions) and last week (15) are too small, the month is done, the year has nothing
+    scores = iter([0.5, 0.5] * 4)
+    due = learn_due(cfg, today=today, frames=frames, dataset=ds)
+    assert "month" not in due and "need 20" in due["day 2019-11-15"]["skipped"] and "need 20" in due["week"]["skipped"]
+    assert due["week"]["end"] == "2019-11-15" and "year" in due and sum(k.startswith("day ") for k in due) == 5
+
+
+def test_session_learns_before_the_open_alongside_the_warm_up(cfg, frames, monkeypatch):
+    import sys
+    from datetime import datetime, timedelta
+
+    from stockbot.agent.policy import PolicyBundle
+    from stockbot.execution.market_hours import NY, MarketClock
+    from stockbot.execution.runner import TradingRunner
+    from stockbot.execution.session import TradingSession
+    from stockbot.signals.registry import build_context, build_layout, build_providers
+
+    class Clock(MarketClock):
+        def __init__(self, start):
+            self.t = start
+            super().__init__(source="builtin", now_fn=lambda: self.t)
+
+        def sleep(self, s):
+            self.t += timedelta(seconds=s)
+
+    class M:
+        num_timesteps = 0
+
+        def predict(self, obs, deterministic=True):
+            return np.array([1.0], dtype=np.float32), None
+
+    ctx = build_context(cfg, with_llm=False, with_news=False)
+    providers = [p for p in build_providers(cfg, ctx) if p.name in ("technical", "trend")]
+    bundle = PolicyBundle(M(), build_layout(providers), {"algo": "ppo"})
+    clock = Clock(datetime(2026, 9, 14, 9, 0, tzinfo=NY))                                   # 30 min before the open
+    runner = TradingRunner(cfg, mode="paper", bundle=bundle, frames_loader=lambda refresh: frames, with_llm=False, clock=clock)
+    seen = {}
+    monkeypatch.setattr(TradingSession, "learn_command", lambda self, minutes: seen.setdefault("minutes", minutes) and
+                        [sys.executable, "-c", "import sys; sys.exit(0)"])
+    session = TradingSession(cfg, mode="paper", hours=1, train=False, clock=clock, sleep=clock.sleep, runner=runner, snapshot_minutes=30,
+                             after_open_minutes=0, max_wait_minutes=60, review_after=False, learn_margin_minutes=8)
+    summary = session.run()
+    assert "skipped" not in summary and summary["learn"]["returncode"] == 0 and summary["learn"]["killed"] is False
+    assert abs(seen["minutes"] - 22.0) < 0.5                                                # 30 min to the open minus the 8 min margin
+    assert "reloaded" in summary["learn"]                                                  # no policy on disk here -> False, but the hook ran
+    assert summary["learn"]["reloaded"] is False
 
 
 def test_period_review_has_path_oracle_attribution_and_ic(cfg, monkeypatch):

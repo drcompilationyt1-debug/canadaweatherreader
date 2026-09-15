@@ -300,6 +300,18 @@ class TradingRunner:
         self.latest_vectors(budget_minutes=budget_minutes, skip={"news_llm", "llm_trader"})
         return list(self.agent_tickers)
 
+    def reload_policy(self) -> bool:
+        """Re-read the policy from disk (the pre-open learner may have fine-tuned it); same layout only."""
+        ckpt = self.cfg.path("train.checkpoint_dir", "models/policy")
+        if not PolicyBundle.exists(ckpt):
+            return False
+        bundle = PolicyBundle.load(ckpt, "best" if (ckpt / "best.zip").exists() else "latest")
+        if bundle.layout.signature() != self.bundle.layout.signature():
+            log.warning("policy on disk has another layout (%s vs %s) - keeping the loaded one", bundle.layout.signature(), self.bundle.layout.signature())
+            return False
+        self.bundle = bundle
+        return True
+
     def portfolio_state(self, ticker: str, price: float, equity: float) -> tuple[np.ndarray, float]:
         slice_cap = max(equity * self.max_position, 1e-9)
         pos = self.broker.position(ticker)

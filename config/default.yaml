@@ -331,21 +331,24 @@ feedback:
   what_if:                      # the day review's parallel search over the moves that were available (exposure level x entry x exit)
     levels: [0.0, 0.25, 0.5, 0.75, 1.0]
     workers: 4
-  hindsight:                    # learn from the paper trades (`stockbot review --learn`): fine-tune the policy toward the
-    enabled: true               # hindsight-best conviction of every recorded decision, keep a member only if its OOS score holds
-    horizons: {1: 0.2, 5: 0.5, 21: 0.3}   # bars after the decision (1 = that day's close, 5 = the week, 21 = the month) and label weights
-    z_scale: 1.0                # a move of this many sigmas over the horizon = full conviction
-    min_samples: 40             # labelled decisions needed before touching the policy
+  hindsight:                    # learn from the paper trades (`stockbot review --learn`), one finished unit at a time: yesterday
+    enabled: true               # (every morning), last week (weekend), last month, last year - each labelled by the fee-aware best
+                                # path over THAT unit (the best day play is not the best week play); a member's update is kept only
+                                # if its out-of-sample score holds
+    min_samples: 40             # labelled decisions in the unit needed before touching the policy
     epochs: 8
     lr: 0.00005
     batch_size: 256
     anchor_weight: 1.0          # hold the policy's answers on simulator states (no forgetting what the simulations taught)
     ref_steps: 2048             # how many simulator states form that anchor
-    recency_half_life_days: 60  # recent paper days count more
     guard: true                 # re-score each member on the held-out window; keep the update only if the score holds
     max_score_drop: 0.02
-    eval_tickers: 8
+    eval_tickers: 8             # the quick yardstick (short budgets)
     eval_bars: 500
+    big_budget_minutes: 20      # with at least this much time (the morning run) use the trainer's full yardstick and more epochs
+    eval_tickers_full: 12
+    eval_bars_full: 750
+    epochs_full: 16
 
 session:                      # `stockbot session`: the daily market-hours run (also what the GitHub workflow does)
   hours: 4                    # trade at the open, then watch the positions for this long
@@ -354,7 +357,10 @@ session:                      # `stockbot session`: the daily market-hours run (
   snapshot_minutes: 15        # log prices / equity / move-since-open this often
   end_margin_minutes: 15      # the background trainer must finish this long before the session ends
   deadline_minutes: 0         # 0 = no job deadline; the GitHub workflow passes ~300 so watch + review + trainer end before the 6 h kill
+  deadline_at: ""             # or an absolute ISO time (the workflow anchors it on the job's start: JOB_DEADLINE); the earlier one wins
   review_after: true          # after the watch window, replay the day and score it against the alternatives (`stockbot review`)
+  learn_before_open: true     # before the open, learn from yesterday (and any finished week / month / year not learned yet) in a
+  learn_margin_minutes: 8     # background process alongside the agent warm-up; it must be done this many minutes before the open
   train: true                 # keep training the policy in the background while the market is watched
   train_minutes: 0            # 0 = whatever is left of the session after the margin
   train_timesteps: 2000000    # PPO steps per ensemble member per session (the time budget usually wins)

@@ -170,3 +170,11 @@ def test_session_respects_job_deadline(cfg, frames):
     ended = datetime.fromisoformat(summary["end"])
     assert ended <= datetime(2026, 9, 14, 10, 32, tzinfo=NY)
     assert "review" in summary and "lessons" in summary["review"]              # the day review ran after the window
+    # the same cut from an absolute deadline (the workflow anchors it on the job's start)
+    clock2 = Clock(datetime(2026, 9, 14, 9, 31, tzinfo=NY))
+    runner2 = TradingRunner(cfg, mode="paper", bundle=bundle, frames_loader=lambda refresh: frames, with_llm=False, clock=clock2)
+    session2 = TradingSession(cfg, mode="paper", hours=4, train=False, clock=clock2, sleep=clock2.sleep, runner=runner2, snapshot_minutes=15,
+                              after_open_minutes=0, deadline_minutes=0, deadline_at=datetime(2026, 9, 14, 10, 31, tzinfo=NY).isoformat(),
+                              end_margin_minutes=15, review_after=False)
+    summary2 = session2.run(force=True)
+    assert summary2["snapshots"] == 4 and datetime.fromisoformat(summary2["end"]) <= datetime(2026, 9, 14, 10, 32, tzinfo=NY)

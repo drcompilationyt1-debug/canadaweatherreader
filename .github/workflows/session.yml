@@ -1,13 +1,16 @@
 name: session
 
-# Every weekday: start a few minutes before the New York open, trade at the open, watch the
-# positions for four hours and keep training the policy in the background; then save the
-# models / experience / dashboard to the `state` branch.  Two cron slots cover daylight-saving
-# and standard time; `--gate-minutes` lets only the one near the open run (and skips holidays).
+# Every weekday: start about 75 minutes before the New York open, learn from yesterday's paper
+# trades (hindsight fine-tune on that day as one unit) while the LLM agents warm up, trade at the
+# open, watch the positions for four hours and keep training the policy on the simulators
+# in the background; then review the day and save the models / experience / dashboard to the
+# `state` branch.  Every deadline is anchored on the job's start (JOB_DEADLINE) so the whole run
+# ends before GitHub's 6 h kill no matter how long the early steps take.  Two cron slots cover
+# daylight-saving and standard time; `--gate-minutes` lets only the one near the open run.
 on:
   schedule:
-    - cron: "50 12 * * 1-5"      # 08:50 New York while daylight-saving time is in force (Mar-Nov)
-    # - cron: "50 13 * * 1-5"      # 08:50 New York in standard time (Nov-Mar)
+    - cron: "15 12 * * 1-5"      # 08:15 New York while daylight-saving time is in force (Mar-Nov)
+    # - cron: "15 13 * * 1-5"      # 08:15 New York in standard time (Nov-Mar)
   workflow_dispatch:
     inputs:
       mode:
@@ -36,7 +39,7 @@ concurrency:
 jobs:
   session:
     runs-on: ubuntu-latest
-    timeout-minutes: 355         # GitHub kills the job at 360: the session plans to finish by minute ~300 (see --deadline-minutes), save follows
+    timeout-minutes: 355         # GitHub kills the job at 360: JOB_DEADLINE (minute 325) ends the session; review + save follow
     permissions:
       contents: write
     env:
@@ -60,16 +63,21 @@ jobs:
         id: gate
         if: ${{ github.event_name == 'schedule' || inputs.gate == true }}
         run: |
-          # cheap pre-install check: proceed only between 08:30 and 10:00 New York on a weekday
+          # cheap pre-install check: proceed only between 07:55 and 10:00 New York on a weekday
           python3 - <<'EOF' >> "$GITHUB_OUTPUT"
           from datetime import datetime
           from zoneinfo import ZoneInfo
           now = datetime.now(ZoneInfo("America/New_York"))
-          ok = now.weekday() < 5 and (8, 30) <= (now.hour, now.minute) <= (10, 0)
+          ok = now.weekday() < 5 and (7, 55) <= (now.hour, now.minute) <= (10, 0)
           print(f"proceed={'true' if ok else 'false'}")
           print(f"now={now:%a %Y-%m-%d %H:%M %Z}")
           EOF
           cat "$GITHUB_OUTPUT"
+      - name: job clock (everything below plans around this deadline, 325 min after the job started)
+        if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
+        run: |
+          echo "JOB_DEADLINE=$(date -u -d '+325 minutes' +%Y-%m-%dT%H:%M:%S+00:00)" >> "$GITHUB_ENV"
+          echo "job started $(date -u +%H:%M) UTC, deadline $(date -u -d '+325 minutes' +%H:%M) UTC"
       - uses: actions/checkout@v4
         if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
         with:
@@ -142,10 +150,12 @@ jobs:
       - name: market status
         if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
         run: python -m stockbot market-status
+      # (the session itself learns from yesterday - and any finished week / month / year not learned yet - in a background
+      #  process while the LLM agents warm up before the open: session.learn_before_open)
       - name: session
         if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
         run: >
-          timeout 330m python -m stockbot session --mode ${{ inputs.mode || 'alpaca' }} --deadline-minutes 300
+          timeout 320m python -m stockbot session --mode ${{ inputs.mode || 'alpaca' }} --deadline-minutes 300 --deadline-at "$JOB_DEADLINE"
           --hours ${{ inputs.hours || '4' }}
           ${{ (github.event_name == 'schedule' || inputs.gate == true) && '--gate-minutes 90' || '' }}
           ${{ inputs.dry_run == true && '--dry-run' || '' }}
@@ -153,9 +163,9 @@ jobs:
       - name: daily review (what we did vs the alternatives, every move that was available, where the regret came from)
         if: ${{ always() && (steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true') }}
         run: python -m stockbot review --period day || true
-      - name: learn from the paper trades (hindsight fine-tune, kept only if the out-of-sample score holds)
+      - name: learn any finished unit the morning could not (fallback; usually a quick skip - today's close is not in yet)
         if: ${{ always() && !(inputs.dry_run == true) && (steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true') }}
-        run: timeout 12m python -m stockbot review --learn || true
+        run: timeout 10m python -m stockbot review --learn --due --max-minutes 8 --offline || true
       - name: forecast scorecard
         if: ${{ always() && (steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true') }}
         run: python -m stockbot forecast --no-refresh || true

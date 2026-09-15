@@ -61,12 +61,21 @@ class TradingSession:
         # the whole session (wait, watch, review, trainer wind-down) must end within this many minutes of
         # starting: GitHub kills a job at 6 h, so the workflow passes ~300 and everything is planned to fit
         self.deadline_minutes = float(s.get("deadline_minutes", 0) or 0)
+        # ... or an absolute time (ISO 8601 with offset) computed by the workflow from the job's start, so the
+        # learning / warm-up steps before the session can take as long as they like without moving the end
+        self.deadline_at = datetime.fromisoformat(str(s["deadline_at"])) if s.get("deadline_at") else None
         self.review_after = bool(s.get("review_after", True))
+        # before the open: learn from the finished days / weeks not learned yet (hindsight fine-tune) in a
+        # background process while the LLM agents warm up; it must end learn_margin_minutes before the open
+        self.learn_before_open = bool(s.get("learn_before_open", True))
+        self.learn_margin_minutes = float(s.get("learn_margin_minutes", 8))
         self.clock = clock or MarketClock()
         self.started_at = self.now()
         self.sleep = sleep
         self.runner = runner
         self.trainer: subprocess.Popen | None = None
+        self.learner: subprocess.Popen | None = None
+        self.learn_info: dict = {}
         self.snapshots: list[dict] = []
         self.summary: dict = {}
         self.prewarmed: dict = {}
@@ -101,10 +110,71 @@ class TradingSession:
             cmd.append("--offline")
         return cmd
 
+    def hard_deadline(self) -> datetime | None:
+        """When everything (watch, review, trainer) must be over: the earlier of the relative and the absolute deadline."""
+        cands = []
+        if self.deadline_minutes > 0:
+            cands.append(self.started_at + timedelta(minutes=self.deadline_minutes))
+        if self.deadline_at is not None:
+            cands.append(self.deadline_at.astimezone(self.started_at.tzinfo) if self.deadline_at.tzinfo else self.deadline_at)
+        return min(cands) if cands else None
+
+    def learn_command(self, minutes: float) -> list[str]:
+        cmd = [sys.executable, "-m", "stockbot", "review", "--learn", "--due", "--max-minutes", f"{minutes:.0f}",
+               "--before-open-minutes", f"{self.learn_margin_minutes:.0f}"]
+        if self.offline:
+            cmd.append("--offline")
+        return cmd
+
+    def start_learner(self, minutes_to_open: float) -> None:
+        minutes = minutes_to_open - self.learn_margin_minutes
+        if minutes < 3.0:
+            log.info("no time to learn before the open (%.0f min left)", minutes_to_open)
+            return
+        cmd = self.learn_command(minutes)
+        log.info("pre-open learner (up to %.0f min, alongside the warm-up): %s", minutes, " ".join(cmd[2:]))
+        self.learner = subprocess.Popen(cmd, cwd=str(ROOT))
+        self.learn_info = {"cmd": cmd[2:], "minutes": round(minutes, 1), "started": self.now().isoformat(timespec="seconds"), "t0": time.time()}
+
+    def finish_learner(self) -> None:
+        """Wait for the pre-open learner (until the margin before the open), then use what it learned."""
+        if self.learner is None:
+            return
+        st = self.clock.status()
+        budget = 0.0 if st.is_open else max(0.0, (st.minutes_to_open - self.learn_margin_minutes) * 60.0)
+        killed = False
+        try:
+            self.learner.wait(timeout=budget + 30.0)
+        except subprocess.TimeoutExpired:
+            log.warning("pre-open learner still running at the margin - stopping it")
+            self.learner.terminate()
+            try:
+                self.learner.wait(timeout=30.0)
+            except subprocess.TimeoutExpired:
+                self.learner.kill()
+            killed = True
+        self.learn_info.update({"returncode": self.learner.returncode, "killed": killed,
+                                "seconds": round(time.time() - self.learn_info.pop("t0", time.time()), 1)})
+        state = self.cfg.path("train.checkpoint_dir", "models/policy") / "hindsight.json"
+        try:
+            self.learn_info["learned"] = json.loads(state.read_text(encoding="utf-8")).get("learned", {}) if state.exists() else {}
+        except Exception:  # noqa: BLE001
+            self.learn_info["learned"] = {}
+        if self.runner is not None:
+            try:
+                self.learn_info["reloaded"] = bool(self.runner.reload_policy())
+            except Exception as e:  # noqa: BLE001
+                log.warning("could not reload the policy after learning: %s", e)
+                self.learn_info["reloaded"] = False
+        log.info("pre-open learner done in %.0fs (code %s%s), policy %s", self.learn_info["seconds"], self.learn_info["returncode"],
+                 ", stopped" if killed else "", "reloaded" if self.learn_info.get("reloaded") else "not reloaded")
+        self.learner = None
+
     def start_trainer(self, end: datetime) -> None:
         until = end
-        if self.deadline_minutes > 0:   # the trainer may run past the watch window, up to the job deadline
-            until = max(end, self.started_at + timedelta(minutes=self.deadline_minutes))
+        hard = self.hard_deadline()
+        if hard is not None:            # the trainer may run past the watch window, up to the job deadline
+            until = max(end, hard)
         minutes = self.train_minutes or max(1.0, (until - self.now()).total_seconds() / 60.0 - self.end_margin_minutes)
         cmd = self.trainer_command(minutes)
         log.info("background trainer: %s", " ".join(cmd[2:]))
@@ -195,7 +265,10 @@ class TradingSession:
             return self.summary
         if not st.is_open:
             if st.minutes_to_open <= self.max_wait_minutes:
-                self._prewarm(st.minutes_to_open)
+                if self.learn_before_open and not self.dry_run:
+                    self.start_learner(st.minutes_to_open)              # learns yesterday (and any missed unit) ...
+                self._prewarm(st.minutes_to_open)                       # ... while the LLM agents warm up
+                self.finish_learner()
             st = self.clock.wait_for_open(self.max_wait_minutes, sleep=self.sleep)
             if not st.is_open:
                 self.summary = {"skipped": f"market closed until {st.next_open.isoformat(timespec='minutes')}", "date": st.now.strftime("%Y-%m-%d")}
@@ -204,12 +277,14 @@ class TradingSession:
         start = self.now()
         date = start.strftime("%Y-%m-%d")
         end = min(start + timedelta(hours=self.hours), st.next_close - timedelta(minutes=2))
-        hard_deadline = self.started_at + timedelta(minutes=self.deadline_minutes) if self.deadline_minutes > 0 else None
+        hard_deadline = self.hard_deadline()
         if hard_deadline is not None and end > hard_deadline - timedelta(minutes=self.end_margin_minutes):
             end = hard_deadline - timedelta(minutes=self.end_margin_minutes)
             log.warning("watch window shortened to %s to respect the job deadline", end.strftime("%H:%M"))
         self.summary = {"date": date, "mode": self.mode, "dry_run": self.dry_run, "start": start.isoformat(timespec="seconds"),
                         "planned_end": end.isoformat(timespec="seconds"), "clock": st.source, "open_prices": {}}
+        if self.learn_info:
+            self.summary["learn"] = {k: v for k, v in self.learn_info.items() if k != "t0"}
         if st.minutes_since_open < self.after_open_minutes:
             wait = self.after_open_minutes - st.minutes_since_open
             log.info("letting the opening auction settle (%.1f min)", wait)
@@ -282,8 +357,9 @@ class TradingSession:
                 log.warning("daily review failed: %s", e)
         if self.trainer is not None:
             grace = self.end_margin_minutes
-            if self.deadline_minutes > 0:
-                grace = max(1.0, (self.started_at + timedelta(minutes=self.deadline_minutes) - self.now()).total_seconds() / 60.0)
+            hard = self.hard_deadline()
+            if hard is not None:
+                grace = max(1.0, (hard - self.now()).total_seconds() / 60.0)
             self.finish_trainer(grace)
         if not self.dry_run:
             try:

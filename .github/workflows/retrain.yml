@@ -126,8 +126,8 @@ jobs:
           ${{ inputs.from_scratch == true && '--from-scratch' || '' }}
       - name: evaluate
         run: python -m stockbot evaluate --plot eval.png
-      - name: learn from the paper trades (hindsight fine-tune on the week's decisions, guarded by the out-of-sample score)
-        run: timeout 12m python -m stockbot review --learn || true
+      - name: learn from last week / month / year as one unit each (hindsight fine-tune, guarded by the out-of-sample score)
+        run: timeout 25m python -m stockbot review --learn --due --max-minutes 20 || true
       - name: forecast scorecard
         run: python -m stockbot forecast --no-refresh || true
       - name: save state
