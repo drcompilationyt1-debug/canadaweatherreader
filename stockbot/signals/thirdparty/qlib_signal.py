@@ -29,6 +29,8 @@ class QlibSignal(SignalProvider):
     def __init__(self, cfg, ctx):
         super().__init__(cfg, ctx)
         self.pred_path = resolve(self.cfg.get("predictions", "models/qlib/pred.parquet"))
+        # predictions are refreshed on the weekend; the last score stays valid for this many bars (a multi-day forecast)
+        self.max_age_bars = int(self.cfg.get("max_age_bars", 5) or 0)
         self._table: pd.DataFrame | None = None
 
     def _load(self) -> pd.DataFrame | None:
@@ -74,6 +76,8 @@ class QlibSignal(SignalProvider):
         if len(sub) == 0:
             return out
         sub = sub[~sub.index.duplicated(keep="last")].reindex(df.index)
+        if self.max_age_bars > 0:
+            sub = sub.ffill(limit=self.max_age_bars)
         out[:, 0] = np.clip(sub["score"].to_numpy(float) * 50.0, -5, 5)
         out[:, 1] = sub["rank"].to_numpy(float)
         return out

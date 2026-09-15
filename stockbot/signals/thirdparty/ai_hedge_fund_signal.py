@@ -103,7 +103,19 @@ class AIHedgeFundSignal(SignalProvider):
             d = json.loads(f.read_text(encoding="utf-8"))
         else:
             py, _ = resolve_python(self.cfg.get("python"), ".venv-aihf", "hedge_fund")
-            d = run_agent(py, SCRIPT, [ticker, day, "--mandate", str(self.mandate), "--data", self.data], self.timeout, self._llm_env())
+            env = self._llm_env()
+            model = str(env.get("HEDGE_FUND_LLM_MODEL") or "")
+            if model.startswith("gemini"):
+                from ...llm.probe import first_live_gemini
+
+                live = first_live_gemini([model] + [str(m) for m in (self.cfg.get("llm_fallbacks") or [])],
+                                         env.get("GOOGLE_API_KEY") or os.environ.get("GOOGLE_API_KEY"))
+                if live is None:
+                    raise RuntimeError(f"no Gemini model answering ({model} and its fallbacks)")
+                if live != model:
+                    log.warning("ai_hedge_fund: %s -> %s (the configured model is not answering)", model, live)
+                env["HEDGE_FUND_LLM_MODEL"] = live
+            d = run_agent(py, SCRIPT, [ticker, day, "--mandate", str(self.mandate), "--data", self.data], self.timeout, env)
             f.parent.mkdir(parents=True, exist_ok=True)
             f.write_text(json.dumps(d), encoding="utf-8")
         vals = np.array([s["value"] for s in d.get("signals", [])], dtype=float)

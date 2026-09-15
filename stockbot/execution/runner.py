@@ -319,17 +319,32 @@ class TradingRunner:
             deadline = time.time() + budget * 60.0 if budget > 0 else None
             log.info("agent frameworks %s on the top-%d consensus tickers %s (budget %.0f min)",
                      [p.name for p in agents], top_n, selected, budget)
+            max_fail = int(self.cfg.get_path("signals.agents.max_failures", 2) or 0)
+            alive: dict[str, bool] = {}
             for p in agents:
                 ok, why = p.availability()
                 reasons[p.name] = why
+                alive[p.name] = ok
                 for t in frames:
-                    if not ok or t not in selected:
-                        vectors[t][p.name] = None
-                    elif deadline is not None and time.time() >= deadline:
-                        vectors[t][p.name] = None
+                    vectors[t][p.name] = None
+            failures = {p.name: 0 for p in agents}
+            stopped: set[str] = set()
+            for t in selected:                      # ticker by ticker: one framework's outage cannot starve the other
+                for p in agents:
+                    if not alive[p.name] or p.name in stopped:
+                        continue
+                    if deadline is not None and time.time() >= deadline:
                         log.warning("agent %s: budget exhausted before %s", p.name, t)
+                        continue
+                    v = p.safe_latest(t, frames[t])
+                    vectors[t][p.name] = v
+                    if v is None:
+                        failures[p.name] += 1
+                        if max_fail and failures[p.name] >= max_fail:
+                            stopped.add(p.name)
+                            log.warning("agent %s: %d failures in a row - skipped for the rest of this run", p.name, failures[p.name])
                     else:
-                        vectors[t][p.name] = p.safe_latest(t, frames[t])
+                        failures[p.name] = 0
         return vectors, reasons
 
     def prewarm_agents(self, refresh: bool = True, budget_minutes: float | None = None) -> list[str]:

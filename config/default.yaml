@@ -91,22 +91,24 @@ signals:
   # per run by max_history_calls) so the block has a training history - needs data/news/*.csv
   # rag_grading: retrieve -> grade relevance -> generate (stocks-insights-ai-agent's news graph), one extra call
   news_llm:      { enabled: true, lookback_days: 3, max_items: 25, score_history: false, max_history_calls: 200, history_granularity: week, rag_grading: false }
-  qlib:          { enabled: true, predictions: models/qlib/pred.parquet }
+  qlib:          { enabled: true, predictions: models/qlib/pred.parquet, max_age_bars: 5 }   # weekend predictions stay valid for a week
   freqtrade:     { enabled: true }
   # Tier C - LLM multi-agent frameworks (a dozen LLM calls per ticker).  They run in their own
   # virtualenvs (python scripts/setup_agent_envs.py; python: null = auto-detect) and only on the
   # `agents.top_n` tickers where the other models agree most (strongest |consensus|), within
   # `agents.budget_minutes` per cycle; the session pre-computes them before the open so the
   # orders at 09:35 are not delayed.  Results are cached per (ticker, bar date).
-  agents: { top_n: 4, budget_minutes: 25 }
+  agents: { top_n: 4, budget_minutes: 25, max_failures: 2 }   # a framework failing twice in a row is skipped for the rest of the run
   # TradingAgents on Gemini (llm_provider google uses the GEMINI_API_KEY pool as GOOGLE_API_KEY).  One run is
   # ~30 LLM calls with long prompts plus Reddit look-ups that back off on 429s: 5-10 minutes per ticker.
   # Groq's free tier (8K tokens/min on gpt-oss-120b) throttled it past the timeout; an OpenAI-compatible
   # backend_url containing "groq" / "openrouter" / "generativelanguage" picks the matching key pool.
   trading_agents: { enabled: true, python: null, llm_provider: google, backend_url: null,
-                    deep_think_llm: gemini-3.8-flash, quick_think_llm: gemini-3.5-flash-lite, max_debate_rounds: 1, timeout: 900 }
+                    deep_think_llm: gemini-3.8-flash, quick_think_llm: gemini-3.5-flash-lite, max_debate_rounds: 1, timeout: 900,
+                    deep_think_fallbacks: [gemini-3.5-flash, gemini-2.5-flash], quick_think_fallbacks: [gemini-2.5-flash-lite, gemini-2.5-flash] }
   # ai-hedge-fund on Gemini flash (registered at runtime by our runner script) with free Yahoo data; GEMINI_API_KEY pool.
-  ai_hedge_fund:  { enabled: true, python: null, mandate: null, llm_model: gemini-3.8-flash, data: yfinance, timeout: 600 }
+  ai_hedge_fund:  { enabled: true, python: null, mandate: null, llm_model: gemini-3.8-flash, data: yfinance, timeout: 600,
+                    llm_fallbacks: [gemini-3.5-flash, gemini-2.5-flash] }   # each model is probed first; a 503 costs seconds, not minutes
   # Ports of the reference repos (Lean algorithms, huseinzol05 agents, akurgat indications,
   # the LSTM-style forecasters) - cheap extra opinions for the policy ------------------
   strategy_zoo:  { enabled: true }

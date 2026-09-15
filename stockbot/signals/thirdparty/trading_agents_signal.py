@@ -83,6 +83,25 @@ class TradingAgentsSignal(SignalProvider):
             return key, extra
         return None, extra
 
+    def _live_models(self, extra: dict) -> dict:
+        """On Google: the configured deep / quick models, or their fallbacks, whichever answers a probe right now.
+        Raises when none does, so the cycle moves on in seconds instead of minutes of 503 retries."""
+        if str(self.cfg.get("llm_provider", "openai")).lower() != "google":
+            return {}
+        from ...llm.probe import first_live_gemini
+
+        key = extra.get("GOOGLE_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+        out = {}
+        for field, fb in (("deep_think_llm", "deep_think_fallbacks"), ("quick_think_llm", "quick_think_fallbacks")):
+            cands = [self.cfg.get(field)] + list(self.cfg.get(fb) or [])
+            live = first_live_gemini([c for c in cands if c], key)
+            if live is None:
+                raise RuntimeError(f"no Gemini model answering for {field} ({', '.join(str(c) for c in cands)})")
+            if live != self.cfg.get(field):
+                log.warning("trading_agents: %s -> %s (the configured model is not answering)", field, live)
+            out[field] = live
+        return out
+
     def availability(self) -> tuple[bool, str]:
         if not self.enabled:
             return False, "disabled (signals.trading_agents.enabled)"
@@ -114,6 +133,7 @@ class TradingAgentsSignal(SignalProvider):
             py, _ = resolve_python(self.cfg.get("python"), ".venv-tradingagents", "tradingagents")
             _, extra = self._key_env()
             overrides = {k: self.cfg.get(k) for k in CONFIG_KEYS if self.cfg.get(k) is not None}
+            overrides.update(self._live_models(extra))
             d = run_agent(py, SCRIPT, [ticker, day, "--config-json", json.dumps(overrides)], self.timeout, extra)
             f.parent.mkdir(parents=True, exist_ok=True)
             f.write_text(json.dumps(d), encoding="utf-8")
