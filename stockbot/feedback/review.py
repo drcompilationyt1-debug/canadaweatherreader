@@ -198,6 +198,66 @@ class Review:
             log.debug("broker fills unavailable: %s", e)
         return block, lessons, hold_to_close
 
+    def _decision_ledger(self, period: str, end: date) -> tuple[list[dict] | None, dict, list[str]]:
+        """Every decision of the unit against the fee-aware best path of its name: verdict, regret, the better move."""
+        from .hindsight import unit_paths, unit_verdicts
+
+        recs = self.store.load()
+        if recs is None or len(recs) == 0:
+            return None, {}, []
+        _, _, rows = unit_paths(self.cfg, period, end, recs)
+        if not rows:
+            return None, {}, []
+        ledger, summ = unit_verdicts(rows, self.max_position)
+        c = summ["counts"]
+        lessons = [f"{summ['n']} decisions this {period}: {c['right']} right, {c['missed']} missed, {c['wrong side']} wrong side, "
+                   f"{c['under-sized']} under-sized, {c['over-sized']} over-sized - hit rate {100 * (summ['hit_rate'] or 0):.0f}%, "
+                   f"regret {_pct(summ['regret'])}"]
+        for w in [d for d in summ["worst"] if d["verdict"] != "right"][:3]:
+            lessons.append(f"worse move: {w['ticker']} {w['action'] or 'HOLD'} on {w['date']} ({_pct(w['r_to_end'])} to the {period}'s end, "
+                           f"{w['verdict']}) - better: {w['better']}")
+        return ledger, summ, lessons
+
+    def _strategy_what_if(self, period: str, start: date, end: date, actual: float) -> tuple[dict, list[str]]:
+        """The rank rule's own alternatives over the unit (other K, other cadences) next to what we actually made."""
+        try:
+            from ..agent.backtest import blended_scores, closes, round_trip_bps, simulate
+            from ..agent.train import cached_dataset
+            from ..execution.ranking import DEFAULT_INPUTS, every_bars_of, load_tuned_inputs
+
+            ds = cached_dataset(self.cfg, max_age_days=1e9)
+            if ds is None:
+                return {}, []
+            px = closes(ds)
+            if px.index[-1].date() < end - timedelta(days=4):
+                return {}, []                                            # the dataset does not cover the unit yet
+            rk = dict(self.cfg.get_path("execution.rank", {}) or {})
+            inputs = dict(rk.get("inputs") or DEFAULT_INPUTS)
+            if rk.get("adaptive", True):
+                inputs = load_tuned_inputs(self.cfg.path("models_dir", "models"), inputs)
+            score = blended_scores(ds, inputs)
+            k0, e0, h = int(rk.get("top_k", 20)), every_bars_of(rk.get("every_bars", 10)), int(rk.get("hysteresis", 3))
+            recs = self.store.load()
+            budget = float(self.cfg.get_path("env.initial_cash", 100_000))
+            if recs is not None and "equity" in recs.columns and recs["equity"].notna().any():
+                budget = float(pd.to_numeric(recs["equity"], errors="coerce").dropna().iloc[-1]) or budget
+            variants = {}
+            for k in sorted({10, 15, 20, 25, k0}):
+                for every in sorted({5, 10, 21, e0}):
+                    r = simulate(px, score, start, end=end, k=k, every=every, hysteresis=h, fee_bps=round_trip_bps(self.cfg, budget, k))
+                    variants[f"top{k}/every{every}"] = {"total": r["total"], "sharpe": r["sharpe"], "max_drawdown": r["max_drawdown"]}
+            ew = simulate(px, None, start, end=end)
+            rule = variants[f"top{k0}/every{e0}"]
+            best_name, best = max(variants.items(), key=lambda kv: kv[1]["total"])
+            block = {"rule": {"name": f"top{k0}/every{e0}", **rule}, "best": {"name": best_name, **best}, "equal_weight": ew["total"],
+                     "actual_return": actual, "variants": variants, "inputs": inputs}
+            lessons = [f"strategy what-if this {period}: the rule (top-{k0}, every {e0} bars) {_pct(rule['total'])}, best variant {best_name} "
+                       f"{_pct(best['total'])}, equal-weight {_pct(ew['total'])}, actual {_pct(actual)}"]
+            return block, lessons
+        except Exception as e:  # noqa: BLE001
+            log.debug("strategy what-if failed: %s", e)
+            return {}, []
+
     @staticmethod
     def _rank_alternatives(actual: float, alts: dict[str, float]) -> list[dict]:
         rows = [{"name": "actual", "return": actual}] + [{"name": k, "return": v} for k, v in alts.items()]
@@ -232,6 +292,7 @@ class Review:
         summary = json.loads(summary_file.read_text(encoding="utf-8")) if summary_file.exists() else {}
         equity0 = float(summary.get("equity_open") or 0.0) or float(snaps[0]["equity"])
         slice_cap = equity0 * self.max_position
+        exits = {r["ticker"]: r for r in recs if r.get("type") == "exit" and r.get("ticker")}
 
         moves, held_now, prev_exp, targets = {}, {}, {}, {}
         for t, row in tickers.items():
@@ -242,6 +303,10 @@ class Review:
             d = dec_by.get(t, {})
             price = float(d.get("price") or row.get("price") or 0.0)
             held_now[t] = float(row.get("held") or 0.0) * price / slice_cap if slice_cap > 0 and price > 0 else 0.0
+            if t in exits and price > 0 and slice_cap > 0:                 # sold during the day: count what the exit realised
+                ex = exits[t]
+                held_now[t] = float(ex.get("qty") or 0.0) * price / slice_cap
+                moves[t] = float(ex.get("price") or price) / price - 1.0
             prev_exp[t] = float(d.get("current_exposure", 0.0))
             targets[t] = float(d.get("target_exposure", 0.0))
         if not moves:
@@ -333,6 +398,13 @@ class Review:
                     alts["hold_to_close"] = hold_to_close
         except Exception as e:  # noqa: BLE001
             log.debug("full-day review failed: %s", e)
+        if exits:
+            extra["exits"] = [{k: v for k, v in ex.items() if k != "type"} for ex in exits.values()]
+            more.append("intraday exits: " + ", ".join(f"{t} @ {float(ex.get('price') or 0):.2f} ({ex.get('reason', '')})" for t, ex in exits.items()))
+        ledger, lsum, llessons = self._decision_ledger("day", day)
+        if lsum:
+            extra["decisions"] = {**lsum, "ledger": ledger}
+            more.extend(llessons)
         if self.benchmark in moves:
             extra["regime"] = {"benchmark_return": moves[self.benchmark],
                                "label": "up" if moves[self.benchmark] > 0.002 else "down" if moves[self.benchmark] < -0.002 else "flat"}
@@ -483,6 +555,14 @@ class Review:
             if good or bad:
                 more.append("inputs by information coefficient - useful: " + (", ".join(good) or "none") +
                             "; harmful: " + (", ".join(bad) or "none"))
+        ledger, lsum, llessons = self._decision_ledger(period, end)
+        if lsum:
+            extra["decisions"] = {**lsum, "ledger": ledger}
+            more.extend(llessons)
+        sw, sw_lessons = self._strategy_what_if(period, start, end, actual)
+        if sw:
+            extra["strategy_what_if"] = sw
+            more.extend(sw_lessons)
         rg = regime(alts_daily.get("benchmark"))
         if rg:
             extra["regime"] = rg

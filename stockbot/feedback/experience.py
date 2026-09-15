@@ -27,13 +27,15 @@ class ExperienceStore:
 
     def record(self, *, mode: str, ticker: str, date: str, obs: np.ndarray, action: float, target_exposure: float,
                weight: float, decision: str, price: float, equity: float, availability: dict[str, bool],
-               fills: list[dict] | None = None, fees: float = 0.0, conviction: float | None = None) -> None:
+               fills: list[dict] | None = None, fees: float = 0.0, conviction: float | None = None,
+               chosen: bool | None = None, rank: int | None = None) -> None:
         self._append({
             "type": "decision", "ts": datetime.now(timezone.utc).isoformat(), "mode": mode, "ticker": ticker,
             "date": date, "obs": np.asarray(obs, dtype=float).round(5).tolist(), "action": float(action),
             "target_exposure": float(target_exposure), "weight": float(weight), "decision": decision,
             "price": float(price), "equity": float(equity), "availability": availability, "fills": fills or [],
             "fees": float(fees), "conviction": None if conviction is None else float(conviction),
+            "chosen": chosen, "rank": rank,           # the rank layer's verdict: only chosen names are sized by the policy
         })
 
     def settle(self, ticker: str, date: str, price: float) -> dict | None:

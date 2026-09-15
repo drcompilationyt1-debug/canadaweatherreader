@@ -443,6 +443,13 @@ class TradingRunner:
                 log.info("at most %d names: keeping %s; %d others set to zero", self.max_names, ", ".join(keep), len(dropped))
         return weights
 
+    def _rank_position(self, ticker: str) -> int | None:
+        scores = self.last_rank.get("scores") or {}
+        if ticker not in scores or not np.isfinite(scores[ticker]):
+            return None
+        ranked = sorted((t for t, s in scores.items() if np.isfinite(s)), key=lambda t: -scores[t])
+        return ranked.index(ticker) + 1
+
     def apply_rank_core(self, targets: dict[str, float], obs_by: dict[str, np.ndarray], tickers: list[str], eq_of: dict[str, float],
                         as_of: str) -> dict[str, float]:
         """Weights (fractions of equity) from the rank-core rule: the top-K names by blended rank each get 1/K of the
@@ -624,7 +631,8 @@ class TradingRunner:
                 self.store.record(mode=self.mode, ticker=t, date=as_of, obs=obs_by[t], action=targets[t],
                                   target_exposure=dec.target_exposure, weight=weights[t], decision=dec.action,
                                   price=price, equity=eq_of[t], availability=avail_by[t], fills=fills, fees=fees_paid,
-                                  conviction=conv_by.get(t))
+                                  conviction=conv_by.get(t), chosen=(t in self.last_rank.get("chosen", [])) if self.rank_enabled else None,
+                                  rank=self._rank_position(t))
                 self.board.record(ticker=t, date=as_of, price=price, votes=votes, mode=self.mode)
         if isinstance(self.broker, PaperBroker):
             self.broker.mark(as_of)

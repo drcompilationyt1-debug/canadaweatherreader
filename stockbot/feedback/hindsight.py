@@ -103,32 +103,26 @@ def default_unit_end(period: str, today: date, last_decision: date | None) -> da
 
 
 # ---------------------------------------------------------------------- samples
-def build_samples(cfg: Config, obs_dim: int, period: str = "day", end: date | None = None, frames: dict[str, pd.DataFrame] | None = None,
-                  refresh: bool = False, today: date | None = None, levels: tuple[float, ...] = LEVELS) -> dict:
-    """Hindsight-labelled samples for one unit (``period`` ending on ``end``): ``X`` observations, ``y`` target
-    conviction in -1..1, ``w`` weights, plus per-sample metadata.  Only decisions inside the unit whose
-    observation matches the current layout are used, and only when the unit's bars have all settled."""
+def unit_paths(cfg: Config, period: str, end: date | None, recs: pd.DataFrame | None, frames: dict[str, pd.DataFrame] | None = None,
+               today: date | None = None, refresh: bool = False, levels: tuple[float, ...] = LEVELS) -> tuple[date | None, date | None, list[dict]]:
+    """Every recorded decision of one unit (``period`` ending ``end``) next to the fee-aware best path of its name over
+    that unit: our level vs the best level on the decision day, the move to the unit's end, the whole best path.
+    The same rows feed the review's decision ledger (what was wrong, what the better move was) and the hindsight labels."""
     today = today or datetime.now(timezone.utc).date()
-    recs = load_all_records(cfg)
-    empty = {"X": np.zeros((0, obs_dim), np.float32), "y": np.zeros(0, np.float32), "w": np.zeros(0, np.float32), "meta": [],
-             "period": period, "start": None, "end": None}
     if recs is None or len(recs) == 0:
-        return empty
+        return None, None, []
     dec = recs[recs["type"] == "decision"].copy()
     if len(dec) == 0:
-        return empty
+        return None, None, []
     dec["_d"] = pd.to_datetime(dec["date"]).dt.date
     if end is None:
         end = default_unit_end(period, today, dec["_d"].max())
         if end is None:
-            return empty
+            return None, None, []
     start, end = unit_bounds(period, end)
-    empty.update({"start": start.isoformat(), "end": end.isoformat()})
     dec = dec[(dec["_d"] >= start) & (dec["_d"] <= end)]
-    empty["decisions_in_unit"] = int(len(dec))
-    dec = dec[dec["obs"].apply(lambda o: isinstance(o, list) and len(o) == obs_dim)]   # only the current layout
     if len(dec) == 0:
-        return empty
+        return start, end, []
     tickers = sorted(dec["ticker"].unique().tolist())
     if frames is None:
         from ..agent.train import load_frames
@@ -137,7 +131,7 @@ def build_samples(cfg: Config, obs_dim: int, period: str = "day", end: date | No
     fees = FeeBook.from_config(cfg)
     max_position = float(cfg.get_path("execution.max_position", 0.10))
     allow_short = bool(env_settings(cfg).get("allow_short", False))
-    X, y, w, meta = [], [], [], []
+    rows: list[dict] = []
     for t in tickers:
         df = frames.get(t)
         if df is None or len(df) == 0:
@@ -147,8 +141,8 @@ def build_samples(cfg: Config, obs_dim: int, period: str = "day", end: date | No
         unit = closes[[start <= d.date() <= end for d in closes.index]]
         if len(unit) == 0:
             continue
-        rows = dec[dec["ticker"] == t].sort_values("_d")
-        by_day = {r["_d"]: r for _, r in rows.iterrows()}
+        sub = dec[dec["ticker"] == t].sort_values("_d")
+        by_day = {r["_d"]: r for _, r in sub.iterrows()}
         if max(by_day) > unit.index[-1].date():
             continue                                                       # the unit has not settled yet
         days = [d.date() for d in unit.index]
@@ -159,28 +153,101 @@ def build_samples(cfg: Config, obs_dim: int, period: str = "day", end: date | No
             continue
         vals = unit.to_numpy(float)
         r = np.concatenate([[vals[0] / p_prev - 1.0], vals[1:] / vals[:-1] - 1.0])
-        first_rec = rows.iloc[0]
-        start_level = float(np.clip(np.asarray(first_rec["obs"], float)[-6], 0.0, 1.0))   # portfolio.exposure before the first decision
+        first_rec = sub.iloc[0]
+        obs0 = first_rec["obs"]
+        start_level = float(np.clip(np.asarray(obs0, float)[-6], 0.0, 1.0)) if isinstance(obs0, list) and len(obs0) >= 6 else 0.0
         sched = fees.for_ticker(t)
         slice_notional = max(float(first_rec.get("equity") or 0.0) * max_position, 1.0)
         fee_frac = float(sched.cost(slice_notional / p_prev, p_prev, "buy")) / slice_notional if sched is not None else 0.0
         best, path = path_oracle(r, fee_frac, levels, start_level=start_level)
+        day_str = [d.isoformat() for d in days]
         for k, d in enumerate(days):
             rec = by_day.get(d)
             if rec is None:
                 continue
-            level = float(path[k])
-            ours = float(np.clip(float(rec.get("target_exposure") or 0.0), 0.0, 1.0))
-            target = level if allow_short else 2.0 * level - 1.0
-            X.append(np.asarray(rec["obs"], np.float32))
-            y.append(target)
-            w.append(max(0.1, abs(level - ours)))
-            meta.append({"ticker": t, "date": rec["date"], "level_best": level, "level_ours": ours, "target": target,
-                         "r_day": float(r[k]), "unit_best_pnl": float(best), "action": float(rec.get("action") or 0.0)})
-    if not X:
+            price = float(rec.get("price") or 0.0) or float(vals[k])
+            chosen = rec.get("chosen") if "chosen" in rec else None
+            rows.append({"ticker": t, "date": str(rec["date"]), "action": str(rec.get("decision") or ""), "k": k, "days": day_str,
+                         "level_best": float(path[k]), "level_ours": float(np.clip(float(rec.get("target_exposure") or 0.0), 0.0, 1.0)),
+                         "r_day": float(r[k]), "r_to_end": float(vals[-1] / price - 1.0) if price > 0 else 0.0, "path": [float(x) for x in path],
+                         "obs": rec["obs"], "equity": float(rec.get("equity") or 0.0), "chosen": None if chosen is None or chosen != chosen else bool(chosen),
+                         "action_raw": float(rec.get("action") or 0.0), "unit_best_pnl": float(best), "allow_short": allow_short})
+    return start, end, rows
+
+
+VERDICTS = ("right", "missed", "wrong side", "under-sized", "over-sized")
+
+
+def verdict_of(ours: float, best: float) -> str:
+    if ours <= 0.05 and best >= 0.25:
+        return "missed"
+    if ours >= 0.25 and best <= 0.05:
+        return "wrong side"
+    if best > ours + 0.25:
+        return "under-sized"
+    if ours > best + 0.25:
+        return "over-sized"
+    return "right"
+
+
+def better_move(row: dict) -> str:
+    """What the fee-aware best path did with this name from the decision day on, in words."""
+    path, k, days = row["path"], int(row["k"]), row["days"]
+    best = path[k]
+    if best <= 0.05:
+        nxt = next((j for j in range(k + 1, len(path)) if path[j] > 0.05), None)
+        return "stay out" + (f" until {days[nxt]}" if nxt is not None else " for the whole unit")
+    txt = f"hold {best:.0%} of a slot"
+    exit_j = next((j for j in range(k + 1, len(path)) if path[j] <= 0.05), None)
+    if exit_j is not None:
+        txt += f", sell on {days[exit_j]}"
+    return txt
+
+
+def unit_verdicts(rows: list[dict], max_position: float = 0.10) -> tuple[list[dict], dict]:
+    """The decision ledger of a unit and its summary: every decision with its verdict, its regret (fraction of equity)
+    and the better move; counts per verdict, hit rate, total regret, the worst decisions first."""
+    ledger = []
+    for row in rows:
+        v = verdict_of(row["level_ours"], row["level_best"])
+        regret = max(0.0, (row["level_best"] - row["level_ours"]) * row["r_day"]) * max_position
+        ledger.append({"ticker": row["ticker"], "date": row["date"], "action": row["action"], "level_ours": row["level_ours"],
+                       "level_best": row["level_best"], "verdict": v, "better": better_move(row), "r_day": row["r_day"],
+                       "r_to_end": row["r_to_end"], "regret": regret})
+    ledger.sort(key=lambda d: -d["regret"])
+    n = len(ledger)
+    counts = {v: sum(1 for d in ledger if d["verdict"] == v) for v in VERDICTS}
+    summary = {"n": n, "counts": counts, "hit_rate": counts["right"] / n if n else None, "regret": float(sum(d["regret"] for d in ledger)),
+               "worst": ledger[:5]}
+    return ledger, summary
+
+
+def build_samples(cfg: Config, obs_dim: int, period: str = "day", end: date | None = None, frames: dict[str, pd.DataFrame] | None = None,
+                  refresh: bool = False, today: date | None = None, levels: tuple[float, ...] = LEVELS) -> dict:
+    """Hindsight-labelled samples for one unit: ``X`` observations, ``y`` target conviction in -1..1, ``w`` weights, plus
+    per-sample metadata.  Only decisions whose observation matches the current layout are used, and only when the
+    unit's bars have all settled (every account's records count)."""
+    recs = load_all_records(cfg)
+    start, end, rows = unit_paths(cfg, period, end, recs, frames=frames, today=today, refresh=refresh, levels=levels)
+    empty = {"X": np.zeros((0, obs_dim), np.float32), "y": np.zeros(0, np.float32), "w": np.zeros(0, np.float32), "meta": [],
+             "period": period, "start": start.isoformat() if start else None, "end": end.isoformat() if end else None,
+             "decisions_in_unit": len(rows)}
+    rows = [r for r in rows if isinstance(r["obs"], list) and len(r["obs"]) == obs_dim]   # only the current layout
+    if not rows:
         return empty
+    X, y, w, meta = [], [], [], []
+    for row in rows:
+        level, ours = row["level_best"], row["level_ours"]
+        target = level if row["allow_short"] else 2.0 * level - 1.0
+        focus = 1.0 if row["chosen"] is None or row["chosen"] else 0.25     # names the rank layer did not pick teach the policy less
+        X.append(np.asarray(row["obs"], np.float32))
+        y.append(target)
+        w.append(max(0.1, abs(level - ours)) * focus)
+        meta.append({"ticker": row["ticker"], "date": row["date"], "level_best": level, "level_ours": ours, "target": target,
+                     "r_day": row["r_day"], "unit_best_pnl": row["unit_best_pnl"], "action": row["action_raw"],
+                     "verdict": verdict_of(ours, level)})
     return {"X": np.asarray(X, np.float32), "y": np.asarray(y, np.float32), "w": np.asarray(w, np.float32), "meta": meta,
-            "period": period, "start": start.isoformat(), "end": end.isoformat()}
+            "period": period, "start": start.isoformat(), "end": end.isoformat(), "decisions_in_unit": empty["decisions_in_unit"]}
 
 
 # ---------------------------------------------------------------------- fine-tune

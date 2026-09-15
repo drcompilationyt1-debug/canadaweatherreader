@@ -407,6 +407,14 @@ def cmd_review(cfg, args) -> int:
     from .feedback.review import Review
 
     rev = Review(cfg)
+    if args.end == "last":                       # the last session day before today (its close has settled by now)
+        log_dir = cfg.path("session.log_dir", "data/paper/sessions")
+        days = sorted(f.stem.replace("session_", "") for f in log_dir.glob("session_*.jsonl")) if log_dir.is_dir() else []
+        days = [d for d in days if d < date.today().isoformat()]
+        if not days:
+            print("no earlier session to settle")
+            return 0
+        args.end = days[-1]
     end = date.fromisoformat(args.end) if args.end else None
     results = {}
     if args.learn:
@@ -778,7 +786,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("review", help="post-trade review: replay a day / week / month / year and score it against the alternatives")
     p.add_argument("--period", nargs="*", choices=["day", "week", "month", "year"], help="default: day (unless only --learn is asked)")
-    p.add_argument("--end", help="period end date (YYYY-MM-DD); default today / latest session")
+    p.add_argument("--end", help="period end date (YYYY-MM-DD) or 'last' = the last session day before today; default today / latest session")
     p.add_argument("--due", action="store_true", help="run whichever week / month / year reviews are due")
     p.add_argument("--learn", action="store_true",
                    help="learn from the paper trades instead of reporting: fine-tune the policy on the hindsight labels of one finished unit "

@@ -152,6 +152,11 @@ jobs:
       - name: market status
         if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
         run: python -m stockbot market-status
+      - name: settle yesterday's day reviews with the close (every decision gets its verdict and the better move; both accounts)
+        if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
+        run: |
+          python -m stockbot review --period day --end last || true
+          python -m stockbot review --period day --end last --account small || true
       - name: qlib every morning (fresh bundle from the latest bars -> Alpha158 -> LightGBM -> scores for today's decision; ~2 min)
         if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
         run: |

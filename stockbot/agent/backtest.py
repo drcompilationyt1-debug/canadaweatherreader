@@ -52,7 +52,7 @@ def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, e
              fee_bps: float = 8.0, end=None) -> dict:
     """Daily portfolio returns of the rank-core rule (``score`` None = equal-weight everything), fees on turnover."""
     idx = px.index[(px.index >= pd.Timestamp(start)) & ((px.index <= pd.Timestamp(end)) if end is not None else True)]
-    rets = px.pct_change().reindex(idx).fillna(0.0)
+    rets = px.pct_change(fill_method=None).reindex(idx).fillna(0.0)
     wts = pd.DataFrame(0.0, index=idx, columns=px.columns)
     held: list[str] = []
     for i, d in enumerate(idx):
@@ -111,7 +111,7 @@ def run_backtests(cfg, ds, budgets: dict[str, dict] | None = None, oos_start=Non
     for wname, start in windows.items():
         res = {}
         if benchmark in px.columns:
-            b = px[benchmark].pct_change().reindex(px.index[px.index >= start]).fillna(0.0)
+            b = px[benchmark].pct_change(fill_method=None).reindex(px.index[px.index >= start]).fillna(0.0)
             eq = (1 + b).cumprod()
             res[benchmark] = {"total": float(eq.iloc[-1] - 1), "sharpe": float(b.mean() / b.std() * np.sqrt(252)) if b.std() > 0 else 0.0,
                               "max_drawdown": float((eq / eq.cummax() - 1).min())}

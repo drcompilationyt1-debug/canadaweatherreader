@@ -104,8 +104,6 @@ jobs:
         run: python scripts/ci_state.py restore
       - name: doctor
         run: python -m stockbot doctor
-      - name: post-trade reviews (week after every trading week, month / year once they end)
-        run: python -m stockbot review --due || true
       - name: intraday exit model (refit on 120 days of the broker's bars, Saturday)
         if: ${{ steps.day.outputs.refit == 'true' }}
         run: timeout 10m python -m stockbot intraday-fit --days 120 --holdout-days 10 || true
@@ -131,6 +129,11 @@ jobs:
           ${{ inputs.from_scratch == true && '--from-scratch' || '' }}
       - name: evaluate
         run: python -m stockbot evaluate --plot eval.png
+      - name: post-trade reviews (week / month / year as units, both accounts - every decision's verdict, the better move, the rule's alternatives)
+        if: always()
+        run: |
+          python -m stockbot review --due || true
+          python -m stockbot review --due --account small || true
       - name: backtest the decision rule vs SPY (out-of-sample year and last 3 years, both budgets)
         run: python -m stockbot portfolio --tune --out reports/backtest.json || true
       - name: learn from last week / month / year as one unit each (hindsight fine-tune, guarded by the out-of-sample score)
