@@ -129,8 +129,9 @@ class OOSEvalCallback(BaseCallback):
     """Periodically evaluate on held-out data and keep the best checkpoint."""
 
     def __init__(self, ds_test: MarketDataset, env_cfg: dict, eval_freq: int, n_tickers: int, save_dir: Path,
-                 layout, meta: dict, max_bars: int = 504, verbose: int = 1, keep_best: bool = False):
+                 layout, meta: dict, max_bars: int = 504, verbose: int = 1, keep_best: bool = False, cash_levels: list[float] | None = None):
         super().__init__(verbose)
+        self.cash_levels = [float(c) for c in cash_levels] if cash_levels else None
         self.ds_test = ds_test
         self.env_cfg = env_cfg
         self.eval_freq = int(eval_freq)
@@ -143,6 +144,7 @@ class OOSEvalCallback(BaseCallback):
         # scores are only comparable when the evaluation set and the environment economics are the same
         self.eval_key = hashlib.sha1(json.dumps({
             "tickers": self.tickers, "max_bars": max_bars, "signature": layout.signature(), "train_end": str(meta.get("train_end")),
+            "cash_levels": self.cash_levels,
             "env": {k: env_cfg.get(k) for k in ("allow_short", "vol_target", "benchmark_mix", "turnover_penalty",
                                               "short_penalty", "deadband", "reward", "commission", "slippage")},
         }, sort_keys=True, default=str).encode()).hexdigest()[:12]
@@ -166,7 +168,7 @@ class OOSEvalCallback(BaseCallback):
         if self.num_timesteps - self.last_eval < self.eval_freq:
             return True
         self.last_eval = self.num_timesteps
-        summary, _ = evaluate(self.model, self.ds_test, self.env_cfg, self.tickers, max_bars=self.max_bars)
+        summary, _ = evaluate(self.model, self.ds_test, self.env_cfg, self.tickers, max_bars=self.max_bars, cash_levels=self.cash_levels)
         agg = aggregate(summary)
         # median excess return: robust to one runaway buy-and-hold ticker dominating the mean
         score = agg.get("mean_sharpe", -np.inf) + agg.get("median_excess_return", 0.0)
@@ -247,7 +249,7 @@ def train(cfg: Config, total_timesteps: int | None = None, resume: str | None = 
         CheckpointCallback(save_freq=max(eval_freq // n_envs, 1), save_path=str(ckpt / "checkpoints"), name_prefix="step"),
         # best.zip only ever improves for a given signal layout, whether the run is fresh or resumed
         OOSEvalCallback(ds_test, env_cfg, eval_freq, int(tr.get("eval_tickers", 5)), ckpt, dataset.layout, meta,
-                        max_bars=int(tr.get("eval_bars", 750)), keep_best=True),
+                        max_bars=int(tr.get("eval_bars", 750)), keep_best=True, cash_levels=tr.get("eval_cash")),
     ]
     if max_minutes is not None and max_minutes > 0:
         callbacks.append(TimeBudgetCallback(max_minutes * 60.0))

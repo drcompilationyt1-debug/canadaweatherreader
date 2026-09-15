@@ -145,8 +145,9 @@ env:
   episode_length: 252
   warmup: 260               # bars of history needed before the first observation
   initial_cash: 100000
-  cash_range: [5000, 250000]   # training episodes draw their starting cash from this range (log-uniform) so the policy meets
-                               # a $10k book and a $100k one; with the fee_drag feature it learns what each budget can afford
+  cash_choices: [10000, 100000]  # every training episode starts with one of the budgets we actually run (the $10k and the $100k
+                                 # paper accounts); with the fee_drag feature the policy learns what each budget can afford
+  cash_range: null               # alternative: draw the starting cash log-uniformly from [lo, hi] instead
   commission: 0.0005        # 5 bps per side - only used with fees.preset: bps; otherwise the simulator charges the
                             # fees.preset schedule as if one position were execution.max_position of real equity
   slippage: 0.0005          # 5 bps per side
@@ -192,6 +193,7 @@ train:
   checkpoint_dir: models/policy
   eval_freq: 20000
   eval_tickers: 12          # tickers used for the periodic out-of-sample evaluation / checkpoint selection
+  eval_cash: [10000, 100000]  # every evaluation window is run at each of these budgets; the score averages both books
   recent_bias: 0.0          # prob. that an episode starts inside the last `recent_days` of history
   recent_days: 400
 

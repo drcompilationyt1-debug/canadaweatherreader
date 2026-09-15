@@ -112,8 +112,11 @@ class TradingEnv(gym.Env):
         if self.fee_book is not None:
             self.portfolio.fees = self.fee_book.for_ticker(self.td.ticker)
         cash = (options or {}).get("cash")
+        choices = self.c.get("cash_choices")
         rng_cash = self.c.get("cash_range")
-        if cash is None and rng_cash and not self.eval_mode:      # a different budget every episode: the policy meets $5k and $250k books
+        if cash is None and choices and not self.eval_mode:       # the budgets we actually run: some episodes at $10k, some at $100k
+            cash = float(choices[int(self.rng.integers(len(choices)))])
+        elif cash is None and rng_cash and not self.eval_mode:    # or any budget in a range (log-uniform)
             lo, hi = float(rng_cash[0]), float(rng_cash[1])
             cash = float(10 ** self.rng.uniform(np.log10(max(lo, 1.0)), np.log10(max(hi, lo, 1.0))))
         self.portfolio.reset(float(cash) if cash is not None else float(self.c["initial_cash"]))

@@ -42,6 +42,8 @@ def cfg(tmp_path):
         "env.vol_target=0",
         "accounts.small.enabled=false",
         "env.cash_range=null",
+        "env.cash_choices=null",
+        "train.eval_cash=null",
         "train.n_steps=64",
         "train.batch_size=64",
         "train.n_epochs=2",

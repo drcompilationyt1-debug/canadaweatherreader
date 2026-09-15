@@ -278,10 +278,10 @@ def finetune(model, X: np.ndarray, y: np.ndarray, w: np.ndarray, X_ref: np.ndarr
 
 
 # ---------------------------------------------------------------------- orchestration
-def _score(model, ds_test, env_cfg: dict, tickers: list[str], max_bars: int) -> float:
+def _score(model, ds_test, env_cfg: dict, tickers: list[str], max_bars: int, cash_levels: list[float] | None = None) -> float:
     from ..agent.evaluate import aggregate, evaluate
 
-    summary, _ = evaluate(model, ds_test, env_cfg, tickers, max_bars=max_bars)
+    summary, _ = evaluate(model, ds_test, env_cfg, tickers, max_bars=max_bars, cash_levels=cash_levels)
     agg = aggregate(summary)
     return float(agg.get("mean_sharpe", -np.inf) + agg.get("median_excess_return", 0.0))
 
@@ -355,6 +355,7 @@ def learn(cfg: Config, period: str = "day", end: date | None = None, force: bool
     n_eval, eval_bars, epochs = (int(s["eval_tickers_full"]), int(s["eval_bars_full"]), int(s["epochs_full"])) if generous \
         else (int(s["eval_tickers"]), int(s["eval_bars"]), int(s["epochs"]))
     eval_tickers = ds_test.tickers[:n_eval] if ds_test is not None else []
+    cash_levels = cfg.get_path("train.eval_cash")
     report["yardstick"] = {"tickers": len(eval_tickers), "bars": eval_bars, "epochs": epochs}
     per_member = {}
     accepted = 0
@@ -369,12 +370,12 @@ def learn(cfg: Config, period: str = "day", end: date | None = None, force: bool
             continue
         t_member = time.time()
         try:
-            before = _score(model, ds_test, env_cfg, eval_tickers, eval_bars) if guard else None
+            before = _score(model, ds_test, env_cfg, eval_tickers, eval_bars, cash_levels) if guard else None
             fit = finetune(model, samples["X"], samples["y"], samples["w"], X_ref, epochs=epochs, lr=float(s["lr"]),
                            batch_size=int(s["batch_size"]), anchor_weight=float(s["anchor_weight"]),
                            deadline=None if t_end is None else t_end - (time.time() - t_member))   # leave time for the second eval
             rec.update(fit)
-            after = _score(model, ds_test, env_cfg, eval_tickers, eval_bars) if guard else None
+            after = _score(model, ds_test, env_cfg, eval_tickers, eval_bars, cash_levels) if guard else None
             rec.update({"score_before": before, "score_after": after})
             ok = fit["loss_after"] <= fit["loss_before"] and (not guard or after >= before - float(s["max_score_drop"]))
             if ok:

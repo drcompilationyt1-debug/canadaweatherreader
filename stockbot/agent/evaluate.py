@@ -44,7 +44,7 @@ def metrics(equity: np.ndarray, bench: np.ndarray, exposures: np.ndarray | None 
 
 
 def run_window(model, dataset: MarketDataset, ticker: str, env_cfg: dict, start: int | None = None,
-               length: int | None = None, deterministic: bool = True, seed: int = 0) -> dict:
+               length: int | None = None, deterministic: bool = True, seed: int = 0, cash: float | None = None) -> dict:
     """Run the policy over one contiguous window; returns curves + metrics."""
     env = TradingEnv(dataset, env_cfg, tickers=[ticker], seed=seed, eval_mode=True)
     td = dataset.data[ticker]
@@ -52,7 +52,7 @@ def run_window(model, dataset: MarketDataset, ticker: str, env_cfg: dict, start:
         start = td.min_start
     if length is None:
         length = len(td) - 2 - start
-    obs, info = env.reset(options={"ticker": ticker, "start": start, "length": length})
+    obs, info = env.reset(options={"ticker": ticker, "start": start, "length": length, "cash": cash})
     equity = [info["equity"]]
     bench = [info["price"]]
     dates = [info["date"]]
@@ -71,13 +71,16 @@ def run_window(model, dataset: MarketDataset, ticker: str, env_cfg: dict, start:
     eq = np.array(equity)
     bh = np.array(bench) / bench[0] * equity[0]
     m = metrics(eq, bh, np.array(exposures))
-    m.update({"ticker": ticker, "start": dates[0], "end": dates[-1], "total_reward": float(np.sum(rewards))})
+    m.update({"ticker": ticker, "start": dates[0], "end": dates[-1], "total_reward": float(np.sum(rewards)), "cash": float(equity[0])})
     return {"metrics": m, "equity": eq, "bench": bh, "dates": dates, "exposures": np.array(exposures), "actions": np.array(actions)}
 
 
 def evaluate(model, dataset: MarketDataset, env_cfg: dict, tickers: list[str] | None = None,
-             max_bars: int | None = None, seed: int = 0) -> tuple[pd.DataFrame, dict]:
+             max_bars: int | None = None, seed: int = 0, cash_levels: list[float] | None = None) -> tuple[pd.DataFrame, dict]:
+    """``cash_levels`` (e.g. [10000, 100000]) runs every window once per budget - the fee minimums and the fee_drag
+    feature differ, so the policy is scored on both books it runs."""
     tickers = tickers or dataset.tickers
+    levels = [float(c) for c in cash_levels] if cash_levels else [None]
     rows, curves = [], {}
     for t in tickers:
         if t not in dataset.data:
@@ -88,13 +91,14 @@ def evaluate(model, dataset: MarketDataset, env_cfg: dict, tickers: list[str] | 
             length = min(length, max_bars)
         if length < 10:
             continue
-        try:
-            res = run_window(model, dataset, t, env_cfg, start=td.min_start, length=length, seed=seed)
-        except Exception as e:  # noqa: BLE001
-            log.warning("evaluation failed for %s: %s", t, e)
-            continue
-        rows.append(res["metrics"])
-        curves[t] = res
+        for cash in levels:
+            try:
+                res = run_window(model, dataset, t, env_cfg, start=td.min_start, length=length, seed=seed, cash=cash)
+            except Exception as e:  # noqa: BLE001
+                log.warning("evaluation failed for %s: %s", t, e)
+                continue
+            rows.append(res["metrics"])
+            curves[t if cash is None or len(levels) == 1 else f"{t}@{cash:.0f}"] = res
     summary = pd.DataFrame(rows)
     return summary, curves
 

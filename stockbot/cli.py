@@ -127,7 +127,8 @@ def cmd_evaluate(cfg, args) -> int:
     _, test = ds.split(train_end) if train_end and not args.all_data else (ds, ds)
     if len(test) == 0:
         test = ds
-    summary, curves = evaluate(bundle.model, test, env_settings(cfg), args.tickers, max_bars=args.max_bars)
+    summary, curves = evaluate(bundle.model, test, env_settings(cfg), args.tickers, max_bars=args.max_bars,
+                               cash_levels=cfg.get_path("train.eval_cash"))
     print(format_summary(summary))
     print("\naggregate:", json.dumps(aggregate(summary), indent=1))
     if args.plot:

@@ -152,6 +152,15 @@ def test_training_episodes_vary_the_budget_and_show_it(cfg, frames):
     evl = TradingEnv(ds, env_cfg, seed=3, eval_mode=True)
     evl.reset()
     assert evl.initial_equity == float(env_cfg["initial_cash"])                                              # evaluation keeps the fixed budget
+    # the budgets we actually run: every episode starts at $10k or $100k, and the evaluation scores every window at both
+    two = TradingEnv(ds, {**env_cfg, "cash_range": None, "cash_choices": [10000, 100000]}, seed=5)
+    seen = {two.reset()[0] is not None and two.initial_equity for _ in range(30)}
+    assert seen == {10000.0, 100000.0}
+    from stockbot.agent.evaluate import evaluate
+
+    summary, curves = evaluate(BuyEverything(), ds.split("2018-12-31")[1], {**env_cfg, "cash_range": None}, ["AAA"], max_bars=40,
+                               cash_levels=[10000, 100000])
+    assert sorted(summary["cash"].tolist()) == [10000.0, 100000.0] and set(curves) == {"AAA@10000", "AAA@100000"}
 
 
 def test_policy_trained_before_fee_drag_still_predicts(cfg):
