@@ -24,6 +24,27 @@ log = get_logger(__name__)
 
 CADENCE_BARS = {"daily": 1, "weekly": 5, "biweekly": 10, "monthly": 21}
 DEFAULT_INPUTS = {"xs_rank.xs_score": 1.0, "timesfm.tfm_ret_20": 0.5}
+# inputs the weekend tuner may add to the blend, weighted by their trailing information coefficient
+CANDIDATE_INPUTS = ["xs_rank.xs_score", "timesfm.tfm_ret_20", "es_agent.es_action", "qlib.qlib_score", "kronos.kr_ret_5",
+                    "chronos.chr_ret_20", "dl_forecast.dl_pred", "alpha_factors.af_pred", "technical.ret_20", "fundamentals.f_ey",
+                    "dqn_agent.dqn_buy_pref", "trend.slope_30"]
+ANCHOR = "xs_rank.xs_score"
+
+
+def load_tuned_inputs(models_dir, fallback: dict[str, float] | None = None) -> dict[str, float]:
+    """The weekend-tuned blend (``models/rank_weights.json``) when it was accepted, else ``fallback``."""
+    import json
+    from pathlib import Path
+
+    f = Path(models_dir) / "rank_weights.json"
+    if f.exists():
+        try:
+            d = json.loads(f.read_text(encoding="utf-8"))
+            if d.get("accepted") and d.get("inputs"):
+                return {str(k): float(v) for k, v in d["inputs"].items()}
+        except Exception as e:  # noqa: BLE001
+            log.warning("rank weights file %s unreadable: %s", f, e)
+    return dict(fallback or DEFAULT_INPUTS)
 
 
 def rank_scores(layout, obs_by: dict[str, np.ndarray], inputs: dict[str, float] | None = None) -> dict[str, float]:

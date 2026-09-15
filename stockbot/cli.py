@@ -557,6 +557,15 @@ def cmd_portfolio(cfg, args) -> int:
         return 1
     rep = run_backtests(cfg, ds, oos_start=args.start, years=args.years)
     print(format_report(rep))
+    if args.tune:
+        from .agent.backtest import tune_rank_weights
+
+        tr = tune_rank_weights(cfg, ds, out_path=cfg.path("models_dir", "models") / "rank_weights.json")
+        print(f"\nrank blend tuning: {'ACCEPTED' if tr['accepted'] else 'kept static'} - {tr['reason']}")
+        print("  trailing ICs:", {k: round(v['ic'], 3) for k, v in tr['ic'].items()})
+        print("  blend now:", tr["inputs"])
+        for name, r in tr["backtest_last_year"].items():
+            print(f"  {name:7s} last year: total {100 * r['total']:+.1f}%  sharpe {r['sharpe']:.2f}")
     if args.out:
         Path(args.out).parent.mkdir(parents=True, exist_ok=True)
         Path(args.out).write_text(json.dumps(rep, indent=1, default=str), encoding="utf-8")

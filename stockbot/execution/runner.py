@@ -62,6 +62,10 @@ class TradingRunner:
         self.rank_every = every_bars_of(rk.get("every_bars", 10))
         self.rank_hysteresis = int(rk.get("hysteresis", 3) or 0)
         self.rank_inputs = dict(rk.get("inputs") or DEFAULT_INPUTS)
+        if bool(rk.get("adaptive", True)):                          # the weekend tuner's blend, when it passed its guard
+            from .ranking import load_tuned_inputs
+
+            self.rank_inputs = load_tuned_inputs(cfg.path("models_dir", "models"), self.rank_inputs)
         self.rank_floor = float(rk.get("policy_floor", 0.5))
         self.rank_veto = float(rk.get("policy_veto", 0.05))
         self.last_rank: dict = {}

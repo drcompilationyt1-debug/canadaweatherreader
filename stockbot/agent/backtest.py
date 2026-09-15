@@ -13,7 +13,7 @@ from datetime import date
 import numpy as np
 import pandas as pd
 
-from ..execution.ranking import DEFAULT_INPUTS, every_bars_of, select_top
+from ..execution.ranking import ANCHOR, CANDIDATE_INPUTS, DEFAULT_INPUTS, every_bars_of, select_top
 from ..logging_utils import get_logger
 
 log = get_logger(__name__)
@@ -124,6 +124,79 @@ def run_backtests(cfg, ds, budgets: dict[str, dict] | None = None, oos_start=Non
                                     "excess_vs_benchmark": r["total"] - res.get(benchmark, {}).get("total", 0.0)}
         out["results"][wname] = res
     return out
+
+
+def trailing_ic(ds, inputs: list[str], days: int = 250, horizon: int = 20, min_names: int = 15) -> dict[str, dict]:
+    """Mean daily cross-sectional Spearman IC of each input against the ``horizon``-day forward return over the last
+    ``days`` bars that have a settled outcome, with its t-statistic."""
+    px = closes(ds)
+    fwd = px.shift(-horizon) / px - 1.0
+    lay = ds.layout
+    out = {}
+    for key in inputs:
+        block, feat = key.split(".", 1)
+        try:
+            b = lay.block(block)
+            j = b.start + list(b.feature_names).index(feat)
+        except (KeyError, ValueError):
+            continue
+        cols = {}
+        for t, td in ds.data.items():
+            v = td.signals[:, j].astype(float)
+            v[td.signals[:, b.offset] < 0.5] = np.nan
+            cols[t] = pd.Series(v, index=pd.DatetimeIndex(td.dates))
+        sig = pd.DataFrame(cols).reindex(px.index)
+        settled = px.index[: len(px.index) - horizon][-days:]
+        ics = []
+        for d in settled:
+            s, f = sig.loc[d], fwd.loc[d]
+            ok = s.notna() & f.notna()
+            if ok.sum() >= min_names and s[ok].nunique() > 2:
+                ic = s[ok].corr(f[ok], method="spearman")
+                if np.isfinite(ic):
+                    ics.append(float(ic))
+        if ics:
+            a = np.asarray(ics)
+            out[key] = {"ic": float(a.mean()), "t": float(a.mean() / a.std() * np.sqrt(len(a))) if a.std() > 0 else 0.0, "days": int(len(a))}
+    return out
+
+
+def tune_rank_weights(cfg, ds, out_path=None, days: int = 250, min_t: float = 2.0, anchor_share: float = 0.5) -> dict:
+    """Re-weight the blend from the trailing-year ICs (positive, significant inputs only; the ranking head keeps at least
+    ``anchor_share`` of the weight) and keep it only when the last year's backtest with it is no worse than the static blend."""
+    rk = dict(cfg.get_path("execution.rank", {}) or {})
+    static = {str(k): float(v) for k, v in (rk.get("inputs") or DEFAULT_INPUTS).items()}
+    ics = trailing_ic(ds, CANDIDATE_INPUTS, days=days)
+    good = {k: v["ic"] for k, v in ics.items() if v["ic"] > 0 and v["t"] >= min_t and k != ANCHOR}
+    others = sum(good.values())
+    tuned = {ANCHOR: 1.0}
+    if others > 0:
+        budget = (1.0 - anchor_share) / anchor_share            # the others share this much relative to the anchor's 1.0
+        tuned.update({k: round(budget * v / others, 4) for k, v in good.items()})
+    px = closes(ds)
+    start = px.index[-1] - pd.DateOffset(years=1)
+    k, every, hyst = int(rk.get("top_k", 20)), every_bars_of(rk.get("every_bars", 10)), int(rk.get("hysteresis", 3))
+    fee = round_trip_bps(cfg, 100_000, k)
+    res = {}
+    for name, inputs in (("static", static), ("tuned", tuned)):
+        try:
+            r = simulate(px, blended_scores(ds, inputs), start, k=k, every=every, hysteresis=hyst, fee_bps=fee)
+            res[name] = {kk: vv for kk, vv in r.items() if kk != "daily"}
+        except ValueError:
+            res[name] = {"total": float("-inf"), "sharpe": float("-inf")}
+    same = set(tuned) == set(static) and all(abs(tuned[kk] - static[kk]) < 1e-6 for kk in tuned)
+    accepted = (not same) and res["tuned"]["sharpe"] >= res["static"]["sharpe"] - 0.05 and res["tuned"]["total"] >= res["static"]["total"] - 0.01
+    rep = {"tuned_at": str(date.today()), "inputs": tuned if accepted else static, "tuned": tuned, "static": static, "ic": ics,
+           "backtest_last_year": res, "accepted": bool(accepted), "reason": "same as static" if same else
+           ("tuned blend is at least as good over the last year" if accepted else "tuned blend did worse over the last year - static kept")}
+    if out_path is not None:
+        import json
+        from pathlib import Path
+
+        Path(out_path).parent.mkdir(parents=True, exist_ok=True)
+        Path(out_path).write_text(json.dumps(rep, indent=1, default=str), encoding="utf-8")
+    log.info("rank blend tuning: %s (%s)", "accepted" if accepted else "kept static", rep["reason"])
+    return rep
 
 
 def format_report(rep: dict) -> str:
