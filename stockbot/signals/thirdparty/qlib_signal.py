@@ -50,7 +50,7 @@ class QlibSignal(SignalProvider):
             df.columns = [str(c).lower() for c in df.columns]
             score_col = "score" if "score" in df.columns else [c for c in df.columns if c not in ("datetime", "instrument")][0]
             df = df.rename(columns={score_col: "score"})
-            df["instrument"] = df["instrument"].astype(str).str.upper().str.replace(".", "-", regex=False)
+            df["instrument"] = df["instrument"].astype(str).str.upper()
             df["datetime"] = pd.to_datetime(df["datetime"]).dt.normalize()
             df["rank"] = df.groupby("datetime")["score"].rank(pct=True) * 2.0 - 1.0
             self._table = df[["datetime", "instrument", "score", "rank"]]
@@ -71,7 +71,9 @@ class QlibSignal(SignalProvider):
         table = self._load()
         if table is None:
             return None
-        sub = table[table["instrument"] == ticker.upper()].set_index("datetime")
+        t = ticker.upper()
+        names = {t, t.replace("-", "."), t.replace(".", "-")}          # BRK-B / BRK.B, RY.TO / RY-TO: whichever spelling the bundle used
+        sub = table[table["instrument"].isin(names)].set_index("datetime")
         out = np.full((len(df), 2), np.nan, dtype=np.float32)
         if len(sub) == 0:
             return out

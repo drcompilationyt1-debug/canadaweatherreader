@@ -152,6 +152,10 @@ jobs:
       - name: market status
         if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
         run: python -m stockbot market-status
+      - name: qlib every morning (fresh bundle from the latest bars -> Alpha158 -> LightGBM -> scores for today's decision; ~2 min)
+        if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
+        run: |
+          git submodule update --init --depth 1 third_party/qlib \n            && pip install pyqlib lightgbm \n            && timeout 8m python scripts/qlib_build_bundle.py --refresh \n            && timeout 8m python scripts/qlib_train.py \n            || echo "qlib refresh failed - the block keeps its last scores (signals.qlib.max_age_bars)"
       - name: intraday exit model (from the broker's 15-min bars - when should a held name have been sold?)
         if: ${{ !(inputs.dry_run == true) && (steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true') }}
         run: timeout 8m python -m stockbot intraday-fit --days 40 || true

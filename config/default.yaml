@@ -91,7 +91,7 @@ signals:
   # per run by max_history_calls) so the block has a training history - needs data/news/*.csv
   # rag_grading: retrieve -> grade relevance -> generate (stocks-insights-ai-agent's news graph), one extra call
   news_llm:      { enabled: true, lookback_days: 3, max_items: 25, score_history: false, max_history_calls: 200, history_granularity: week, rag_grading: false }
-  qlib:          { enabled: true, predictions: models/qlib/pred.parquet, max_age_bars: 5 }   # weekend predictions stay valid for a week
+  qlib:          { enabled: true, predictions: models/qlib/pred.parquet, max_age_bars: 5 }   # rebuilt every morning before the session (session.yml); the last score is kept up to 5 bars if that fails
   freqtrade:     { enabled: true }
   # Tier C - LLM multi-agent frameworks (a dozen LLM calls per ticker).  They run in their own
   # virtualenvs (python scripts/setup_agent_envs.py; python: null = auto-detect) and only on the

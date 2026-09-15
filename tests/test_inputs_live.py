@@ -28,6 +28,14 @@ def test_qlib_carries_its_last_score_for_a_few_bars(cfg, frames, tmp_path):
         a = q.compute_history("AAA", df)
         assert (not np.isnan(a[-1]).any()) is expect_live                     # 3 bars stale: live; 8 bars stale: masked
         assert not np.isnan(a[-gap - 1]).any()
+    # the bundle may spell a ticker differently (BRK.B for BRK-B, RY.TO as is): every spelling matches
+    pred = pd.DataFrame({"datetime": list(df.index[-5:]) * 2, "instrument": ["BRK.B"] * 5 + ["RY.TO"] * 5, "score": 0.01})
+    f = tmp_path / "pred_names.parquet"
+    pred.to_parquet(f)
+    cfg.set_path("signals.qlib.predictions", f.as_posix())
+    q = next(p for p in build_providers(cfg, build_context(cfg, with_llm=False, with_news=False)) if p.name == "qlib")
+    assert not np.isnan(q.compute_history("BRK-B", df)[-1]).any() and not np.isnan(q.compute_history("RY.TO", df)[-1]).any()
+    assert np.isnan(q.compute_history("AAA", df)[-1]).any()
 
 
 def test_gemini_probe_picks_an_answering_model(monkeypatch):
