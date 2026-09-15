@@ -88,6 +88,7 @@ def test_backtest_reports_the_rule_vs_benchmarks(cfg, frames):
     res = rep["results"]["oos"]
     assert {"AAA", "equal_weight", "rank_100k"} <= set(res) and res["rank_100k"]["k"] == 2 and res["rank_100k"]["days"] > 200
     assert "excess_vs_benchmark" in res["rank_100k"] and res["equal_weight"]["turnover_per_year"] < 1.0
+    assert res["rank_100k"]["phase"] and res["rank_100k"]["phase"]["min_total"] <= res["rank_100k"]["phase"]["mean_total"] <= res["rank_100k"]["phase"]["max_total"]
     assert round_trip_bps(cfg, 10_000, 10) > round_trip_bps(cfg, 100_000, 20) > 0
     txt = format_report(rep)
     assert "rank_100k" in txt and "equal_weight" in txt

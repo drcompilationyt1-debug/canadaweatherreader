@@ -225,7 +225,20 @@ def run_backtests(cfg, ds, budgets: dict[str, dict] | None = None, oos_start=Non
             fee = round_trip_bps(cfg, satellite_budget, bset["k"])
             r = simulate(px, score, start, k=bset["k"], every=bset["every"], hysteresis=bset.get("hysteresis", hyst), fee_bps=fee,
                          core=bset.get("core"), trend=bset.get("trend"), reserve=bset.get("reserve", 0.0))
+            # the same rule started 2..20 bars later: a concentrated book's result depends on the rebalance phase, so the
+            # phase-averaged figure is the one to believe (mean / worst / best over the offsets)
+            phase = []
+            idx_w = px.index[px.index >= pd.Timestamp(start)]
+            for off in range(2, 21, 3):
+                if off < len(idx_w) - 30:
+                    rp = simulate(px, score, idx_w[off], k=bset["k"], every=bset["every"], hysteresis=bset.get("hysteresis", hyst), fee_bps=fee,
+                                  core=bset.get("core"), trend=bset.get("trend"), reserve=bset.get("reserve", 0.0))
+                    phase.append((rp["total"], rp["sharpe"], rp["max_drawdown"]))
+            phase_stats = ({"mean_total": float(np.mean([p[0] for p in phase])), "min_total": float(min(p[0] for p in phase)),
+                            "max_total": float(max(p[0] for p in phase)), "mean_sharpe": float(np.mean([p[1] for p in phase])),
+                            "n": len(phase) + 1} if phase else None)
             res[f"rank_{bname}"] = {**{k: v for k, v in r.items() if k != "daily"}, "k": bset["k"], "every_bars": bset["every"], "fee_bps": fee,
+                                    "phase": phase_stats,
                                     "core": {k2: v2 for k2, v2 in (bset.get("core") or {}).items() if k2 != "series"} if bset.get("core") else None,
                                     "core_timed_by_policy": bool(bset.get("core") and "series" in bset["core"]),
                                     "core_avg_share": float(bset["core"]["series"].mean()) if bset.get("core") and "series" in bset["core"] else None,
@@ -400,4 +413,8 @@ def format_report(rep: dict) -> str:
         for name, r in res.items():
             lines.append(f"{name:16s} {100 * r['total']:+7.1f}% {r['sharpe']:7.2f} {100 * r['max_drawdown']:5.0f}% "
                          f"{r.get('turnover_per_year', float('nan')):8.1f} {r.get('fee_bps', 0.0):8.1f}")
+            ph = r.get("phase")
+            if ph:
+                lines.append(f"{'  phase-averaged':16s} {100 * ph['mean_total']:+7.1f}% {ph['mean_sharpe']:7.2f}        "
+                             f"(worst {100 * ph['min_total']:+.1f}%, best {100 * ph['max_total']:+.1f}% over {ph['n']} start dates)")
     return "\n".join(lines)
