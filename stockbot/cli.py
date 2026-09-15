@@ -546,6 +546,24 @@ def cmd_experience(cfg, args) -> int:
     return 0
 
 
+def cmd_backtest(cfg, args) -> int:
+    """The rank-core rule as a portfolio vs SPY and equal-weight, at each budget's fees (the yardstick that matters)."""
+    from .agent.backtest import format_report, run_backtests
+    from .agent.train import cached_dataset
+
+    ds = cached_dataset(cfg, max_age_days=1e9)
+    if ds is None:
+        print("no cached dataset (models/dataset) - run a retrain first")
+        return 1
+    rep = run_backtests(cfg, ds, oos_start=args.start, years=args.years)
+    print(format_report(rep))
+    if args.out:
+        Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.out).write_text(json.dumps(rep, indent=1, default=str), encoding="utf-8")
+        print(f"saved {args.out}")
+    return 0
+
+
 def cmd_account(cfg, args) -> int:
     """The broker's own record (Alpaca): equity per day, positions, every fill."""
     from datetime import date, timedelta
@@ -790,6 +808,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(fn=cmd_report)
 
     sub.add_parser("experience", help="summary of logged paper / live decisions and outcomes").set_defaults(fn=cmd_experience)
+
+    p = sub.add_parser("backtest", help="the rank-core decision rule as a portfolio vs SPY / equal-weight, net of each budget's fees")
+    p.add_argument("--start", help="out-of-sample start (default data.train_end)")
+    p.add_argument("--years", type=int, default=3, help="length of the long window")
+    p.add_argument("--out", help="write the report as JSON")
+    p.set_defaults(fn=cmd_backtest)
 
     p = sub.add_parser("account", help="the broker's own record (Alpaca): equity per day (ups and downs), positions, every fill")
     p.add_argument("--period", default="1M", help="1D | 1W | 1M | 3M | 1A | all")

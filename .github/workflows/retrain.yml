@@ -131,6 +131,8 @@ jobs:
           ${{ inputs.from_scratch == true && '--from-scratch' || '' }}
       - name: evaluate
         run: python -m stockbot evaluate --plot eval.png
+      - name: backtest the decision rule vs SPY (out-of-sample year and last 3 years, both budgets)
+        run: python -m stockbot backtest --out reports/backtest.json || true
       - name: learn from last week / month / year as one unit each (hindsight fine-tune, guarded by the out-of-sample score)
         run: timeout 25m python -m stockbot review --learn --due --max-minutes 20 || true
       - name: forecast scorecard
@@ -146,6 +148,7 @@ jobs:
             eval.png
             models/policy/ensemble.json
             models/policy/best.json
+            reports/backtest.json
             reports/dashboard.html
             data/experience/reviews/*.json
             data/experience/reviews/*.html

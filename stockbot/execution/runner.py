@@ -53,6 +53,19 @@ class TradingRunner:
         self.cadence = str(self.ex.get("cadence", "daily") or "daily").lower()
         self.whole_shares = bool(self.ex.get("whole_shares", False)) or \
             (mode in ("alpaca", "live") and not bool(self.ex.get_path("alpaca.fractional", True)))
+        # the rank-core decision layer (execution.rank): top-K by blended cross-sectional rank, periodic rebalance
+        from .ranking import DEFAULT_INPUTS, every_bars_of
+
+        rk = dict(self.ex.get("rank", {}) or {})
+        self.rank_enabled = bool(rk.get("enabled", False))
+        self.rank_top_k = int(rk.get("top_k", 20) or 20)
+        self.rank_every = every_bars_of(rk.get("every_bars", 10))
+        self.rank_hysteresis = int(rk.get("hysteresis", 3) or 0)
+        self.rank_inputs = dict(rk.get("inputs") or DEFAULT_INPUTS)
+        self.rank_floor = float(rk.get("policy_floor", 0.5))
+        self.rank_veto = float(rk.get("policy_veto", 0.05))
+        self.last_rank: dict = {}
+        self._rebalanced = False
         # real brokers only get orders while the exchange is open (execution.require_market_open)
         self.require_open = bool(self.ex.get("require_market_open", True)) and not allow_closed
         self.clock = clock
@@ -426,6 +439,39 @@ class TradingRunner:
                 log.info("at most %d names: keeping %s; %d others set to zero", self.max_names, ", ".join(keep), len(dropped))
         return weights
 
+    def apply_rank_core(self, targets: dict[str, float], obs_by: dict[str, np.ndarray], tickers: list[str], eq_of: dict[str, float],
+                        as_of: str) -> dict[str, float]:
+        """Weights (fractions of equity) from the rank-core rule: the top-K names by blended rank each get 1/K of the
+        book scaled by the policy's conviction; outside a rebalance day every position is simply kept."""
+        from .ranking import rank_scores, rebalance_due, select_top, slot_weights
+
+        current: dict[str, float] = {}
+        for t in tickers:
+            try:
+                current[t] = self.portfolio_state(t, self.last_close(t), eq_of[t])[1]
+            except Exception:  # noqa: BLE001
+                current[t] = 0.0
+        self._rebalanced = False
+        index = self.frames["SPY"].index if "SPY" in self.frames else next(iter(self.frames.values())).index
+        if not rebalance_due(index, self.state.get("last_rebalance_date"), as_of, self.rank_every):
+            self.last_cycle_note = (self.last_cycle_note + "; " if self.last_cycle_note else "") + \
+                f"rank core: next rebalance {self.rank_every} bars after {self.state.get('last_rebalance_date')} - positions kept"
+            log.info("rank core: not a rebalance day (every %d bars, last %s) - holding", self.rank_every, self.state.get("last_rebalance_date"))
+            return {t: current[t] * self.max_position for t in tickers}
+        sig_dim = self.bundle.layout.signal_dim
+        scores = rank_scores(self.bundle.layout, {t: obs_by[t][:sig_dim] for t in tickers}, self.rank_inputs)
+        held = [t for t in tickers if abs(current[t]) > 0.05]
+        chosen = select_top(scores, held, self.rank_top_k, self.rank_hysteresis)
+        ppo_frac = {t: float(np.clip(targets.get(t, 0.0), 0.0, 1.0)) for t in tickers}
+        slots = slot_weights(chosen, self.rank_top_k, ppo_frac, self.rank_floor, self.rank_veto)
+        weights = {t: min(slots.get(t, 0.0), self.max_position) for t in tickers}
+        self.last_rank = {"scores": scores, "chosen": chosen, "as_of": as_of}
+        self._rebalanced = True
+        dropped = [t for t in held if t not in chosen]
+        log.info("rank core: top-%d by %s -> %s%s", self.rank_top_k, "+".join(self.rank_inputs), ", ".join(chosen),
+                 f"; leaving {', '.join(dropped)}" if dropped else "")
+        return weights
+
     # ------------------------------------------------------------------ one trading cycle
     def cycle(self, dry_run: bool = False, refresh: bool = True) -> list[Decision]:
         self.frames = self.frames_loader(refresh)
@@ -492,7 +538,11 @@ class TradingRunner:
         log.info("signals ON: %s | OFF: %s", ", ".join(on) or "-", ", ".join(off) or "-")
 
         allow_short = self.allow_short and self.broker.supports_short
-        weights = self.apply_account_rules(self.allocate_by_market(targets, allow_short), tickers, eq_of, as_of)
+        weights = self.allocate_by_market(targets, allow_short)
+        if self.rank_enabled:
+            weights = self.apply_rank_core(targets, obs_by, tickers, eq_of, as_of)
+        else:
+            weights = self.apply_account_rules(weights, tickers, eq_of, as_of)
         decisions: list[Decision] = []
         # decide everything first, then execute sells before buys: the cash on hand is the hard limit for
         # buys, and sale proceeds are not reused in the same cycle (they settle T+1 in a cash account)
@@ -577,6 +627,8 @@ class TradingRunner:
         self.broker.save()
         if not dry_run and self.cadence == "weekly":
             self.state["last_rebalance_week"] = self._week_key(as_of)
+        if not dry_run and self.rank_enabled and self._rebalanced:
+            self.state["last_rebalance_date"] = as_of
         self.state["cycles"] = int(self.state.get("cycles", 0)) + 1
         self.state["last_cycle"] = datetime.now(timezone.utc).isoformat()
         if not dry_run:

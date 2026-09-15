@@ -318,6 +318,18 @@ execution:
   max_names_hysteresis: 3     # more than this many places below the cut)
   cadence: daily              # daily | weekly (rebalance on the first session of the week only)
   whole_shares: false         # true = never a fractional share (implied for Alpaca when alpaca.fractional is false)
+  # The decision layer (execution/ranking.py, chosen on the 2026-09-15 diagnosis: the policy alone tracks buy-and-hold, the
+  # ranking head has stable alpha): hold the top_k names by a blend of cross-sectional percentile ranks, rebalance every
+  # every_bars trading days, keep a held name until it drops hysteresis places below the cut; the policy sizes each slot
+  # (policy_floor .. 1 of 1/top_k) and can veto a name (policy_veto).  Backtest: `stockbot backtest`.
+  rank:
+    enabled: true
+    top_k: 20
+    every_bars: 10            # 1 daily, 5 weekly, 10 every two weeks, 21 monthly - the fee per round trip decides
+    hysteresis: 3
+    inputs: { xs_rank.xs_score: 1.0, timesfm.tfm_ret_20: 0.5 }
+    policy_floor: 0.5
+    policy_veto: 0.05
   # Buys are planned against the sleeve's OWN cash (Alpaca `cash`, moomoo `cash`; never margin buying power)
   # and never spend more than (1 - cash_reserve) of it: a 10% buffer for fees, price moves before the fill and
   # the odd rejected sell.  Sale proceeds are not reused in the same cycle (T+1 settlement in a cash account).
@@ -415,10 +427,10 @@ accounts:                     # extra accounts traded in the SAME session from t
       alpaca: { paper: true, fractional: false, keys_env: ALPACA_10K, history_dir: data/paper/small/alpaca }   # moomoo Canada: whole shares
       state_file: data/paper/small/state.json
       sleeves: { ca: { state_file: data/paper/small/state_ca.json, initial_cash: 10000 } }
-      max_position: 0.10      # $1,000 slices on $10k ...
-      max_names: 10           # ... in at most 10 names: with moomoo's ~$1.50 per-order minimum, smaller orders cost too much
+      max_position: 0.10      # $1,000 slots on $10k ...
+      rank: { top_k: 10, every_bars: 21 }   # ... in the top 10 names, rebalanced monthly: a round trip costs ~40 bps here
       min_trade_usd: 400
-      cadence: weekly         # rebalance on the first session of the week only (the intraday exit layer still runs every day)
+      cadence: daily          # (the rank layer's every_bars sets the cadence)
       cash_reserve: 0.10
     env: { initial_cash: 10000 }
     feedback: { experience_file: data/experience/small/trades.jsonl, direction_file: data/experience/small/direction.jsonl,
