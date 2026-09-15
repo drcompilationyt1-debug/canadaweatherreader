@@ -78,6 +78,8 @@ class TradingSession:
         self.exit_min_prob = float(ie.get("min_prob", 0.6))
         self.exit_min_gain = float(ie.get("min_gain", 0.005))
         self.exit_stop_loss = float(ie.get("stop_loss", 0.02))
+        self.exit_min_auc = float(ie.get("min_auc", 0.55))
+        self.exit_min_edge = float(ie.get("min_edge", 0.0005))
         self.exit_model_dir = cfg.path("session.intraday_exit.model_dir", "models/intraday_exit")
         self.exit_model = None
         self.exited: set[str] = set()
@@ -131,6 +133,14 @@ class TradingSession:
         if self.deadline_at is not None:
             cands.append(self.deadline_at.astimezone(self.started_at.tzinfo) if self.deadline_at.tzinfo else self.deadline_at)
         return min(cands) if cands else None
+
+    def _exit_model_has_edge(self, metrics: dict) -> bool:
+        """Act on the exit model only when it proved itself on its held-out days: enough discrimination and the
+        moments it flagged were really better sold than held."""
+        auc = metrics.get("auc")
+        if auc is None or not np.isfinite(float(auc)) or float(auc) < self.exit_min_auc:
+            return False
+        return float(metrics.get("gain_when_exit") or 0.0) > float(metrics.get("gain_all") or 0.0) + self.exit_min_edge
 
     def _prev_close(self, ticker: str) -> float | None:
         df = self.runner.frames.get(ticker) if self.runner is not None else None
@@ -389,8 +399,13 @@ class TradingSession:
                 log.warning("intraday exit model unavailable: %s", e)
                 self.exit_model = None
             m = (self.exit_model.meta.get("metrics") or {}) if self.exit_model is not None else {}
-            log.info("intraday exit model: %s", f"on (holdout auc {m.get('auc', float('nan')):.2f}, p>={self.exit_min_prob:.2f}, gain>={100 * self.exit_min_gain:.1f}%)"
-                     if self.exit_model is not None else "none fitted yet (stockbot intraday-fit)")
+            if self.exit_model is not None and not self._exit_model_has_edge(m):
+                log.info("intraday exit model: OFF - no edge on its held-out days (auc %.2f, exits worth %+.2f%% vs %+.2f%% for holding)",
+                         float(m.get("auc") or 0.0), 100 * float(m.get("gain_when_exit") or 0.0), 100 * float(m.get("gain_all") or 0.0))
+                self.exit_model = None
+            else:
+                log.info("intraday exit model: %s", f"on (holdout auc {m.get('auc', float('nan')):.2f}, p>={self.exit_min_prob:.2f}, gain>={100 * self.exit_min_gain:.1f}%)"
+                         if self.exit_model is not None else "none fitted yet (stockbot intraday-fit)")
         k = 0
         while self.now() < end:
             nxt = min(self.now() + timedelta(minutes=self.snapshot_minutes), end)

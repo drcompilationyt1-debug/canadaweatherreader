@@ -177,6 +177,8 @@ def test_session_sells_when_the_exit_model_flags_a_held_name(cfg, frames, monkey
     session = TradingSession(cfg, mode="paper", hours=1, train=False, clock=clock, sleep=clock.sleep, runner=runner, snapshot_minutes=15,
                              after_open_minutes=0, review_after=False, learn_before_open=False)
     session.exit_model = Stub()
+    assert session._exit_model_has_edge({"auc": 0.62, "gain_when_exit": 0.002, "gain_all": 0.0005})
+    assert not session._exit_model_has_edge({"auc": 0.51, "gain_when_exit": 0.0009, "gain_all": 0.0009})   # what 20 real days gave: stays OFF
     summary = session.run()
     assert summary["exits"] == 1 and runner.broker.position("AAA").shares == 0
     recs = [json.loads(line) for line in (cfg.path("session.log_dir") / "session_2026-09-14.jsonl").read_text().splitlines() if line.strip()]
