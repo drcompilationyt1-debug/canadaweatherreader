@@ -34,7 +34,7 @@ concurrency:
 jobs:
   retrain:
     runs-on: ubuntu-latest
-    timeout-minutes: 340         # GitHub's hard limit is 360
+    timeout-minutes: 350         # GitHub's hard limit is 360
     permissions:
       contents: write
     env:
@@ -81,7 +81,7 @@ jobs:
           pip install technical || echo "technical (freqtrade qtpylib) unavailable - that block stays masked"
       - name: foundation models + extra indicator libraries (Chronos, TimesFM, FinBERT, pandas-ta, PyPortfolioOpt, Kronos deps)
         run: |
-          pip install chronos-forecasting pandas-ta-classic PyPortfolioOpt transformers einops safetensors huggingface_hub quantstats || echo "some model libraries failed - those blocks stay masked"
+          pip install chronos-forecasting pandas-ta-classic PyPortfolioOpt transformers einops safetensors huggingface_hub quantstats pyfolio-reloaded || echo "some model libraries failed - those blocks stay masked"
           pip install "timesfm[torch]" || echo "timesfm unavailable - block stays masked"
       - uses: actions/cache@v4
         with:
@@ -126,6 +126,8 @@ jobs:
           ${{ inputs.from_scratch == true && '--from-scratch' || '' }}
       - name: evaluate
         run: python -m stockbot evaluate --plot eval.png
+      - name: learn from the paper trades (hindsight fine-tune on the week's decisions, guarded by the out-of-sample score)
+        run: timeout 12m python -m stockbot review --learn || true
       - name: forecast scorecard
         run: python -m stockbot forecast --no-refresh || true
       - name: save state

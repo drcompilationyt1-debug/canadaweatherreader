@@ -11,6 +11,15 @@ with the same fee schedule and scores the actual decisions against alternatives:
                     the upper bound; ``regret`` = oracle - actual, ``captured`` = actual / oracle
 * ``follow:<m>``  - each input model followed alone (long the names it called up that day)
 * ``half`` / ``double`` / ``top_consensus`` - sizing variants of what we actually did
+* ``path_oracle`` - (week / month / year) the fee-aware best exposure *path*: the best week is not
+                    five best days strung together, fees make holding through noise the better play
+* ``what_if``     - (day) a parallel search over every move that was available on the session's
+                    price path (exposure level x entry x exit), with the regret split into sizing and timing
+
+Each review also attributes the regret (missed / wrong side / under-sized / cost), scores the
+execution (fills vs the decision price), rates every input by information coefficient, summarises the
+round trips (pyfolio) and tags the market regime; ``stockbot review --learn`` then fine-tunes the
+policy on the hindsight labels (see ``feedback/hindsight.py``).
 
 Periods: ``day`` uses the session's intraday snapshots (open -> end of the watch window); ``week``,
 ``month`` and ``year`` replay the recorded daily weights on daily bars and, when quantstats is
@@ -31,6 +40,8 @@ from ..config import Config
 from ..execution.fees import FeeBook
 from ..execution.markets import market_of
 from ..logging_utils import get_logger
+from .attribution import (LEVELS, attribute_regret, attribute_regret_daily, ic_by_voter, portfolio_path_oracle,
+                          regime, round_trips, what_if_day)
 from .direction import DirectionBoard
 from .experience import ExperienceStore
 
@@ -67,6 +78,10 @@ class Review:
         self.session_dir = cfg.path("session.log_dir", "data/paper/sessions")
         self.out_dir = cfg.path("feedback.review_dir", "data/experience/reviews")
         self.benchmark = str(cfg.get_path("feedback.review_benchmark", "SPY"))
+        self.gross_cap = float(cfg.get_path("execution.max_gross_exposure", 1.0) or 1.0)
+        wi = cfg.get_path("feedback.what_if", {}) or {}
+        self.levels = tuple(float(x) for x in (wi.get("levels") or LEVELS))
+        self.workers = int(wi.get("workers", 4) or 4)
 
     # ------------------------------------------------------------------ helpers
     def _fee_frac(self, ticker: str, notional: float, price: float, side: str = "buy") -> float:
@@ -75,6 +90,44 @@ class Review:
         if sched is None or notional <= 0 or price <= 0:
             return 0.0
         return float(sched.cost(notional / price, price, side)) / notional
+
+    def _fee_cost(self, ticker: str, notional: float, price: float, side: str = "buy") -> float:
+        sched = self.fees.for_ticker(ticker)
+        if sched is None or notional <= 0 or price <= 0:
+            return 0.0
+        return float(sched.cost(notional / price, price, side))
+
+    def _records_between(self, start: date, end: date) -> pd.DataFrame | None:
+        recs = self.store.load()
+        if recs is None or len(recs) == 0:
+            return None
+        dec = recs[recs["type"] == "decision"].copy()
+        dec["_d"] = pd.to_datetime(dec["date"]).dt.date
+        dec = dec[(dec["_d"] >= start) & (dec["_d"] <= end)]
+        return dec if len(dec) else None
+
+    def _execution(self, dec: pd.DataFrame | None) -> tuple[dict, list[dict], float]:
+        """Fill quality of the recorded decisions: implementation shortfall vs the decision price (bps, positive =
+        paid more than planned), fees in bps of the traded notional; also the raw fills and the fees paid."""
+        if dec is None or len(dec) == 0:
+            return {}, [], 0.0
+        fills, short, notional, fees = [], [], 0.0, 0.0
+        for _, r in dec.iterrows():
+            fees += float(r.get("fees") or 0.0)
+            p0 = float(r.get("price") or 0.0)
+            for f in (r.get("fills") or []):
+                f = dict(f)
+                f.setdefault("ticker", r["ticker"])
+                fills.append(f)
+                q, px = float(f.get("qty") or 0.0), float(f.get("price") or 0.0)
+                if p0 > 0 and px > 0 and q > 0:
+                    sign = 1.0 if f.get("side", "buy") == "buy" else -1.0
+                    short.append(sign * (px / p0 - 1.0) * 1e4)
+                    notional += q * px
+        out = {"fills": len(fills), "traded_notional": notional, "fees": fees,
+               "shortfall_bps": float(np.mean(short)) if short else None,
+               "fees_bps": float(fees / notional * 1e4) if notional > 0 else None}
+        return out, fills, fees
 
     @staticmethod
     def _rank_alternatives(actual: float, alts: dict[str, float]) -> list[dict]:
@@ -172,8 +225,40 @@ class Review:
                              "oracle_exposure": oracle_e, "action": dec_by.get(t, {}).get("action", "?"),
                              "voted_up": up, "voted_down": down, "consensus": cons[t]})
         per_name.sort(key=lambda r: r["contribution"])
-        result = self._finish("day", day, day, actual, alts, per_name, extra={"session_file": str(f), "equity_open": equity0,
-                                                                                "n_names": len(names)})
+        extra: dict = {"session_file": str(f), "equity_open": equity0, "n_names": len(names)}
+        more: list[str] = []
+        execution, _fills, fees_paid = self._execution(self._records_between(day, day))
+        extra["attribution"] = attribute_regret(held_now, moves, slice_cap / equity0 if equity0 else 0.0, fees_paid / equity0 if equity0 else 0.0)
+        a = extra["attribution"]
+        if a["total"] > 0:
+            more.append(f"regret came mostly from {a['biggest'].replace('_', ' ')}: missed {_pct(a['missed'])}, wrong side {_pct(a['wrong_side'])}, "
+                        f"under-sized {_pct(a['under_sized'])}, fees {_pct(a['cost'])}")
+        try:
+            prices = {t: [float(dec_by.get(t, {}).get("price") or snaps[0]["tickers"][t]["price"])] +
+                        [float(s["tickers"][t]["price"]) for s in snaps if t in s.get("tickers", {}) and s["tickers"][t].get("price")]
+                      for t in names}
+            labels = ["open"] + [str(s.get("label", k)) for k, s in enumerate(snaps)]
+            wi = what_if_day(prices, held_now, slice_cap, equity0, self._fee_cost, labels=labels, levels=self.levels,
+                             gross_cap=self.gross_cap, workers=self.workers)
+            extra["what_if"] = wi
+            more.append(f"searched {wi['moves_searched']} moves: the best set would have made {_pct(wi['best_return'])} vs actual "
+                        f"{_pct(actual)} (sizing regret {_pct(wi['sizing_regret'])}, timing regret {_pct(wi['timing_regret'])})")
+            for r in wi["per_name"][:2]:
+                if r["regret"] <= 0:
+                    continue
+                more.append(f"{r['ticker']}: best move {100 * r['best_level']:.0f}% at {r['best_entry']} -> {r['best_exit']} ({_pct(r['best_pnl'])}); "
+                            f"we held {100 * r['level_us']:.0f}% to the end ({_pct(r['pnl_us'])}) - sizing {_pct(r['sizing_regret'])}, timing {_pct(r['timing_regret'])}")
+        except Exception as e:  # noqa: BLE001 - the search is advisory
+            log.debug("what-if search failed: %s", e)
+        if execution:
+            extra["execution"] = execution
+            if execution.get("shortfall_bps") is not None:
+                more.append(f"execution: {execution['fills']} fills, {execution['shortfall_bps']:+.1f} bps vs the decision price, "
+                            f"fees {execution['fees_bps']:.1f} bps of notional")
+        if self.benchmark in moves:
+            extra["regime"] = {"benchmark_return": moves[self.benchmark],
+                               "label": "up" if moves[self.benchmark] > 0.002 else "down" if moves[self.benchmark] < -0.002 else "flat"}
+        result = self._finish("day", day, day, actual, alts, per_name, extra=extra, more_lessons=more)
         return result
 
     # ------------------------------------------------------------------ week / month / year: daily replay
@@ -277,10 +362,57 @@ class Review:
         per_name.sort(key=lambda r: r["contribution"])
         stats = self._stats(actual_daily, alts_daily.get("benchmark"))
         extra = {"days": int(len(W)), "n_names": n, "stats": stats}
+        more: list[str] = []
+        # the fee-aware best path over the whole period (the best week is not five best days in a row)
+        fee_fracs = {t: self._fee_frac(t, 100_000.0 * self.max_position, 100.0) for t in names}
+        po_path = portfolio_path_oracle(R.reindex(columns=names).fillna(0.0), fee_fracs, self.max_position, self.gross_cap,
+                                        levels=self.levels, start_weights=W.iloc[0].to_dict())
+        alts["path_oracle"] = po_path["return"]
+        extra["path_oracle"] = {"return": po_path["return"], "names": po_path["names"], "switches": po_path["switches"],
+                                "per_name": {t: {"pnl_per_slice": v["pnl_per_slice"], "switches": v["switches"], "avg_level": v["avg_level"]}
+                                             for t, v in po_path["per_name"].items() if t in po_path["names"]}}
+        more.append(f"fee-aware best path this {period}: {_pct(po_path['return'])} with {po_path['switches']} switches across "
+                    f"{len(po_path['names'])} names, vs {_pct(alts.get('oracle'))} if every day were played perfectly - "
+                    f"the best {period} is not the best days strung together")
+        gross_daily = self._replay(W, R, fee_on_turnover=False)
+        fees_frac = float((gross_daily - actual_daily).fillna(0.0).sum())
+        extra["attribution"] = attribute_regret_daily(W[names], R, self.max_position, cost=max(0.0, fees_frac))
+        a = extra["attribution"]
+        if a["total"] > 0:
+            more.append(f"regret came mostly from {a['biggest'].replace('_', ' ')}: missed {_pct(a['missed'])}, wrong side {_pct(a['wrong_side'])}, "
+                        f"under-sized {_pct(a['under_sized'])}, fees {_pct(a['cost'])}")
+        dec = self._records_between(start, end)
+        execution, fills, _fees = self._execution(dec)
+        if execution:
+            extra["execution"] = execution
+        try:
+            eq = float(dec["equity"].astype(float).iloc[-1]) if dec is not None and "equity" in dec.columns else None
+            rt = round_trips(fills, eq)
+        except Exception as e:  # noqa: BLE001
+            log.debug("round trips failed: %s", e)
+            rt = None
+        if rt:
+            extra["round_trips"] = rt
+            if rt.get("n"):
+                more.append(f"{rt['n']} round trips: win rate {100 * rt['win_rate']:.0f}%, profit factor {rt['profit_factor']:.2f}, "
+                            f"average hold {rt['avg_holding_days']:.1f} days; best {rt['best']['symbol']} {rt['best']['pnl']:+,.0f}, "
+                            f"worst {rt['worst']['symbol']} {rt['worst']['pnl']:+,.0f}")
+        ic = ic_by_voter(votes, R) if votes else {}
+        if ic:
+            extra["ic"] = ic
+            good = [f"{k} {v['ic']:+.2f}" for k, v in ic.items() if v["ic"] > 0.02][:5]
+            bad = [f"{k} {v['ic']:+.2f}" for k, v in ic.items() if v["ic"] < -0.02][-3:]
+            if good or bad:
+                more.append("inputs by information coefficient - useful: " + (", ".join(good) or "none") +
+                            "; harmful: " + (", ".join(bad) or "none"))
+        rg = regime(alts_daily.get("benchmark"))
+        if rg:
+            extra["regime"] = rg
+            more.append(f"market context: {rg['label']} ({self.benchmark} {_pct(rg['benchmark_return'])}, vol {100 * rg['benchmark_vol']:.0f}%)")
         tear = self._tearsheet(period, end, actual_daily, alts_daily.get("benchmark"))
         if tear:
             extra["tearsheet"] = str(tear)
-        return self._finish(period, start, end, actual, alts, per_name, extra=extra)
+        return self._finish(period, start, end, actual, alts, per_name, extra=extra, more_lessons=more)
 
     @staticmethod
     def _stats(daily: pd.Series, bench: pd.Series | None) -> dict:
@@ -313,12 +445,13 @@ class Review:
             return None
 
     # ------------------------------------------------------------------ verdict
-    def _finish(self, period: str, start: date, end: date, actual: float, alts: dict[str, float], per_name: list[dict], extra: dict) -> dict:
+    def _finish(self, period: str, start: date, end: date, actual: float, alts: dict[str, float], per_name: list[dict], extra: dict,
+                more_lessons: list[str] | None = None) -> dict:
         ranking = self._rank_alternatives(actual, alts)
         oracle = alts.get("oracle")
         regret = (oracle - actual) if oracle is not None else None
         captured = (actual / oracle) if oracle not in (None, 0.0) and oracle > 0 else None
-        best_alt = next((r for r in ranking if r["name"] not in ("actual", "oracle", "period_oracle")), None)
+        best_alt = next((r for r in ranking if r["name"] not in ("actual", "oracle", "period_oracle", "path_oracle")), None)
         follows = {k[len("follow:"):]: v for k, v in alts.items() if k.startswith("follow:")}
         best_model = max(follows, key=follows.get) if follows else None
         lessons = [f"{period} {start.isoformat()} to {end.isoformat()}: actual {_pct(actual)}, oracle {_pct(oracle)}, "
@@ -339,6 +472,7 @@ class Review:
         missed.sort(key=lambda r: -r["move"])
         if missed:
             lessons.append("missed: " + ", ".join(f"{r['ticker']} {_pct(r['move'])}" for r in missed[:5]) + " (not held)")
+        lessons.extend(more_lessons or [])
         result = {"period": period, "start": start.isoformat(), "end": end.isoformat(), "generated": datetime.now(timezone.utc).isoformat(),
                   "actual_return": actual, "oracle_return": oracle, "regret": regret, "captured": captured, "alternatives": alts,
                   "ranking": ranking, "best_alternative": best_alt, "best_model": best_model, "per_name": per_name, "lessons": lessons, **extra}

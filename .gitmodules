@@ -86,3 +86,6 @@
 [submodule "third_party/quantstats"]
 	path = third_party/quantstats
 	url = https://github.com/ranaroussi/quantstats
+[submodule "third_party/pyfolio"]
+	path = third_party/pyfolio
+	url = https://github.com/stefan-jansen/pyfolio-reloaded

@@ -97,7 +97,7 @@ jobs:
       - name: foundation models + extra indicator libraries (Chronos, TimesFM, FinBERT, pandas-ta, PyPortfolioOpt, Kronos deps)
         if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
         run: |
-          pip install chronos-forecasting pandas-ta-classic PyPortfolioOpt transformers einops safetensors huggingface_hub quantstats || echo "some model libraries failed - those blocks stay masked"
+          pip install chronos-forecasting pandas-ta-classic PyPortfolioOpt transformers einops safetensors huggingface_hub quantstats pyfolio-reloaded || echo "some model libraries failed - those blocks stay masked"
           pip install "timesfm[torch]" || echo "timesfm unavailable - block stays masked"
       - uses: actions/cache@v4
         if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
@@ -150,9 +150,12 @@ jobs:
           ${{ (github.event_name == 'schedule' || inputs.gate == true) && '--gate-minutes 90' || '' }}
           ${{ inputs.dry_run == true && '--dry-run' || '' }}
           ${{ inputs.train == false && '--no-train' || '' }}
-      - name: daily review (what we did vs the alternatives)
+      - name: daily review (what we did vs the alternatives, every move that was available, where the regret came from)
         if: ${{ always() && (steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true') }}
         run: python -m stockbot review --period day || true
+      - name: learn from the paper trades (hindsight fine-tune, kept only if the out-of-sample score holds)
+        if: ${{ always() && !(inputs.dry_run == true) && (steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true') }}
+        run: timeout 12m python -m stockbot review --learn || true
       - name: forecast scorecard
         if: ${{ always() && (steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true') }}
         run: python -m stockbot forecast --no-refresh || true

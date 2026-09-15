@@ -407,12 +407,31 @@ def cmd_review(cfg, args) -> int:
     rev = Review(cfg)
     end = date.fromisoformat(args.end) if args.end else None
     results = {}
+    if args.learn:
+        from .feedback.hindsight import learn
+
+        rep = learn(cfg, force=args.force, today=end)
+        print("\n== learn from the paper trades (hindsight fine-tune) ==")
+        if rep.get("skipped"):
+            print("  skipped:", rep["skipped"], f"({rep.get('samples', 0)} samples)")
+        else:
+            print(f"  {rep['samples']} labelled decisions ({rep['settled_horizons']} settled horizons), mean target {rep['mean_target']:+.2f}")
+            for name, m in rep["members"].items():
+                if m.get("error"):
+                    print(f"  {name}: failed - {m['error']}")
+                    continue
+                sb, sa = m.get("score_before"), m.get("score_after")
+                print(f"  {name}: loss {m['loss_before']:.4f} -> {m['loss_after']:.4f}, score "
+                      f"{sb if sb is None else round(sb, 3)} -> {sa if sa is None else round(sa, 3)}: {'kept' if m.get('accepted') else 'rejected'}")
+            print(f"  accepted {rep['accepted']} of {len(rep['members'])} members")
+        if not args.due and not args.period:
+            return 0
     if args.due:
         results = rev.run_due(end)
         if not results:
             print("no review due")
     else:
-        for period in args.period:
+        for period in (args.period or ["day"]):
             results[period] = rev.review_day(end) if period == "day" else rev.review_period(period, end)
     for period, res in results.items():
         print(f"\n== {period} review ==")
@@ -646,9 +665,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(fn=cmd_session)
 
     p = sub.add_parser("review", help="post-trade review: replay a day / week / month / year and score it against the alternatives")
-    p.add_argument("--period", nargs="*", choices=["day", "week", "month", "year"], default=["day"])
+    p.add_argument("--period", nargs="*", choices=["day", "week", "month", "year"], help="default: day (unless only --learn is asked)")
     p.add_argument("--end", help="period end date (YYYY-MM-DD); default today / latest session")
     p.add_argument("--due", action="store_true", help="run whichever week / month / year reviews are due")
+    p.add_argument("--learn", action="store_true", help="fine-tune the policy on the hindsight labels of the paper trades (guarded by the OOS score)")
+    p.add_argument("--force", action="store_true", help="with --learn: run even if nothing new has settled")
     p.set_defaults(fn=cmd_review)
 
     p = sub.add_parser("market-status", help="is the exchange open? next open / close (Alpaca clock or built-in NYSE calendar)")

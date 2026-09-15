@@ -354,7 +354,7 @@ class TradingRunner:
         self.ctx.extra["positions"] = positions
 
         vectors, reasons = self.latest_vectors()
-        targets, obs_by, avail_by = {}, {}, {}
+        targets, obs_by, avail_by, conv_by = {}, {}, {}, {}
         for t in tickers:
             price = self.price(t)
             sig = self.bundle.layout.assemble_latest(vectors[t])
@@ -362,7 +362,8 @@ class TradingRunner:
             obs = np.concatenate([sig, port]).astype(np.float32)
             obs_by[t] = obs
             avail_by[t] = self.bundle.layout.availability_of(sig)
-            conviction = conviction_to_exposure(self.bundle.predict(obs), self.allow_short)
+            conv_by[t] = self.bundle.predict(obs)
+            conviction = conviction_to_exposure(conv_by[t], self.allow_short)
             vol_target = float(self.env_cfg.get("vol_target", 0.0) or 0.0)
             targets[t] = size_exposure(conviction, realized_vol(self.frames[t]["close"].to_numpy(float), int(self.env_cfg.get("vol_window", 20))),
                                        vol_target, float(self.env_cfg.get("max_leverage", 1.0)), float(self.env_cfg.get("vol_max_scale", 1.5))) \
@@ -435,7 +436,8 @@ class TradingRunner:
             if not dry_run:
                 self.store.record(mode=self.mode, ticker=t, date=as_of, obs=obs_by[t], action=targets[t],
                                   target_exposure=dec.target_exposure, weight=weights[t], decision=dec.action,
-                                  price=price, equity=eq_of[t], availability=avail_by[t], fills=fills, fees=fees_paid)
+                                  price=price, equity=eq_of[t], availability=avail_by[t], fills=fills, fees=fees_paid,
+                                  conviction=conv_by.get(t))
                 self.board.record(ticker=t, date=as_of, price=price, votes=votes, mode=self.mode)
         if isinstance(self.broker, PaperBroker):
             self.broker.mark(as_of)

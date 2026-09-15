@@ -328,6 +328,24 @@ feedback:
   direction_file: data/experience/direction.jsonl   # per-model up/down votes and how they turned out (`stockbot forecast`)
   review_dir: data/experience/reviews               # post-trade reviews (`stockbot review`): day / week / month / year replays + lessons
   review_benchmark: SPY
+  what_if:                      # the day review's parallel search over the moves that were available (exposure level x entry x exit)
+    levels: [0.0, 0.25, 0.5, 0.75, 1.0]
+    workers: 4
+  hindsight:                    # learn from the paper trades (`stockbot review --learn`): fine-tune the policy toward the
+    enabled: true               # hindsight-best conviction of every recorded decision, keep a member only if its OOS score holds
+    horizons: {1: 0.2, 5: 0.5, 21: 0.3}   # bars after the decision (1 = that day's close, 5 = the week, 21 = the month) and label weights
+    z_scale: 1.0                # a move of this many sigmas over the horizon = full conviction
+    min_samples: 40             # labelled decisions needed before touching the policy
+    epochs: 8
+    lr: 0.00005
+    batch_size: 256
+    anchor_weight: 1.0          # hold the policy's answers on simulator states (no forgetting what the simulations taught)
+    ref_steps: 2048             # how many simulator states form that anchor
+    recency_half_life_days: 60  # recent paper days count more
+    guard: true                 # re-score each member on the held-out window; keep the update only if the score holds
+    max_score_drop: 0.02
+    eval_tickers: 8
+    eval_bars: 500
 
 session:                      # `stockbot session`: the daily market-hours run (also what the GitHub workflow does)
   hours: 4                    # trade at the open, then watch the positions for this long
