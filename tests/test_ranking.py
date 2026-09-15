@@ -95,3 +95,28 @@ def test_backtest_reports_the_rule_vs_benchmarks(cfg, frames):
     sc = pd.DataFrame({"A": 1.0, "B": 0.0}, index=px.index)
     r = simulate(px, sc, "2026-01-01", k=1, every=5, hysteresis=0, fee_bps=10.0)
     assert r["total"] > 0.9 and r["turnover_per_year"] < 30
+
+def test_weekend_tuning_reweights_from_trailing_ic_with_a_guard(cfg, frames, tmp_path, monkeypatch):
+    from stockbot.agent import backtest as bt
+    from stockbot.env.dataset import MarketDataset
+    from stockbot.execution.ranking import load_tuned_inputs
+
+    ctx = build_context(cfg, with_llm=False, with_news=False)
+    providers = [p for p in build_providers(cfg, ctx) if p.name in ("technical", "trend")]
+    ds = MarketDataset.build(frames, providers, build_layout(providers), ctx, fit=True, train_end="2018-12-31")
+    cfg.set_path("execution.rank", {"enabled": True, "top_k": 2, "every_bars": 5, "hysteresis": 1, "inputs": {"technical.ret_20": 1.0}})
+    monkeypatch.setattr(bt, "CANDIDATE_INPUTS", ["technical.ret_20", "trend.slope_30", "technical.ret_5"])
+    monkeypatch.setattr(bt, "ANCHOR", "technical.ret_20")
+    ics = bt.trailing_ic(ds, ["technical.ret_20", "trend.slope_30", "nope.x"], days=120, min_names=3)
+    assert set(ics) <= {"technical.ret_20", "trend.slope_30"} and all("t" in v for v in ics.values())
+    out = tmp_path / "rank_weights.json"
+    rep = bt.tune_rank_weights(cfg, ds, out_path=out, days=120, min_t=0.0)
+    assert out.exists() and rep["tuned"]["technical.ret_20"] == 1.0 and "backtest_last_year" in rep
+    assert set(rep["inputs"]) == (set(rep["tuned"]) if rep["accepted"] else {"technical.ret_20"})
+    loaded = load_tuned_inputs(tmp_path, {"x": 1.0})
+    assert loaded == (rep["inputs"] if rep["accepted"] else {"x": 1.0})
+    # a rejected tuning never reaches the runner: the file says accepted=false -> the fallback is used
+    out.write_text('{"accepted": false, "inputs": {"trend.slope_30": 1.0}}', encoding="utf-8")
+    assert load_tuned_inputs(tmp_path, {"x": 1.0}) == {"x": 1.0}
+    out.write_text('{"accepted": true, "inputs": {"trend.slope_30": 1.0}}', encoding="utf-8")
+    assert load_tuned_inputs(tmp_path, {"x": 1.0}) == {"trend.slope_30": 1.0}
