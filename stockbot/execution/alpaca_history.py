@@ -34,7 +34,8 @@ DATA_URL = "https://data.alpaca.markets"
 
 class AlpacaHistory:
     def __init__(self, cfg=None, paper: bool | None = None, cache_dir: str | Path | None = None, session=None):
-        self.key, self.secret = alpaca_keys()
+        self.keys_env = str(cfg.get_path("execution.alpaca.keys_env", "ALPACA")) if cfg is not None else "ALPACA"
+        self.key, self.secret = alpaca_keys(self.keys_env)
         if paper is None:
             paper = bool(cfg.get_path("execution.alpaca.paper", True)) if cfg is not None else True
         self.paper = bool(paper)
@@ -46,16 +47,20 @@ class AlpacaHistory:
         self._session = session
 
     @staticmethod
-    def available() -> bool:
-        k, s = alpaca_keys()
+    def available(keys_env: str = "ALPACA") -> bool:
+        k, s = alpaca_keys(keys_env)
         return bool(k and s)
+
+    @property
+    def has_keys(self) -> bool:
+        return bool(self.key and self.secret)
 
     # ------------------------------------------------------------------ http
     def _get(self, url: str, params: dict | None = None) -> dict | list:
         import requests
 
         if not (self.key and self.secret):
-            raise RuntimeError("set ALPACA_API_KEY and ALPACA_SECRET_KEY")
+            raise RuntimeError(f"set {self.keys_env}_API_KEY and {self.keys_env}_SECRET_KEY")
         s = self._session or requests
         r = s.get(url, params=params or {}, headers={"APCA-API-KEY-ID": self.key, "APCA-API-SECRET-KEY": self.secret}, timeout=30)
         if r.status_code >= 400:

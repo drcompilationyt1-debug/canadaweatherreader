@@ -55,6 +55,32 @@ def settings(cfg: Config) -> dict:
     return s
 
 
+def experience_stores(cfg: Config) -> list[ExperienceStore]:
+    """The main account's store plus every extra account's (``accounts:``): all of them are lessons for the one policy."""
+    from ..config import account_config, account_names
+
+    paths = [cfg.path("feedback.experience_file", "data/experience/trades.jsonl")]
+    for name in account_names(cfg):
+        try:
+            p = account_config(cfg, name).path("feedback.experience_file", "data/experience/trades.jsonl")
+        except Exception:  # noqa: BLE001
+            continue
+        if p not in paths:
+            paths.append(p)
+    return [ExperienceStore(p) for p in paths]
+
+
+def load_all_records(cfg: Config) -> pd.DataFrame | None:
+    frames = []
+    for store in experience_stores(cfg):
+        df = store.load()
+        if df is not None and len(df):
+            df = df.copy()
+            df["_store"] = str(store.path)
+            frames.append(df)
+    return pd.concat(frames, ignore_index=True) if frames else None
+
+
 def unit_bounds(period: str, end: date) -> tuple[date, date]:
     from .review import period_bounds
 
@@ -83,8 +109,7 @@ def build_samples(cfg: Config, obs_dim: int, period: str = "day", end: date | No
     conviction in -1..1, ``w`` weights, plus per-sample metadata.  Only decisions inside the unit whose
     observation matches the current layout are used, and only when the unit's bars have all settled."""
     today = today or datetime.now(timezone.utc).date()
-    store = ExperienceStore(cfg.path("feedback.experience_file", "data/experience/trades.jsonl"))
-    recs = store.load()
+    recs = load_all_records(cfg)
     empty = {"X": np.zeros((0, obs_dim), np.float32), "y": np.zeros(0, np.float32), "w": np.zeros(0, np.float32), "meta": [],
              "period": period, "start": None, "end": None}
     if recs is None or len(recs) == 0:
@@ -168,7 +193,7 @@ def policy_mean(model, X: np.ndarray) -> np.ndarray:
         return policy.get_distribution(obs).distribution.mean.detach().cpu().numpy().reshape(len(X), -1)[:, 0]
 
 
-def reference_states(model, dataset, env_cfg: dict, n_steps: int, seed: int = 0) -> np.ndarray:
+def reference_states(model, dataset, env_cfg: dict, n_steps: int, seed: int = 0, obs_dim: int | None = None) -> np.ndarray:
     """Observations from the simulator under the current policy - the anchor set: whatever the
     fine-tune changes on the live states, it must keep answering these the same way."""
     from ..env.trading_env import TradingEnv
@@ -189,8 +214,11 @@ def reference_states(model, dataset, env_cfg: dict, n_steps: int, seed: int = 0)
         obs, _ = env.reset(options={"ticker": t, "start": start, "length": length})
         done = False
         while not done and len(out) < n_steps:
-            out.append(np.asarray(obs, np.float32))
-            action, _ = model.predict(obs.reshape(1, -1), deterministic=True)
+            o = np.asarray(obs, np.float32)
+            if obs_dim and o.shape[-1] > obs_dim:
+                o = o[:obs_dim]
+            out.append(o)
+            action, _ = model.predict(o.reshape(1, -1), deterministic=True)
             obs, _, terminated, truncated, _ = env.step(np.asarray(action).reshape(-1))
             done = terminated or truncated
     return np.asarray(out, np.float32)
@@ -284,6 +312,9 @@ def learn(cfg: Config, period: str = "day", end: date | None = None, force: bool
     bundle = PolicyBundle.load(ckpt)
     samples = build_samples(cfg, bundle.layout.obs_dim, period=period, end=end, frames=frames, refresh=refresh, today=today)
     n = len(samples["meta"])
+    expected = bundle.model_obs_dim()
+    if n and expected and samples["X"].shape[1] > expected:      # the policy predates the newest portfolio feature
+        samples["X"] = samples["X"][:, :expected]
     report.update({"samples": n, "start": samples["start"], "end": samples["end"], "signature": bundle.layout.signature()})
     prev = _state(ckpt)
     learned = prev.get("learned", {})
@@ -318,7 +349,8 @@ def learn(cfg: Config, period: str = "day", end: date | None = None, force: bool
         report["skipped"] = "no simulator dataset for the out-of-sample guard - not touching the policy"
         log.warning("hindsight: %s", report["skipped"])
         return report
-    X_ref = reference_states(members[0], ds_train, env_cfg, int(s["ref_steps"])) if ds_train is not None else np.zeros((0, bundle.layout.obs_dim), np.float32)
+    X_ref = reference_states(members[0], ds_train, env_cfg, int(s["ref_steps"]), obs_dim=expected) if ds_train is not None \
+        else np.zeros((0, expected or bundle.layout.obs_dim), np.float32)
     generous = budget_minutes is None or float(budget_minutes) >= float(s["big_budget_minutes"])
     n_eval, eval_bars, epochs = (int(s["eval_tickers_full"]), int(s["eval_bars_full"]), int(s["epochs_full"])) if generous \
         else (int(s["eval_tickers"]), int(s["eval_bars"]), int(s["epochs"]))
@@ -384,8 +416,7 @@ def learn_due(cfg: Config, today: date | None = None, force: bool = False, frame
     today = today or datetime.now(timezone.utc).date()
     ckpt = cfg.path("train.checkpoint_dir", "models/policy")
     learned = _state(ckpt).get("learned", {})
-    store = ExperienceStore(cfg.path("feedback.experience_file", "data/experience/trades.jsonl"))
-    recs = store.load()
+    recs = load_all_records(cfg)
     last_dec = None
     if recs is not None and len(recs):
         dec = recs[recs["type"] == "decision"]

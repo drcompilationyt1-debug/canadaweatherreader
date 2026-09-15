@@ -45,6 +45,8 @@ jobs:
     env:
       ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
       ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+      ALPACA_10K_API_KEY: ${{ secrets.ALPACA_10K_API_KEY }}
+      ALPACA_10K_SECRET_KEY: ${{ secrets.ALPACA_10K_SECRET_KEY }}
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       OPENROUTER_API_KEYS: ${{ secrets.OPENROUTER_API_KEYS }}
       GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
@@ -165,13 +167,17 @@ jobs:
           ${{ inputs.train == false && '--no-train' || '' }}
       - name: daily review (what we did vs the alternatives, every move that was available, where the regret came from)
         if: ${{ always() && (steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true') }}
-        run: python -m stockbot review --period day || true
+        run: |
+          python -m stockbot review --period day || true
+          python -m stockbot review --period day --account small || true
       - name: learn any finished unit the morning could not (fallback; usually a quick skip - today's close is not in yet)
         if: ${{ always() && !(inputs.dry_run == true) && (steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true') }}
         run: timeout 10m python -m stockbot review --learn --due --max-minutes 8 --offline || true
       - name: account (the broker's equity per day and every fill, cached with the state)
         if: ${{ always() && (steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true') }}
-        run: python -m stockbot account --sync --period 1M --days 25 --fills 25 || true
+        run: |
+          python -m stockbot account --sync --period 1M --days 25 --fills 25 || true
+          python -m stockbot account --account small --sync --period 1M --days 25 --fills 25 || true
       - name: forecast scorecard
         if: ${{ always() && (steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true') }}
         run: python -m stockbot forecast --no-refresh || true
@@ -190,4 +196,7 @@ jobs:
             data/paper/sessions/session_*.json
             data/paper/sessions/session_*.jsonl
             data/experience/reviews/day_*.json
+            data/paper/sessions/small/session_*.json
+            data/experience/small/reviews/day_*.json
+            reports/dashboard_small.html
           if-no-files-found: ignore

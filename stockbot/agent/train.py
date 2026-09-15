@@ -51,13 +51,21 @@ def prepare_dataset(cfg: Config, offline: bool = False, refresh: bool = False, s
     return ds, providers, ctx
 
 
+def _same_layout(folder: Path, layout: ObservationLayout) -> bool:
+    f = Path(folder) / "layout.json"
+    try:
+        return not f.exists() or ObservationLayout.load(f).full_signature() == layout.full_signature()
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def _archive_old_layout(ckpt: Path, signature: str) -> None:
     """A policy trained on a different signal layout is moved to ``archive/<signature>`` instead of being overwritten."""
     layout_file = ckpt / "layout.json"
     if not layout_file.exists():
         return
     try:
-        old_sig = ObservationLayout.load(layout_file).signature()
+        old_sig = ObservationLayout.load(layout_file).full_signature()
     except Exception:  # noqa: BLE001
         return
     if old_sig == signature:
@@ -204,10 +212,10 @@ def train(cfg: Config, total_timesteps: int | None = None, resume: str | None = 
         if not rp.exists():
             log.warning("checkpoint %s not found - starting a fresh policy", rp)
             resume = None
-        elif layout_file.exists() and ObservationLayout.load(layout_file).signature() != dataset.layout.signature():
+        elif layout_file.exists() and ObservationLayout.load(layout_file).full_signature() != dataset.layout.full_signature():
             log.warning("checkpoint %s was trained on a different signal layout - starting a fresh policy", rp)
             resume = None
-    _archive_old_layout(ckpt, dataset.layout.signature())
+    _archive_old_layout(ckpt, dataset.layout.full_signature())
     train_end = cfg.get_path("data.train_end")
     ds_train, ds_test = dataset.split(train_end) if train_end else (dataset, dataset)
     if len(ds_train) == 0:
@@ -276,7 +284,7 @@ def train_ensemble(cfg: Config, dataset: MarketDataset, n_seeds: int, total_time
     import shutil
 
     ckpt = cfg.path("train.checkpoint_dir", "models/policy")
-    _archive_old_layout(ckpt, dataset.layout.signature())
+    _archive_old_layout(ckpt, dataset.layout.full_signature())
     base_seed = int(cfg.get_path("train.seed", 0) or 0)
     min_score = float(cfg.get_path("train.ensemble_min_score", 0.0) or 0.0)
     scores: dict[str, float] = {}
@@ -287,7 +295,8 @@ def train_ensemble(cfg: Config, dataset: MarketDataset, n_seeds: int, total_time
         sub.set_path("train.checkpoint_dir", str(member_dir))
         sub.set_path("train.seed", base_seed + k)
         sub.set_path("train.seeds", 1)
-        member_resume = str(member_dir / "latest.zip") if resume and (member_dir / "latest.zip").exists() else None
+        member_resume = str(member_dir / "latest.zip") if resume and (member_dir / "latest.zip").exists() \
+            and _same_layout(member_dir, dataset.layout) else None
         member_minutes = None
         if deadline is not None:
             member_minutes = max(0.5, (deadline - time.time()) / 60.0 / (n_seeds - k))

@@ -100,6 +100,26 @@ def deep_merge(base: dict, override: dict) -> dict:
     return out
 
 
+def account_names(cfg) -> list[str]:
+    """Extra accounts traded in the same session (``accounts:`` in the config), enabled ones only."""
+    accs = cfg.get("accounts") or {}
+    return [n for n, a in accs.items() if isinstance(a, dict) and a.get("enabled", True)]
+
+
+def account_config(cfg, name: str | None):
+    """The config of one extra account: the base config with the account's overrides (execution, env, feedback,
+    session, report ...) deep-merged in and ``account`` set to its name.  ``None`` / ``main`` = the base config."""
+    if not name or name == "main":
+        return cfg
+    accs = cfg.get("accounts") or {}
+    if name not in accs:
+        raise KeyError(f"unknown account {name!r}; configured: {list(accs)}")
+    over = {k: v for k, v in dict(accs[name]).items() if k != "enabled"}
+    out = Config(deep_merge(dict(cfg), over))
+    out["account"] = name
+    return out
+
+
 def _coerce(text: str) -> Any:
     try:
         return yaml.safe_load(text)

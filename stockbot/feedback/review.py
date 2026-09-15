@@ -139,9 +139,9 @@ class Review:
             from ..execution.alpaca_history import AlpacaHistory
             from .intraday import ExitModel, what_if_exit
 
-            if not AlpacaHistory.available():
-                return {}, [], None
             hist = AlpacaHistory(self.cfg)
+            if not hist.has_keys:
+                return {}, [], None
             paths = hist.day_paths(names, day)
         except Exception as e:  # noqa: BLE001
             log.debug("broker bars unavailable for %s: %s", day, e)

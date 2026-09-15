@@ -111,7 +111,12 @@ class TradingEnv(gym.Env):
         self._vol = self._vol_for(self.td) if self.vol_target > 0 else None
         if self.fee_book is not None:
             self.portfolio.fees = self.fee_book.for_ticker(self.td.ticker)
-        self.portfolio.reset()
+        cash = (options or {}).get("cash")
+        rng_cash = self.c.get("cash_range")
+        if cash is None and rng_cash and not self.eval_mode:      # a different budget every episode: the policy meets $5k and $250k books
+            lo, hi = float(rng_cash[0]), float(rng_cash[1])
+            cash = float(10 ** self.rng.uniform(np.log10(max(lo, 1.0)), np.log10(max(hi, lo, 1.0))))
+        self.portfolio.reset(float(cash) if cash is not None else float(self.c["initial_cash"]))
         self.initial_equity = self.portfolio.initial_cash
         self.peak = self.initial_equity
         self.pos_age = 0
@@ -135,7 +140,16 @@ class TradingEnv(gym.Env):
             min(self.pos_age / 252.0, 2.0),
             float(exp > 0.01),
             float(exp < -0.01),
+            self.fee_drag(price),
         ], dtype=np.float32)
+
+    def fee_drag(self, price: float) -> float:
+        """Round-trip fee of a full slice as a share of the slice, x100, capped at 2 (a $200 slice) - see PORTFOLIO_FEATURES."""
+        slice_ = max(self.portfolio.initial_cash * self.portfolio.fee_scale, 1.0)
+        sched = self.portfolio.fees
+        if sched is None:
+            return float(min(2.0 * float(self.c["commission"]) * 100.0, 2.0))
+        return float(min(2.0 * float(sched.cost(slice_ / max(price, 1e-9), price, "buy")) / slice_ * 100.0, 2.0))
 
     def _obs(self) -> np.ndarray:
         sig = self.td.signals[self.t] * self.block_mask

@@ -264,12 +264,12 @@ def fit_from_alpaca(cfg, days: int = 40, timeframe: str = "15Min", holdout_days:
 
     ie = dict(cfg.get_path("session.intraday_exit", {}) or {})
     folder = cfg.path("session.intraday_exit.model_dir", "models/intraday_exit")
-    if not AlpacaHistory.available():
-        return {"skipped": "no Alpaca keys"}
+    hist = AlpacaHistory(cfg)
+    if not hist.has_keys:
+        return {"skipped": f"no Alpaca keys ({hist.keys_env}_API_KEY)"}
     tickers = [t for t in cfg.get("universe", []) if market_of(t) == "us"]
     end = end or (datetime.now(timezone.utc).date() - timedelta(days=1))
     start = end - timedelta(days=int(days * 1.5) + 3)
-    hist = AlpacaHistory(cfg)
     bars = hist.bars_cached(tickers, start, end, timeframe)
     paths = paths_from_bars(bars)
     if not paths:

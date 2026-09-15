@@ -392,7 +392,8 @@ def cmd_session(cfg, args) -> int:
                              train=False if args.no_train else None, clock=clock, train_minutes=args.train_minutes,
                              train_timesteps=args.train_timesteps, train_seeds=args.train_seeds, train_n_envs=args.train_n_envs,
                              snapshot_minutes=args.snapshot_minutes, max_wait_minutes=args.max_wait_minutes,
-                             deadline_minutes=args.deadline_minutes, deadline_at=args.deadline_at or None)
+                             deadline_minutes=args.deadline_minutes, deadline_at=args.deadline_at or None,
+                             accounts=False if args.no_accounts else None)
     summary = session.run(force=args.force)
     print(json.dumps({k: v for k, v in summary.items() if k not in ("open_prices",)}, indent=1, default=str))
     return 0
@@ -550,10 +551,20 @@ def cmd_account(cfg, args) -> int:
 
     from .execution.alpaca_history import AlpacaHistory
 
-    if not AlpacaHistory.available():
-        print("no Alpaca keys (ALPACA_API_KEY / ALPACA_SECRET_KEY)")
-        return 1
     h = AlpacaHistory(cfg)
+    if not h.has_keys:
+        print(f"no Alpaca keys ({h.keys_env}_API_KEY / {h.keys_env}_SECRET_KEY)")
+        return 1
+    print(f"account '{cfg.get('account') or 'main'}' ({h.keys_env} keys, {'paper' if h.paper else 'LIVE'})")
+    if args.configure_like_moomoo:
+        from .execution.alpaca import AlpacaBroker
+
+        b = AlpacaBroker(paper=h.paper, fractional=bool(cfg.get_path("execution.alpaca.fractional", True)), keys_env=h.keys_env)
+        print("Alpaca account configured like a moomoo cash account:", json.dumps(b.configure_like_moomoo(), indent=1, default=str))
+    from .execution.alpaca import VirtualLedger
+
+    ledger = VirtualLedger(cfg.path("execution.state_file", "data/paper/state.json").with_name("alpaca_ledger.json"))
+    print(f"moomoo fees booked virtually so far: {ledger.fees:,.2f} over {ledger.n_fills} fills (deducted from the equity the strategy sees)")
     daily = h.daily(args.period)
     if len(daily):
         d = daily.tail(args.days)
@@ -621,6 +632,8 @@ def build_parser() -> argparse.ArgumentParser:
     common.add_argument("--config", "-c", default=argparse.SUPPRESS, help="user config YAML merged over config/default.yaml")
     common.add_argument("--set", "-s", action="append", default=argparse.SUPPRESS, metavar="KEY=VAL",
                         help="override e.g. train.n_envs=4 (repeatable)")
+    common.add_argument("--account", default=argparse.SUPPRESS, metavar="NAME",
+                        help="act on one of the extra accounts (`accounts:` in the config) instead of the main one")
     ap = argparse.ArgumentParser(prog="stockbot", description="Self-improving long-term stock trading agent", parents=[common])
     sub = ap.add_subparsers(dest="cmd", required=True)
     _add = sub.add_parser
@@ -727,6 +740,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--gate-after-minutes", type=float, default=30.0, metavar="MIN",
                    help="with --gate-minutes: also run when the market opened less than MIN minutes ago (late cron)")
     p.add_argument("--force", action="store_true", help="run even if a session already ran today")
+    p.add_argument("--no-accounts", action="store_true", help="trade the main account only (skip `accounts:`)")
     p.add_argument("--deadline-minutes", type=float, help="finish everything (watch, review, trainer) within this many minutes of starting")
     p.add_argument("--deadline-at", help="... or by this ISO 8601 time (the workflow anchors it on the job's start); the earlier one wins")
     p.add_argument("--offline", action="store_true")
@@ -781,6 +795,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--days", type=int, default=30, help="how many of the latest days to print")
     p.add_argument("--fills", type=int, default=30)
     p.add_argument("--sync", action="store_true", help="cache the history and every fill under data/paper/alpaca (saved with the state)")
+    p.add_argument("--configure-like-moomoo", action="store_true",
+                   help="set the Alpaca account itself to no margin, no shorting and (unless execution.alpaca.fractional) whole shares")
     p.set_defaults(fn=cmd_account)
 
     p = sub.add_parser("intraday-fit", help="fit the intraday exit model on the broker's 15-minute bars: when should a held name have been sold?")
@@ -813,6 +829,11 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     cfg = load_config(getattr(args, "config", None), getattr(args, "set", None) or [])
+    account = getattr(args, "account", None)
+    if account:
+        from .config import account_config
+
+        cfg = account_config(cfg, account)
     return int(args.fn(cfg, args) or 0)
 
 

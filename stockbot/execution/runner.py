@@ -36,11 +36,23 @@ class TradingRunner:
     def __init__(self, cfg: Config, mode: str = "paper", bundle: PolicyBundle | None = None,
                  frames_loader: Callable[[bool], dict[str, pd.DataFrame]] | None = None,
                  broker: Broker | None = None, offline: bool = False, with_llm: bool = True,
-                 allow_closed: bool = False, clock=None):
+                 allow_closed: bool = False, clock=None, shared: "TradingRunner | None" = None):
+        """``shared`` = another runner whose policy, signal providers, bars and computed signals this one reuses: the
+        same market view, another account's book and rules (``accounts:`` in the config)."""
         self.cfg = cfg
         self.mode = mode
         self.offline = offline
         self.ex = cfg.section("execution")
+        self.account = str(cfg.get("account") or "main")
+        self.shared = shared
+        self.last_vectors: dict | None = None
+        self.last_reasons: dict = {}
+        # a small account's rules (moomoo's per-order minimums make many small orders ruinous)
+        self.max_names = int(self.ex.get("max_names", 0) or 0)
+        self.name_hysteresis = int(self.ex.get("max_names_hysteresis", 3) or 0)
+        self.cadence = str(self.ex.get("cadence", "daily") or "daily").lower()
+        self.whole_shares = bool(self.ex.get("whole_shares", False)) or \
+            (mode in ("alpaca", "live") and not bool(self.ex.get_path("alpaca.fractional", True)))
         # real brokers only get orders while the exchange is open (execution.require_market_open)
         self.require_open = bool(self.ex.get("require_market_open", True)) and not allow_closed
         self.clock = clock
@@ -63,20 +75,26 @@ class TradingRunner:
             if sched is not None:
                 log.info("fees %s: %s -> orders below %.0f are skipped", market, sched.describe(), max(self.min_trade_usd, sched.min_trade_usd()))
         ckpt = cfg.path("train.checkpoint_dir", "models/policy")
+        if bundle is None and shared is not None:
+            bundle = shared.bundle
         if bundle is None:
             if not PolicyBundle.exists(ckpt):
                 raise FileNotFoundError(f"no trained policy in {ckpt} - run `stockbot train` first")
             bundle = PolicyBundle.load(ckpt, "best" if (ckpt / "best.zip").exists() else "latest")
         self.bundle = bundle
-        self.ctx = build_context(cfg, with_llm=with_llm, with_news=True)
-        self.providers: list[SignalProvider] = providers_for_layout(cfg, self.ctx, bundle.layout)
-        for p in self.providers:
-            try:
-                p.load_state()
-            except Exception as e:  # noqa: BLE001
-                log.warning("could not load state for %s: %s", p.name, e)
+        if shared is not None:                      # same models and signals, no second copy in memory
+            self.ctx = shared.ctx
+            self.providers: list[SignalProvider] = shared.providers
+        else:
+            self.ctx = build_context(cfg, with_llm=with_llm, with_news=True)
+            self.providers = providers_for_layout(cfg, self.ctx, bundle.layout)
+            for p in self.providers:
+                try:
+                    p.load_state()
+                except Exception as e:  # noqa: BLE001
+                    log.warning("could not load state for %s: %s", p.name, e)
         self.store = ExperienceStore(cfg.path("feedback.experience_file", "data/experience/trades.jsonl"))
-        self.frames_loader = frames_loader or self._default_loader
+        self.frames_loader = frames_loader or ((lambda refresh: shared.frames) if shared is not None else self._default_loader)
         self.frames: dict[str, pd.DataFrame] = {}
         self.state_file = cfg.path("execution.state_file", "data/paper/state.json").with_name(f"runner_{mode}.json")
         self.state = self._load_state()
@@ -116,7 +134,8 @@ class TradingRunner:
             from .alpaca import AlpacaBroker
 
             return AlpacaBroker(paper=bool(self.ex.get_path("alpaca.paper", True)), fractional=bool(self.ex.get_path("alpaca.fractional", True)),
-                                fees=fees)
+                                fees=fees, keys_env=str(self.ex.get_path("alpaca.keys_env", "ALPACA") or "ALPACA"),
+                                ledger_file=self.cfg.path("execution.state_file", "data/paper/state.json").with_name("alpaca_ledger.json"))
         if mode == "moomoo":
             from .moomoo import MoomooBroker
 
@@ -320,16 +339,61 @@ class TradingRunner:
         peak = self.state.get("peak_equity") or equity
         age = int(self.state.get("pos_age", {}).get(ticker, 0))
         vec = np.array([exposure, np.clip(equity / init - 1.0, -1.0, 3.0) * 2.0, (1.0 - equity / max(peak, 1e-9)) * 5.0,
-                        min(age / 252.0, 2.0), float(exposure > 0.01), float(exposure < -0.01)], dtype=np.float32)
+                        min(age / 252.0, 2.0), float(exposure > 0.01), float(exposure < -0.01),
+                        self.fee_drag(ticker, price, slice_cap)], dtype=np.float32)
         assert len(vec) == len(PORTFOLIO_FEATURES)
         return vec, exposure
+
+    def fee_drag(self, ticker: str, price: float, slice_cap: float) -> float:
+        """Round-trip fee of a full slice as a share of the slice, x100 (the same feature the simulator shows the policy)."""
+        sched = self.fee_book.for_ticker(ticker)
+        if sched is None or price <= 0 or slice_cap <= 0:
+            return float(min(2.0 * float(self.env_cfg.get("commission", 0.0)) * 100.0, 2.0))
+        return float(min(2.0 * float(sched.cost(slice_cap / price, price, "buy")) / slice_cap * 100.0, 2.0))
+
+    @staticmethod
+    def _week_key(as_of: str) -> str:
+        y, w, _ = pd.Timestamp(as_of).isocalendar()
+        return f"{int(y)}-W{int(w):02d}"
+
+    def apply_account_rules(self, weights: dict[str, float], tickers: list[str], eq_of: dict[str, float], as_of: str) -> dict[str, float]:
+        """A small account's rules: with a weekly cadence nothing is rebalanced outside the first session of the week;
+        with ``max_names`` only that many names are held (a held name keeps its slot unless it drops more than
+        ``max_names_hysteresis`` places below the cut, so the book does not churn on small ranking moves)."""
+        current: dict[str, float] = {}
+        for t in tickers:
+            try:
+                current[t] = self.portfolio_state(t, self.last_close(t), eq_of[t])[1]
+            except Exception:  # noqa: BLE001
+                current[t] = 0.0
+        if self.cadence == "weekly" and self.state.get("last_rebalance_week") == self._week_key(as_of):
+            self.last_cycle_note = (self.last_cycle_note + "; " if self.last_cycle_note else "") + \
+                "weekly cadence: positions kept until the first session of next week"
+            log.info("weekly cadence: already rebalanced this week - holding every position")
+            return {t: current[t] * self.max_position for t in tickers}
+        if self.max_names > 0:
+            ranked = sorted(tickers, key=lambda t: (-weights.get(t, 0.0), t))
+            rank = {t: i for i, t in enumerate(ranked)}
+            keep = sorted([t for t in tickers if abs(current[t]) > 0.05 and weights.get(t, 0.0) > 0
+                           and rank[t] < self.max_names + self.name_hysteresis], key=lambda t: rank[t])[: self.max_names]
+            for t in ranked:
+                if len(keep) >= self.max_names:
+                    break
+                if t not in keep and weights.get(t, 0.0) > 0:
+                    keep.append(t)
+            dropped = [t for t in tickers if t not in keep and weights.get(t, 0.0) > 0]
+            for t in dropped:
+                weights[t] = 0.0
+            if dropped:
+                log.info("at most %d names: keeping %s; %d others set to zero", self.max_names, ", ".join(keep), len(dropped))
+        return weights
 
     # ------------------------------------------------------------------ one trading cycle
     def cycle(self, dry_run: bool = False, refresh: bool = True) -> list[Decision]:
         self.frames = self.frames_loader(refresh)
         tickers = [t for t in self.cfg.get("universe", []) if t in self.frames]
         as_of = max(str(df.index[-1].date()) for df in self.frames.values())
-        log.info("=== %s cycle as of %s (%d tickers, broker=%s) ===", self.mode, as_of, len(tickers), self.broker.name)
+        log.info("=== %s cycle as of %s (%d tickers, broker=%s, account=%s) ===", self.mode, as_of, len(tickers), self.broker.name, self.account)
 
         for t in tickers:  # settle yesterday's decisions (and direction votes) with today's prices
             try:
@@ -365,7 +429,12 @@ class TradingRunner:
                             "pnl_pct": pnl, "peak_pnl_pct": peaks[t], "days": int(self.state.get("pos_age", {}).get(t, 0))}
         self.ctx.extra["positions"] = positions
 
-        vectors, reasons = self.latest_vectors()
+        if self.shared is not None and self.shared.last_vectors is not None:
+            vectors, reasons = self.shared.last_vectors, self.shared.last_reasons     # the same signals, this account's book
+            self.agent_tickers = list(self.shared.agent_tickers)
+        else:
+            vectors, reasons = self.latest_vectors()
+        self.last_vectors, self.last_reasons = vectors, reasons
         targets, obs_by, avail_by, conv_by = {}, {}, {}, {}
         for t in tickers:
             price = self.price(t)
@@ -385,7 +454,7 @@ class TradingRunner:
         log.info("signals ON: %s | OFF: %s", ", ".join(on) or "-", ", ".join(off) or "-")
 
         allow_short = self.allow_short and self.broker.supports_short
-        weights = self.allocate_by_market(targets, allow_short)
+        weights = self.apply_account_rules(self.allocate_by_market(targets, allow_short), tickers, eq_of, as_of)
         decisions: list[Decision] = []
         # decide everything first, then execute sells before buys: the cash on hand is the hard limit for
         # buys, and sale proceeds are not reused in the same cycle (they settle T+1 in a cash account)
@@ -395,7 +464,15 @@ class TradingRunner:
             slice_cap = eq_of[t] * self.max_position
             _, current = self.portfolio_state(t, price, eq_of[t])
             target = weights[t] / self.max_position if self.max_position > 0 else 0.0
-            planned[t] = (decide(t, target, current, slice_cap, price, self.deadband, allow_short, self.min_trade_for(t)), price, current)
+            dec = decide(t, target, current, slice_cap, price, self.deadband, allow_short, self.min_trade_for(t))
+            if self.whole_shares and dec.action != "HOLD":                     # moomoo Canada: whole shares only
+                whole = float(int(abs(dec.shares)))
+                if whole < 1.0:
+                    dec = Decision(t, "HOLD", dec.target_exposure, dec.current_exposure, 0.0, 0.0, 0.0, price, "less than one share")
+                else:
+                    dec.shares = whole * (1.0 if dec.shares > 0 else -1.0)
+                    dec.amount_usd = dec.shares * price
+            planned[t] = (dec, price, current)
         cash_left: dict[str, float] = {}
         order = sorted(tickers, key=lambda t: 0 if planned[t][0].shares < 0 else 1)   # sells / covers first
         results: dict[str, tuple[Decision, list, float, float, float]] = {}
@@ -417,10 +494,14 @@ class TradingRunner:
                         dec = Decision(t, "HOLD", dec.target_exposure, dec.current_exposure, 0.0, 0.0, 0.0, price,
                                        f"insufficient cash (${avail:,.0f} left)")
                     else:
-                        cut = avail / price
-                        log.info("%s: buy cut from %.3f to %.3f shares to stay within $%.0f cash", t, dec.shares, cut, avail)
-                        dec.shares, dec.amount_usd = cut, cut * price
-                        dec.note = f"cut to cash (${avail:,.0f} left)"
+                        cut = float(int(avail / price)) if self.whole_shares else avail / price
+                        if cut < 1e-9:
+                            dec = Decision(t, "HOLD", dec.target_exposure, dec.current_exposure, 0.0, 0.0, 0.0, price,
+                                           f"insufficient cash for one share (${avail:,.0f} left)")
+                        else:
+                            log.info("%s: buy cut from %.3f to %.3f shares to stay within $%.0f cash", t, dec.shares, cut, avail)
+                            dec.shares, dec.amount_usd = cut, cut * price
+                            dec.note = f"cut to cash (${avail:,.0f} left)"
             if dec.action != "HOLD" and not dry_run:
                 try:
                     fill = self.broker.submit(Order(t, "buy" if dec.shares > 0 else "sell", abs(dec.shares), note=dec.action))
@@ -456,6 +537,8 @@ class TradingRunner:
         if isinstance(self.broker, PaperBroker):
             self.broker.mark(as_of)
         self.broker.save()
+        if not dry_run and self.cadence == "weekly":
+            self.state["last_rebalance_week"] = self._week_key(as_of)
         self.state["cycles"] = int(self.state.get("cycles", 0)) + 1
         self.state["last_cycle"] = datetime.now(timezone.utc).isoformat()
         if not dry_run:

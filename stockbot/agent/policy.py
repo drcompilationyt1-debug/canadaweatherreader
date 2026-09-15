@@ -87,10 +87,26 @@ class PolicyBundle:
     meta: dict
     folder: Path | None = None
 
+    def model_obs_dim(self) -> int | None:
+        """The observation size the trained network actually takes (None for models without an observation space)."""
+        m = self.model.members[0] if isinstance(self.model, EnsemblePolicy) and self.model.members else self.model
+        space = getattr(m, "observation_space", None)
+        shape = getattr(space, "shape", None)
+        return int(shape[0]) if shape else None
+
+    def fit_obs(self, obs: np.ndarray) -> np.ndarray:
+        """Trim portfolio features added after the model was trained (they are always appended at the end), so a
+        policy from the last retrain keeps trading until the next one learns the new feature."""
+        obs = np.asarray(obs, dtype=np.float32)
+        expected = self.model_obs_dim() or self.layout.obs_dim
+        if obs.shape[-1] == expected:
+            return obs
+        if obs.shape[-1] > expected >= self.layout.signal_dim:
+            return obs[..., :expected]
+        raise ValueError(f"observation has {obs.shape[-1]} dims, model expects {expected}")
+
     def predict(self, obs: np.ndarray, deterministic: bool = True) -> float:
-        obs = np.asarray(obs, dtype=np.float32).reshape(1, -1)
-        if obs.shape[1] != self.layout.obs_dim:
-            raise ValueError(f"observation has {obs.shape[1]} dims, model expects {self.layout.obs_dim}")
+        obs = self.fit_obs(np.asarray(obs, dtype=np.float32).reshape(1, -1))
         action, _ = self.model.predict(obs, deterministic=deterministic)
         return float(np.clip(np.asarray(action).reshape(-1)[0], -1.0, 1.0))
 

@@ -48,7 +48,7 @@ def test_env_step_matches_manual_accounting(cfg, frames):
     assert abs(info["exposure"] - shares * p1 / eq) < 1e-9
     # going short is possible and flagged in the portfolio state
     obs, reward, term, trunc, info = env.step(np.array([-1.0], dtype=np.float32))
-    assert info["exposure"] < 0 and obs[-1] == 1.0 and obs[-2] == 0.0
+    assert info["exposure"] < 0 and obs[-2] == 1.0 and obs[-3] == 0.0 and obs[-1] >= 0.0   # is_short, is_long, fee_drag
     # run the episode to the end
     done = term or trunc
     while not done:

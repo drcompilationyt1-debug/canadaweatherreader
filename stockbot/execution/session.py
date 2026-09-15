@@ -26,9 +26,10 @@ from typing import Callable
 
 import numpy as np
 
-from ..config import Config
+from ..config import Config, account_config, account_names
 from ..logging_utils import get_logger
 from ..paths import ROOT
+from .alpaca import alpaca_keys
 from .base import Order
 from .fees import FeeBook
 from .market_hours import MarketClock, NY
@@ -82,7 +83,15 @@ class TradingSession:
         self.exit_min_edge = float(ie.get("min_edge", 0.0005))
         self.exit_model_dir = cfg.path("session.intraday_exit.model_dir", "models/intraday_exit")
         self.exit_model = None
-        self.exited: set[str] = set()
+        self.exit_same_day = bool(ie.get("same_day", True))
+        self.exited: dict[str, set[str]] = {}
+        self.bought_today: dict[str, set[str]] = {}
+        # extra accounts (``accounts:`` in the config) are traded from the same signals with their own rules and books
+        self.accounts_enabled = bool(s.get("accounts", True))
+        self.extra: dict[str, TradingRunner] = {}
+        self.account_cfg: dict[str, Config] = {}
+        self.account_dirs: dict[str, Path] = {}
+        self.account_snaps: dict[str, list[dict]] = {}
         self.fees = FeeBook.from_config(cfg)
         self.clock = clock or MarketClock()
         self.started_at = self.now()
@@ -106,13 +115,74 @@ class TradingSession:
                 return
             self.sleep(min(step, remaining))
 
-    def _log_file(self, date: str) -> Path:
-        self.log_dir.mkdir(parents=True, exist_ok=True)
-        return self.log_dir / f"session_{date}.jsonl"
+    def _log_file(self, date: str, account: str | None = None) -> Path:
+        d = self.account_dirs.get(account, self.log_dir) if account else self.log_dir
+        d.mkdir(parents=True, exist_ok=True)
+        return d / f"session_{date}.jsonl"
 
-    def _append(self, rec: dict) -> None:
-        with open(self._log_file(self.summary["date"]), "a", encoding="utf-8") as f:
+    def _append(self, rec: dict, account: str | None = None) -> None:
+        with open(self._log_file(self.summary["date"], account), "a", encoding="utf-8") as f:
             f.write(json.dumps(rec, default=str) + "\n")
+
+    # ------------------------------------------------------------------ accounts
+    def _ensure_runners(self) -> None:
+        """The main runner, then one runner per extra account (``accounts:``) sharing its models, bars and signals."""
+        if self.runner is None:
+            self.runner = TradingRunner(self.cfg, mode=self.mode, offline=self.offline, with_llm=self.with_llm, clock=self.clock)
+        if not self.accounts_enabled:
+            return
+        for name in account_names(self.cfg):
+            if name in self.extra:
+                continue
+            try:
+                cfg_a = account_config(self.cfg, name)
+                mode_a = str(cfg_a.get_path("execution.mode", self.mode) or self.mode)
+                if mode_a in ("alpaca", "live"):
+                    prefix = str(cfg_a.get_path("execution.alpaca.keys_env", "ALPACA") or "ALPACA")
+                    k, sec = alpaca_keys(prefix)
+                    if not (k and sec):
+                        log.info("account %s: no %s_API_KEY / %s_SECRET_KEY in the environment - skipped", name, prefix, prefix)
+                        continue
+                r2 = TradingRunner(cfg_a, mode=mode_a, offline=self.offline, with_llm=False, clock=self.clock, shared=self.runner)
+                self.extra[name] = r2
+                self.account_cfg[name] = cfg_a
+                self.account_dirs[name] = cfg_a.path("session.log_dir", f"data/paper/sessions/{name}")
+                log.info("account %s: %s, max_position %.2f, max_names %d, cadence %s, %s", name, r2.broker.name, r2.max_position,
+                         r2.max_names, r2.cadence, "whole shares" if r2.whole_shares else "fractional shares")
+            except Exception as e:  # noqa: BLE001
+                log.warning("account %s unavailable: %s", name, e)
+
+    def _finish_accounts(self, date: str) -> None:
+        """End of the watch window for every extra account: equity, its own session summary, day review and dashboard."""
+        for name, r2 in self.extra.items():
+            info = self.summary.setdefault("accounts", {}).setdefault(name, {})
+            try:
+                eq_end = float(r2.broker.equity())
+                r2.broker.save()
+                info.update({"equity_end": eq_end, "session_return": eq_end / info["equity_open"] - 1.0 if info.get("equity_open") else 0.0,
+                             "exits": len(self.exited.get(name, set()))})
+                if self.dry_run:
+                    continue
+                cfg_a = self.account_cfg[name]
+                self.account_dirs[name].mkdir(parents=True, exist_ok=True)
+                (self.account_dirs[name] / f"session_{date}.json").write_text(
+                    json.dumps({"date": date, "mode": r2.mode, "account": name, **info}, indent=1, default=str), encoding="utf-8")
+                if self.review_after:
+                    from ..feedback.review import Review
+
+                    rev = Review(cfg_a).review_day(self.now().date())
+                    if rev:
+                        info["review"] = {k: rev.get(k) for k in ("actual_return", "oracle_return", "regret", "captured", "best_model", "lessons", "file")}
+                try:
+                    from ..report import build_dashboard
+
+                    info["dashboard"] = str(build_dashboard(cfg_a, mode=r2.mode))
+                except Exception as e:  # noqa: BLE001
+                    log.warning("account %s dashboard failed: %s", name, e)
+                log.info("account %s done: equity %.2f -> %.2f (%+.2f%%), %d exits", name, info.get("equity_open", 0.0), eq_end,
+                         100 * info["session_return"], info["exits"])
+            except Exception as e:  # noqa: BLE001
+                log.warning("account %s wrap-up failed: %s", name, e)
 
     # ------------------------------------------------------------------ trainer
     def trainer_command(self, minutes: float) -> list[str]:
@@ -149,17 +219,23 @@ class TradingSession:
         last = df.index[-1]
         return float(df["close"].iloc[-2]) if last.date() == self.now().date() else float(df["close"].iloc[-1])
 
-    def _intraday_exits(self, snap: dict) -> int:
-        """Ask the exit model about every held name on the path since the open; sell the ones it flags."""
+    def _intraday_exits(self, snap: dict, runner: TradingRunner | None = None, account: str = "main") -> int:
+        """Ask the exit model about every held name on the path since the open; sell the ones it flags (per account)."""
         if self.exit_model is None or self.dry_run or self.runner is None:
             return 0
-        r = self.runner
+        r = runner or self.runner
+        exited = self.exited.setdefault(account, set())
+        bought = self.bought_today.get(account, set())
+        same_day = self.exit_same_day if account == "main" else \
+            bool(self.account_cfg.get(account, self.cfg).get_path("session.intraday_exit.same_day", self.exit_same_day))
         n = 0
         for t, row in (snap.get("tickers") or {}).items():
             shares = float(row.get("held") or 0.0)
             open_px = self.summary.get("open_prices", {}).get(t)
-            if shares <= 0 or not open_px or t in self.exited:
+            if shares <= 0 or not open_px or t in exited:
                 continue
+            if not same_day and t in bought:
+                continue                                              # no same-day round trips (cash account / day-trade rules)
             path = [float(open_px)] + [float(s["tickers"][t]["price"]) for s in self.snapshots if t in (s.get("tickers") or {}) and s["tickers"][t].get("price")]
             price = float(row.get("price") or path[-1])
             sched = self.fees.for_ticker(t)
@@ -177,12 +253,12 @@ class TradingSession:
             if fill is None:
                 continue
             n += 1
-            self.exited.add(t)
-            rec = {"type": "exit", "ts": self.now().isoformat(timespec="seconds"), "ticker": t, "qty": float(fill.qty), "price": float(fill.price),
+            exited.add(t)
+            rec = {"type": "exit", "account": account, "ts": self.now().isoformat(timespec="seconds"), "ticker": t, "qty": float(fill.qty), "price": float(fill.price),
                    "fees": float(fill.cost), "prob": adv.get("prob"), "ret_open": adv.get("ret_open"), "ret_max": adv.get("ret_max"),
                    "reason": adv.get("reason")}
-            self._append(rec)
-            log.info("intraday exit: sold %.3f %s @ %.2f (%s: %+.2f%% since the open, high %+.2f%%, p=%.2f)", fill.qty, t, fill.price,
+            self._append(rec, None if account == "main" else account)
+            log.info("intraday exit [%s]: sold %.3f %s @ %.2f (%s: %+.2f%% since the open, high %+.2f%%, p=%.2f)", account, fill.qty, t, fill.price,
                      adv.get("reason"), 100 * float(adv.get("ret_open") or 0.0), 100 * float(adv.get("ret_max") or 0.0), float(adv.get("prob") or 0.0))
         if n:
             try:
@@ -235,6 +311,8 @@ class TradingSession:
         if self.runner is not None:
             try:
                 self.learn_info["reloaded"] = bool(self.runner.reload_policy())
+                for r2 in self.extra.values():
+                    r2.bundle = self.runner.bundle
             except Exception as e:  # noqa: BLE001
                 log.warning("could not reload the policy after learning: %s", e)
                 self.learn_info["reloaded"] = False
@@ -299,6 +377,16 @@ class TradingSession:
                 "consensus_hit_rate": float(np.mean(called)) if called else None, "tickers": rows}
         self.snapshots.append(snap)
         self._append(snap)
+        for name, r2 in self.extra.items():
+            try:
+                pos2 = {t: p.shares for t, p in r2.broker.positions().items()}
+                snap2 = {**snap, "account": name, "equity": float(r2.broker.equity()), "cash": float(r2.broker.cash()), "n_positions": len(pos2),
+                         "tickers": {t: {**v, "held": pos2.get(t, 0.0)} for t, v in rows.items()}}
+                self.account_snaps.setdefault(name, []).append(snap2)
+                self._append(snap2, account=name)
+                log.info("[%s] account %s: equity %.2f cash %.0f  %d positions", label, name, snap2["equity"], snap2["cash"], len(pos2))
+            except Exception as e:  # noqa: BLE001
+                log.warning("account %s snapshot failed: %s", name, e)
         ups = sorted(((v["move"], t) for t, v in rows.items() if v["move"] is not None), reverse=True)
         top = ", ".join(f"{t} {100 * m:+.2f}%" for m, t in ups[:3])
         bottom = ", ".join(f"{t} {100 * m:+.2f}%" for m, t in ups[-3:][::-1]) if len(ups) > 3 else ""
@@ -311,8 +399,7 @@ class TradingSession:
         """Run the LLM agent frameworks on the top-N consensus tickers before the open, so the
         cycle at the open finds their answers cached and the orders are not delayed."""
         try:
-            if self.runner is None:
-                self.runner = TradingRunner(self.cfg, mode=self.mode, offline=self.offline, with_llm=self.with_llm, clock=self.clock)
+            self._ensure_runners()
             if not self.runner.has_agent_frameworks():
                 return
             budget = max(1.0, min(self.runner.agent_settings()[1], minutes_to_open - 3.0))
@@ -362,8 +449,7 @@ class TradingSession:
             log.info("letting the opening auction settle (%.1f min)", wait)
             self._sleep_until(self.now() + timedelta(minutes=wait))
 
-        if self.runner is None:
-            self.runner = TradingRunner(self.cfg, mode=self.mode, offline=self.offline, with_llm=self.with_llm, clock=self.clock)
+        self._ensure_runners()
         r = self.runner
         self.summary["equity_open"] = float(r.broker.equity())
         decisions = r.cycle(dry_run=self.dry_run, refresh=not self.offline)
@@ -374,6 +460,7 @@ class TradingSession:
             except Exception as e:  # noqa: BLE001
                 log.debug("open price %s: %s", t, e)
         self.summary["decisions"] = {d.ticker: d.action for d in decisions}
+        self.bought_today["main"] = {d.ticker for d in decisions if d.action == "BUY"}
         self.summary["orders"] = sum(1 for d in decisions if d.action != "HOLD")
         self.summary["note"] = r.last_cycle_note
         self.summary["agent_tickers"] = list(r.agent_tickers)
@@ -382,6 +469,21 @@ class TradingSession:
         self._append({"type": "decisions", "ts": self.now().isoformat(timespec="seconds"),
                       "decisions": [d.to_dict() for d in decisions], "votes": r.last_votes})
         log.info("%d decisions, %d orders; watching until %s", len(decisions), self.summary["orders"], end.strftime("%H:%M"))
+        for name, r2 in self.extra.items():                       # the other accounts: same signals, their own books and rules
+            info: dict = {"broker": r2.broker.name}
+            self.summary.setdefault("accounts", {})[name] = info
+            try:
+                info["equity_open"] = float(r2.broker.equity())
+                decs = r2.cycle(dry_run=self.dry_run, refresh=False)
+                info.update({"equity_after_orders": float(r2.broker.equity()), "decisions": {d.ticker: d.action for d in decs},
+                             "orders": sum(1 for d in decs if d.action != "HOLD"), "note": r2.last_cycle_note})
+                self.bought_today[name] = {d.ticker for d in decs if d.action == "BUY"}
+                self._append({"type": "decisions", "ts": self.now().isoformat(timespec="seconds"), "decisions": [d.to_dict() for d in decs],
+                              "votes": r2.last_votes}, account=name)
+                log.info("account %s: %d decisions, %d orders (equity %.2f)", name, len(decs), info["orders"], info["equity_open"])
+            except Exception as e:  # noqa: BLE001
+                log.error("account %s cycle failed: %s", name, e)
+                info["error"] = str(e)[:200]
 
         if self.train:
             try:
@@ -419,6 +521,9 @@ class TradingSession:
             if snap is not None:
                 try:
                     self._intraday_exits(snap)
+                    for name, r2 in self.extra.items():
+                        if self.account_snaps.get(name):
+                            self._intraday_exits(self.account_snaps[name][-1], r2, name)
                 except Exception as e:  # noqa: BLE001
                     log.warning("intraday exit check failed: %s", e)
             if self.trainer is not None and self.trainer.poll() is not None and "returncode" not in self.summary.get("trainer", {}):
@@ -426,7 +531,7 @@ class TradingSession:
                 log.info("trainer finished early with code %s", self.trainer.returncode)
 
         final = self.snapshot("end")
-        self.summary["exits"] = len(self.exited)
+        self.summary["exits"] = sum(len(v) for v in self.exited.values())
         settled = 0
         for t, row in final["tickers"].items():
             if self.dry_run:
@@ -441,6 +546,9 @@ class TradingSession:
                              "mean_move": final["mean_move"], "consensus_hit_rate": final["consensus_hit_rate"], "session_votes_settled": settled,
                              "snapshots": len(self.snapshots)})
         r.broker.save()
+        out = self.log_dir / (f"session_{date}.json" if not self.dry_run else f"session_{date}_dryrun.json")
+        out.write_text(json.dumps(self.summary, indent=1, default=str), encoding="utf-8")   # the day review reads equity_open / mode from it
+        self._finish_accounts(date)
         if self.review_after and not self.dry_run:
             try:
                 from ..feedback.review import Review

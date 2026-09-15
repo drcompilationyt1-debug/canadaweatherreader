@@ -8,7 +8,10 @@ from pathlib import Path
 
 import numpy as np
 
-PORTFOLIO_FEATURES = ["exposure", "equity_ret", "drawdown", "position_age", "is_long", "is_short"]
+# fee_drag = the round-trip fee of a full capital slice as a share of that slice (x100): how expensive trading is for
+# THIS account (0.04 = 4 bps on a $10k slice, 0.4 = 40 bps on a $1k slice) - the policy learns what to do with a
+# small budget and with a large one
+PORTFOLIO_FEATURES = ["exposure", "equity_ret", "drawdown", "position_age", "is_long", "is_short", "fee_drag"]
 
 
 @dataclass(frozen=True)
@@ -58,8 +61,13 @@ class ObservationLayout:
         return cols
 
     def signature(self) -> str:
+        """Identity of the signal blocks (what a dataset holds)."""
         payload = json.dumps([(b.name, list(b.feature_names)) for b in self.blocks])
         return hashlib.sha1(payload.encode()).hexdigest()[:12]
+
+    def full_signature(self) -> str:
+        """Identity of the whole observation (signals + portfolio features): what a trained policy expects."""
+        return hashlib.sha1((self.signature() + "|" + ",".join(PORTFOLIO_FEATURES)).encode()).hexdigest()[:12]
 
     def to_dict(self) -> dict:
         return {"blocks": [{"name": b.name, "features": list(b.feature_names)} for b in self.blocks],

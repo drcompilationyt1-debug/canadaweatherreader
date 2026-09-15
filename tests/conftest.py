@@ -40,6 +40,8 @@ def cfg(tmp_path):
         "signals.chronos.enabled=false", "signals.kronos.enabled=false", "signals.timesfm.enabled=false", "signals.finbert.enabled=false",
         "train.seeds=1",
         "env.vol_target=0",
+        "accounts.small.enabled=false",
+        "env.cash_range=null",
         "train.n_steps=64",
         "train.batch_size=64",
         "train.n_epochs=2",

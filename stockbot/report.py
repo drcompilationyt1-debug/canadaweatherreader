@@ -80,6 +80,17 @@ def _table(df: pd.DataFrame, cols: list[str] | None = None, fmt: dict | None = N
     return "".join(out)
 
 
+def _fills_table(fills) -> str:
+    """Broker fills (Alpaca) or the built-in simulator's fills: whichever columns the records carry."""
+    if not fills:
+        return "<div class='muted'>no fills yet</div>"
+    df = pd.DataFrame(fills)
+    cols = [c for c in ("ts", "date", "ticker", "side", "qty", "price", "notional", "cost", "note") if c in df.columns]
+    if not cols:
+        return "<div class='muted'>no fills yet</div>"
+    return _table(df[cols].tail(30).iloc[::-1], fmt={k: v for k, v in {"qty": "{:.3f}", "price": "{:.2f}", "notional": "{:,.0f}", "cost": "{:.2f}"}.items() if k in cols})
+
+
 def _paper_state(cfg: Config) -> dict:
     f = cfg.path("execution.state_file", "data/paper/state.json")
     if not f.exists():
@@ -94,7 +105,9 @@ def _alpaca_state(cfg: Config) -> dict:
     try:
         from .execution.alpaca import AlpacaBroker
 
-        b = AlpacaBroker(paper=bool(cfg.get_path("execution.alpaca.paper", True)))
+        b = AlpacaBroker(paper=bool(cfg.get_path("execution.alpaca.paper", True)), fractional=bool(cfg.get_path("execution.alpaca.fractional", True)),
+                         keys_env=str(cfg.get_path("execution.alpaca.keys_env", "ALPACA") or "ALPACA"),
+                         ledger_file=cfg.path("execution.state_file", "data/paper/state.json").with_name("alpaca_ledger.json"))
         from alpaca.trading.requests import GetPortfolioHistoryRequest
 
         hist = b.client.get_portfolio_history(GetPortfolioHistoryRequest(period="3M", timeframe="1D"))
@@ -266,8 +279,7 @@ def build_dashboard(cfg: Config, mode: str = "paper", out: str | Path | None = N
              _table(pd.DataFrame(state["daily"]), fmt={"equity": "{:,.0f}", "profit_loss": "{:+,.0f}", "profit_loss_pct": "{:+.2%}"})
              if state.get("daily") else "<div class='muted'>no broker history</div>",
              "<h2>Transactions (broker fills)</h2>",
-             _table(pd.DataFrame(state["fills"])[["ts", "ticker", "side", "qty", "price", "notional"]], fmt={"qty": "{:.3f}", "price": "{:.2f}", "notional": "{:,.0f}"})
-             if state.get("fills") else "<div class='muted'>no fills yet</div>",
+             _fills_table(state.get("fills")),
              "<h2>Who predicts the direction?</h2>", "".join(score_parts) or "<div class='muted'>nothing settled yet</div>",
              "<h2>Positions</h2>", _table(pos_df, fmt={"shares": "{:.3f}", "avg_price": "{:.2f}", "last": "{:.2f}", "value": "{:,.0f}", "unrealized_pnl": "{:+,.0f}"}),
              "<h2>Recent decisions</h2>", _table(dec_df, fmt={"target_exposure": "{:+.2f}", "weight": "{:+.3f}", "price": "{:.2f}"}),

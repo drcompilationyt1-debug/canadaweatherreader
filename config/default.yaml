@@ -145,6 +145,8 @@ env:
   episode_length: 252
   warmup: 260               # bars of history needed before the first observation
   initial_cash: 100000
+  cash_range: [5000, 250000]   # training episodes draw their starting cash from this range (log-uniform) so the policy meets
+                               # a $10k book and a $100k one; with the fee_drag feature it learns what each budget can afford
   commission: 0.0005        # 5 bps per side - only used with fees.preset: bps; otherwise the simulator charges the
                             # fees.preset schedule as if one position were execution.max_position of real equity
   slippage: 0.0005          # 5 bps per side
@@ -304,6 +306,10 @@ execution:
   max_gross_exposure: 1.0     # sum of |weights| per sleeve
   max_position: 0.10          # capital slice per ticker (fraction of equity); 30 names x 10% = fully invested at most
   min_trade_usd: 50
+  max_names: 0                # >0: hold at most this many names (a small account; held names keep their slot unless they fall
+  max_names_hysteresis: 3     # more than this many places below the cut)
+  cadence: daily              # daily | weekly (rebalance on the first session of the week only)
+  whole_shares: false         # true = never a fractional share (implied for Alpaca when alpaca.fractional is false)
   # Buys are planned against the sleeve's OWN cash (Alpaca `cash`, moomoo `cash`; never margin buying power)
   # and never spend more than (1 - cash_reserve) of it: a 10% buffer for fees, price moves before the fill and
   # the odd rejected sell.  Sale proceeds are not reused in the same cycle (T+1 settlement in a cash account).
@@ -315,6 +321,7 @@ execution:
   alpaca:
     paper: true               # true = Alpaca's free paper-trading account (web dashboard included)
     fractional: true
+    keys_env: ALPACA          # <keys_env>_API_KEY / <keys_env>_SECRET_KEY hold the keys (another account: ALPACA_10K)
   moomoo:
     env: simulate             # simulate (paper account) | real (needs MOOMOO_TRADE_PASSWORD + --i-understand-real-money)
     host: 127.0.0.1           # OpenD gateway
@@ -361,6 +368,7 @@ session:                      # `stockbot session`: the daily market-hours run (
   review_after: true          # after the watch window, replay the day and score it against the alternatives (`stockbot review`)
   learn_before_open: true     # before the open, learn from yesterday (and any finished week / month / year not learned yet) in a
   learn_margin_minutes: 8     # background process alongside the agent warm-up; it must be done this many minutes before the open
+  accounts: true              # also trade every enabled account under `accounts:` from the same signals, each with its own rules
   intraday_exit:              # during the watch window, sell a held name when the exit model - fitted on the broker's 15-minute
     enabled: true             # bars by `stockbot intraday-fit` - says the close will most likely be lower than where we can sell now
     min_prob: 0.6             # ("up 1% at 11:00, gave it all back by 14:00"); confidence needed ...
@@ -368,6 +376,7 @@ session:                      # `stockbot session`: the daily market-hours run (
     stop_loss: 0.02           # ... or cut a loss past this
     min_auc: 0.55             # the model is only acted on when it proved itself on its held-out days: this much discrimination ...
     min_edge: 0.0005          # ... and the moments it flagged were better sold than held by at least this (else it stays OFF)
+    same_day: true            # may a name bought at the open be sold the same day? (false for a cash account / day-trade rules)
     model_dir: models/intraday_exit
   train: true                 # keep training the policy in the background while the market is watched
   train_minutes: 0            # 0 = whatever is left of the session after the margin
@@ -389,3 +398,22 @@ autopilot:                    # `stockbot autopilot`: trade every weekday, retra
 
 report:
   out: reports/dashboard.html
+
+accounts:                     # extra accounts traded in the SAME session from the same signals, each with its own rules, state,
+  small:                      # experience and reviews (`--account small` on the CLI); skipped automatically while its keys are missing.
+    enabled: true             # Keys: <keys_env>_API_KEY / <keys_env>_SECRET_KEY.  Both books teach the one policy (fee_drag tells it which).
+    execution:
+      mode: alpaca
+      alpaca: { paper: true, fractional: false, keys_env: ALPACA_10K, history_dir: data/paper/small/alpaca }   # moomoo Canada: whole shares
+      state_file: data/paper/small/state.json
+      sleeves: { ca: { state_file: data/paper/small/state_ca.json, initial_cash: 10000 } }
+      max_position: 0.10      # $1,000 slices on $10k ...
+      max_names: 10           # ... in at most 10 names: with moomoo's ~$1.50 per-order minimum, smaller orders cost too much
+      min_trade_usd: 400
+      cadence: weekly         # rebalance on the first session of the week only (the intraday exit layer still runs every day)
+      cash_reserve: 0.10
+    env: { initial_cash: 10000 }
+    feedback: { experience_file: data/experience/small/trades.jsonl, direction_file: data/experience/small/direction.jsonl,
+                review_dir: data/experience/small/reviews }
+    session: { log_dir: data/paper/sessions/small, intraday_exit: { same_day: false } }   # no same-day round trips in a small account
+    report: { out: reports/dashboard_small.html }
