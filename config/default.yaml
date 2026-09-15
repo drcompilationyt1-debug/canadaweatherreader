@@ -443,15 +443,14 @@ accounts:                     # extra accounts traded in the SAME session from t
       alpaca: { paper: true, fractional: false, keys_env: ALPACA_10K, history_dir: data/paper/small/alpaca }   # moomoo Canada: whole shares
       state_file: data/paper/small/state.json
       sleeves: { ca: { state_file: data/paper/small/state_ca.json, initial_cash: 10000 } }
-      # the patient profile (grid on the cached dataset, 2026-09-15): half in SPY timed by the model between 25% and 50% (trim
-      # high, rebuild low), the other half in the top 5 names rebalanced monthly with a wide hysteresis, slots full or empty,
-      # the trend filter on the satellite,
-      # $800 minimum orders -> SPY's return with a higher Sharpe, a 9% drawdown and ~6 turnovers a year at ~50 bps each
-      # the core: the model trims SPY towards 25% when its conviction is low (sell high) and rebuilds it to 50% when conviction
-      # returns (buy low with the proceeds); a ceiling above 50% only starved the satellite in the backtest
-      core: { ticker: SPY, share: 0.5, decide: model, min_share: 0.25, max_share: 0.5, every_bars: 21, band: 0.05 }
-      max_position: 0.10      # a rank slot = (1 - 0.5 core - 0.1 reserve) / 5 = 8% of the book, $800 on $10k
-      rank: { top_k: 5, every_bars: 21, hysteresis: 5, policy_floor: 1.0, trend_filter: { enabled: true } }
+      # the small profile (grid on the cached dataset, 2026-09-15): the top 5 names rebalanced monthly, slots full or empty,
+      # the trend filter on, $800 minimum orders -> OOS year +28.6% (SPY +20%), 3y +113% (SPY +76%), drawdowns 13% / 23%, ~12
+      # turnovers a year at ~22 bps.  SPY is a regular stock here: it competes for slots like any other name, no index sleeve.
+      # The weekend tuner (`stockbot portfolio --tune`) re-decides slots, cadence and hysteresis, keeping a change only if it
+      # is at least as good over the last year and the last three years.
+      core: { ticker: SPY, share: 0.0 }
+      max_position: 0.20      # a rank slot = (1 - 0.1 reserve) / 5 = 18% of the book, $1,800 on $10k
+      rank: { top_k: 5, every_bars: 21, hysteresis: 3, policy_floor: 1.0, trend_filter: { enabled: true } }
       min_trade_usd: 800      # never an order the US$1.99 minimum would make expensive
       cadence: daily          # (the rank layer's every_bars sets the cadence)
       cash_reserve: 0.10

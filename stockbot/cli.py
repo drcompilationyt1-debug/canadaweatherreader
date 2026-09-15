@@ -574,6 +574,20 @@ def cmd_portfolio(cfg, args) -> int:
         print("  blend now:", tr["inputs"])
         for name, r in tr["backtest_last_year"].items():
             print(f"  {name:7s} last year: total {100 * r['total']:+.1f}%  sharpe {r['sharpe']:.2f}")
+        from .agent.backtest import tune_profile
+        from .config import account_names
+
+        for acc in ["main"] + account_names(cfg):
+            try:
+                pr = tune_profile(cfg, ds, acc, out_path=cfg.path("models_dir", "models") / f"rank_profile_{acc}.json", years=args.years)
+                long = f"{args.years}y"
+                print(f"\nstructure tuning [{acc}]: {'ACCEPTED' if pr['accepted'] else 'kept'} - {pr['reason']}")
+                print(f"  current {pr['current']}: 1y sharpe {pr['current_result']['1y']['sharpe']:.2f} total {100 * pr['current_result']['1y']['total']:+.1f}%, "
+                      f"{long} sharpe {pr['current_result'][long]['sharpe']:.2f} total {100 * pr['current_result'][long]['total']:+.1f}%")
+                print(f"  best    {pr['best']}: 1y sharpe {pr['best_result']['1y']['sharpe']:.2f} total {100 * pr['best_result']['1y']['total']:+.1f}%, "
+                      f"{long} sharpe {pr['best_result'][long]['sharpe']:.2f} total {100 * pr['best_result'][long]['total']:+.1f}%")
+            except Exception as e:  # noqa: BLE001
+                print(f"structure tuning [{acc}] failed: {e}")
     if args.out:
         Path(args.out).parent.mkdir(parents=True, exist_ok=True)
         Path(args.out).write_text(json.dumps(rep, indent=1, default=str), encoding="utf-8")

@@ -13,7 +13,7 @@ from datetime import date
 import numpy as np
 import pandas as pd
 
-from ..execution.ranking import ANCHOR, CANDIDATE_INPUTS, DEFAULT_INPUTS, every_bars_of, select_top
+from ..execution.ranking import ANCHOR, CANDIDATE_INPUTS, DEFAULT_INPUTS, every_bars_of, load_tuned_profile, select_top
 from ..logging_utils import get_logger
 
 log = get_logger(__name__)
@@ -172,6 +172,12 @@ def run_backtests(cfg, ds, budgets: dict[str, dict] | None = None, oos_start=Non
     windows = {"oos": oos_start, f"{years}y": last - pd.DateOffset(years=years)}
     def _profile(c, rk_, budget):
         core = dict(c.get_path("execution.core", {}) or {})
+        tuned = load_tuned_profile(c.path("models_dir", "models"), str(c.get("account") or "main")) if rk_.get("adaptive", True) else None
+        if tuned:                                                          # what the runner actually uses
+            rk_ = {**rk_, "top_k": tuned.get("top_k", rk_.get("top_k", 20)), "every_bars": tuned.get("every_bars", rk_.get("every_bars", 10)),
+                   "hysteresis": tuned.get("hysteresis", rk_.get("hysteresis", 3))}
+            cs = float(tuned.get("core_share", core.get("share", 0.0) or 0.0))
+            core = {**core, "share": cs, "min_share": cs / 2.0, "max_share": cs, "decide": "model"} if cs > 0 else {**core, "share": 0.0}
         tf = dict(rk_.get("trend_filter", {}) or {})
         share = float(core.get("share", 0.0) or 0.0)
         core_spec = None
@@ -299,6 +305,90 @@ def tune_rank_weights(cfg, ds, out_path=None, days: int = 250, min_t: float = 2.
         Path(out_path).parent.mkdir(parents=True, exist_ok=True)
         Path(out_path).write_text(json.dumps(rep, indent=1, default=str), encoding="utf-8")
     log.info("rank blend tuning: %s (%s)", "accepted" if accepted else "kept static", rep["reason"])
+    return rep
+
+
+# SPY is a regular candidate like every other name (the user's call): no index sleeve is tuned, only slots / cadence / hysteresis
+PROFILE_GRID = {"small": {"top_k": (5, 10), "every_bars": (21, 42), "hysteresis": (3, 5), "core_share": (0.0,)},
+                "main": {"top_k": (15, 20, 25), "every_bars": (5, 10, 21), "hysteresis": (3, 5), "core_share": (0.0,)}}
+
+
+def tune_profile(cfg, ds, account: str = "main", out_path=None, years: int = 3, min_gain: float = 0.05) -> dict:
+    """Choose an account's structure from the trailing evidence: every candidate (slots x cadence x hysteresis x index sleeve,
+    the sleeve timed by the policy) is backtested at the account's fees over the last year and the last ``years``; the best
+    last-year Sharpe wins only if it beats the current structure by ``min_gain`` there and is no worse over the long window
+    (Sharpe within 0.02, total within 1%).  Otherwise the current structure is kept.  ``rank_profile_<account>.json``."""
+    from ..config import account_config
+
+    c = account_config(cfg, None if account == "main" else account)
+    rk = dict(c.get_path("execution.rank", {}) or {})
+    core_cfg = dict(c.get_path("execution.core", {}) or {})
+    tf = dict(rk.get("trend_filter", {}) or {})
+    trend = {"benchmark": str(tf.get("benchmark", "SPY")), "sma": int(tf.get("sma", 200)), "band": float(tf.get("band", 0.02))} if tf.get("enabled") else None
+    reserve = float(c.get_path("execution.cash_reserve", 0.1) or 0.0)
+    budget = float(c.get_path("env.initial_cash", 100_000))
+    core_t = str(core_cfg.get("ticker", "SPY"))
+    inputs = dict(rk.get("inputs") or DEFAULT_INPUTS)
+    if rk.get("adaptive", True):
+        from ..execution.ranking import load_tuned_inputs
+
+        inputs = load_tuned_inputs(c.path("models_dir", "models"), inputs)
+    current = {"top_k": int(rk.get("top_k", 20)), "every_bars": every_bars_of(rk.get("every_bars", 10)), "hysteresis": int(rk.get("hysteresis", 3)),
+               "core_share": float(core_cfg.get("share", 0.0) or 0.0), "core_ticker": core_t}
+    prev = load_tuned_profile(c.path("models_dir", "models"), account)
+    if prev:
+        current = {**current, **{k: prev[k] for k in ("top_k", "every_bars", "hysteresis", "core_share") if k in prev}}
+    grid = PROFILE_GRID.get("small" if budget < 30_000 else "main", PROFILE_GRID["main"])
+    px = closes(ds)
+    score = blended_scores(ds, inputs)
+    last = px.index[-1]
+    windows = {"1y": last - pd.DateOffset(years=1), f"{years}y": last - pd.DateOffset(years=years)}
+    series_cache: dict[tuple, pd.Series | None] = {}
+
+    def run(p: dict, wname: str) -> dict:
+        start = windows[wname]
+        cs = float(p["core_share"])
+        core = None
+        if cs > 0:
+            key = (wname, cs)
+            if key not in series_cache:
+                series_cache[key] = core_series_from_policy(cfg, ds, core_t, start, cs / 2.0, cs, 21, 0.05, baseline=cs)
+            core = {"ticker": core_t, "share": cs, "series": series_cache[key]}
+        fee = round_trip_bps(cfg, budget * max(0.0, 1.0 - cs - reserve), int(p["top_k"]))
+        r = simulate(px, score, start, k=int(p["top_k"]), every=int(p["every_bars"]), hysteresis=int(p["hysteresis"]), fee_bps=fee,
+                     core=core, trend=trend, reserve=reserve)
+        return {k: v for k, v in r.items() if k != "daily"}
+
+    cands = [{"top_k": k, "every_bars": e, "hysteresis": h, "core_share": cs, "core_ticker": core_t}
+             for k in grid["top_k"] for e in grid["every_bars"] for h in grid["hysteresis"] for cs in grid["core_share"]]
+    if not any(all(cd[k] == current[k] for k in ("top_k", "every_bars", "hysteresis", "core_share")) for cd in cands):
+        cands.append(dict(current))
+    results = []
+    for cd in cands:
+        r1, r3 = run(cd, "1y"), run(cd, f"{years}y")
+        results.append({**cd, "1y": r1, f"{years}y": r3})
+    cur = next(r for r in results if all(r[k] == current[k] for k in ("top_k", "every_bars", "hysteresis", "core_share")))
+    best = max(results, key=lambda r: r["1y"]["sharpe"])
+    long = f"{years}y"
+    ok = (best is not cur and best["1y"]["sharpe"] >= cur["1y"]["sharpe"] + min_gain
+          and best[long]["sharpe"] >= cur[long]["sharpe"] - 0.02 and best[long]["total"] >= cur[long]["total"] - 0.01)
+    chosen = best if ok else cur
+    rep = {"account": account, "tuned_at": str(date.today()), "accepted": bool(ok),
+           "profile": {k: chosen[k] for k in ("top_k", "every_bars", "hysteresis", "core_share", "core_ticker")},
+           "current": {k: cur[k] for k in ("top_k", "every_bars", "hysteresis", "core_share")},
+           "current_result": {"1y": cur["1y"], long: cur[long]}, "best_result": {"1y": best["1y"], long: best[long]},
+           "best": {k: best[k] for k in ("top_k", "every_bars", "hysteresis", "core_share")},
+           "reason": ("a better structure over both windows" if ok else
+                      "the current structure is as good or the best one fails the long-window guard - kept"),
+           "candidates": [{k: r[k] for k in ("top_k", "every_bars", "hysteresis", "core_share")} | {"1y_sharpe": r["1y"]["sharpe"], "1y_total": r["1y"]["total"],
+                           f"{long}_sharpe": r[long]["sharpe"], f"{long}_total": r[long]["total"], "1y_maxdd": r["1y"]["max_drawdown"]} for r in results]}
+    if out_path is not None:
+        import json
+        from pathlib import Path
+
+        Path(out_path).parent.mkdir(parents=True, exist_ok=True)
+        Path(out_path).write_text(json.dumps(rep, indent=1, default=str), encoding="utf-8")
+    log.info("rank profile tuning (%s): %s -> %s (%s)", account, rep["current"], rep["profile"], rep["reason"])
     return rep
 
 

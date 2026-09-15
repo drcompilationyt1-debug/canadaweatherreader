@@ -82,6 +82,22 @@ class TradingRunner:
         self.core_every = every_bars_of(core.get("every_bars", 21))
         self.core_band = float(core.get("band", 0.05))
         self._core_due = False
+        if self.rank_enabled and bool(rk.get("adaptive", True)):        # the weekend tuner's structure, when it passed its guard
+            from .ranking import load_tuned_profile
+
+            prof = load_tuned_profile(cfg.path("models_dir", "models"), self.account)
+            if prof:
+                self.rank_top_k = int(prof.get("top_k", self.rank_top_k))
+                self.rank_every = every_bars_of(prof.get("every_bars", self.rank_every))
+                self.rank_hysteresis = int(prof.get("hysteresis", self.rank_hysteresis))
+                share = float(prof.get("core_share", self.core_share))
+                if share > 0:
+                    self.core_ticker = str(prof.get("core_ticker") or core.get("ticker") or "SPY")
+                    self.core_share, self.core_min, self.core_max, self.core_decide = share, share / 2.0, share, "model"
+                else:
+                    self.core_ticker, self.core_share = None, 0.0
+                log.info("rank profile (tuned): top_k %d, every %d bars, hysteresis %d, core %.0f%%", self.rank_top_k, self.rank_every,
+                         self.rank_hysteresis, 100 * self.core_share)
         # Faber-style trend filter on the rank slots: to cash while the benchmark sits below its moving average
         tf = dict(rk.get("trend_filter", {}) or {})
         self.trend_filter = tf if bool(tf.get("enabled", False)) else None

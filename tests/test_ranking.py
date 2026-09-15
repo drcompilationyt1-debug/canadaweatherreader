@@ -248,3 +248,36 @@ def test_backtest_core_series_and_policy_timing(cfg, frames):
     assert r["turnover_per_year"] > 0 and 0.0 < r["total"] < 0.2
     assert core_series_from_policy(cfg, MarketDataset.build(frames, [], build_layout([]), build_context(cfg, with_llm=False, with_news=False),
                                                             fit=False, train_end="2018-12-31"), "AAA", "2019-06-01", 0.25, 0.65) is None   # no policy trained
+
+
+def test_structure_tuning_decides_slots_cadence_and_the_index_sleeve(cfg, frames, tmp_path, monkeypatch):
+    from stockbot.agent import backtest as bt
+    from stockbot.env.dataset import MarketDataset
+    from stockbot.execution.ranking import load_tuned_profile
+
+    ctx = build_context(cfg, with_llm=False, with_news=False)
+    providers = [p for p in build_providers(cfg, ctx) if p.name in ("technical", "trend")]
+    ds = MarketDataset.build(frames, providers, build_layout(providers), ctx, fit=True, train_end="2018-12-31")
+    cfg.set_path("execution.rank", {"enabled": True, "top_k": 2, "every_bars": 5, "hysteresis": 1, "inputs": {"technical.ret_20": 1.0}, "adaptive": True})
+    cfg.set_path("execution.core", {"ticker": "AAA", "share": 0.0})
+    cfg.set_path("env.initial_cash", 10_000)
+    monkeypatch.setattr(bt, "PROFILE_GRID", {"small": {"top_k": (1, 2), "every_bars": (5, 21), "hysteresis": (1,), "core_share": (0.0, 0.5)},
+                                             "main": {"top_k": (2,), "every_bars": (5,), "hysteresis": (1,), "core_share": (0.0,)}})
+    out = tmp_path / "rank_profile_main.json"
+    rep = bt.tune_profile(cfg, ds, "main", out_path=out, years=2)
+    assert out.exists() and len(rep["candidates"]) >= 8 and set(rep["profile"]) >= {"top_k", "every_bars", "hysteresis", "core_share"}
+    assert any(c["core_share"] == 0.5 for c in rep["candidates"])                 # the index sleeve is one of the candidates ...
+    assert all("1y_sharpe" in c and "2y_total" in c for c in rep["candidates"])
+    if rep["accepted"]:                                                          # ... and only a two-window improvement is adopted
+        assert rep["best_result"]["2y"]["sharpe"] >= rep["current_result"]["2y"]["sharpe"] - 0.02
+        assert load_tuned_profile(tmp_path, "main") == rep["profile"]
+    else:
+        assert load_tuned_profile(tmp_path, "main") is None
+    # the runner picks a tuned structure up (and a tuned index sleeve becomes a model-timed core)
+    (cfg.path("models_dir")).mkdir(parents=True, exist_ok=True)
+    (cfg.path("models_dir") / "rank_profile_main.json").write_text(
+        '{"accepted": true, "profile": {"top_k": 1, "every_bars": 21, "hysteresis": 2, "core_share": 0.4, "core_ticker": "AAA"}}', encoding="utf-8")
+    bundle = PolicyBundle(BuyEverything(), build_layout(providers), {"algo": "ppo"})
+    r = TradingRunner(cfg, mode="paper", bundle=bundle, frames_loader=lambda refresh: frames, with_llm=False)
+    assert (r.rank_top_k, r.rank_every, r.rank_hysteresis) == (1, 21, 2)
+    assert r.core_ticker == "AAA" and r.core_share == 0.4 and r.core_min == 0.2 and r.core_max == 0.4 and r.core_decide == "model"

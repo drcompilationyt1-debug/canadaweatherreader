@@ -47,6 +47,23 @@ def load_tuned_inputs(models_dir, fallback: dict[str, float] | None = None) -> d
     return dict(fallback or DEFAULT_INPUTS)
 
 
+def load_tuned_profile(models_dir, account: str = "main") -> dict | None:
+    """The weekend-tuned structure of an account (``models/rank_profile_<account>.json``: top_k, every_bars, hysteresis,
+    core_share) when it passed its guard, else None."""
+    import json
+    from pathlib import Path
+
+    f = Path(models_dir) / f"rank_profile_{account}.json"
+    if f.exists():
+        try:
+            d = json.loads(f.read_text(encoding="utf-8"))
+            if d.get("accepted") and d.get("profile"):
+                return dict(d["profile"])
+        except Exception as e:  # noqa: BLE001
+            log.warning("rank profile file %s unreadable: %s", f, e)
+    return None
+
+
 def rank_scores(layout, obs_by: dict[str, np.ndarray], inputs: dict[str, float] | None = None) -> dict[str, float]:
     """Blended percentile-rank score per ticker from the live observation vectors (masked blocks are skipped
     and the remaining weights renormalised; a name with no usable input gets NaN)."""
