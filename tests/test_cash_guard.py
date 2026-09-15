@@ -45,9 +45,9 @@ def test_cycle_plans_buys_within_sleeve_cash(cfg, frames):
     held = [d for d in decisions if d.action == "HOLD"]
     assert len(bought) == 1 and len(held) == 2                   # $2,500 buys one full slice, not three
     assert all("insufficient cash" in d.note for d in held)
-    assert "cut to cash" in bought[0].note                       # the one buy was trimmed to the 99% of cash available
+    assert "cut to cash" in bought[0].note                       # the one buy was trimmed to the 90% of cash available
     assert runner.broker.cash() >= 0.0
-    assert runner.broker.cash() < 2500 * 0.02                    # nearly all cash deployed, none overdrawn
+    assert 2500 * 0.08 < runner.broker.cash() < 2500 * 0.12         # the 10% reserve stays in cash, nothing overdrawn
     # a second cycle with no cash left sends nothing and does not error
     decisions2 = runner.cycle(dry_run=False, refresh=False)
     assert all(d.action == "HOLD" for d in decisions2 if d.ticker != bought[0].ticker)

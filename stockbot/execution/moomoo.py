@@ -102,7 +102,7 @@ class MoomooBroker(Broker):
 
     def cash(self) -> float:
         row = self._account()
-        for col in ("cash", "avl_withdrawal_cash", "power"):
+        for col in ("cash", "avl_withdrawal_cash"):   # never "power": that is margin buying power, not our money
             if col in row and row[col] == row[col]:
                 return float(row[col])
         return 0.0

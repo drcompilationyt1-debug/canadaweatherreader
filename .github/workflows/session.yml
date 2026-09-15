@@ -36,7 +36,7 @@ concurrency:
 jobs:
   session:
     runs-on: ubuntu-latest
-    timeout-minutes: 345         # GitHub's hard limit is 360: ~15 min wait + 4 h session + trainer wind-down + save
+    timeout-minutes: 355         # GitHub kills the job at 360: the session plans to finish by minute ~300 (see --deadline-minutes), save follows
     permissions:
       contents: write
     env:
@@ -97,7 +97,7 @@ jobs:
       - name: foundation models + extra indicator libraries (Chronos, TimesFM, FinBERT, pandas-ta, PyPortfolioOpt, Kronos deps)
         if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
         run: |
-          pip install chronos-forecasting pandas-ta-classic PyPortfolioOpt transformers einops safetensors huggingface_hub || echo "some model libraries failed - those blocks stay masked"
+          pip install chronos-forecasting pandas-ta-classic PyPortfolioOpt transformers einops safetensors huggingface_hub quantstats || echo "some model libraries failed - those blocks stay masked"
           pip install "timesfm[torch]" || echo "timesfm unavailable - block stays masked"
       - uses: actions/cache@v4
         if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
@@ -145,11 +145,14 @@ jobs:
       - name: session
         if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
         run: >
-          python -m stockbot session --mode ${{ inputs.mode || 'alpaca' }}
+          timeout 330m python -m stockbot session --mode ${{ inputs.mode || 'alpaca' }} --deadline-minutes 300
           --hours ${{ inputs.hours || '4' }}
           ${{ (github.event_name == 'schedule' || inputs.gate == true) && '--gate-minutes 90' || '' }}
           ${{ inputs.dry_run == true && '--dry-run' || '' }}
           ${{ inputs.train == false && '--no-train' || '' }}
+      - name: daily review (what we did vs the alternatives)
+        if: ${{ always() && (steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true') }}
+        run: python -m stockbot review --period day || true
       - name: forecast scorecard
         if: ${{ always() && (steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true') }}
         run: python -m stockbot forecast --no-refresh || true
@@ -167,4 +170,5 @@ jobs:
             reports/dashboard.html
             data/paper/sessions/session_*.json
             data/paper/sessions/session_*.jsonl
+            data/experience/reviews/day_*.json
           if-no-files-found: ignore

@@ -83,3 +83,6 @@
 [submodule "third_party/WorldQuant_alpha101_code"]
 	path = third_party/WorldQuant_alpha101_code
 	url = https://github.com/yli188/WorldQuant_alpha101_code
+[submodule "third_party/quantstats"]
+	path = third_party/quantstats
+	url = https://github.com/ranaroussi/quantstats

@@ -58,7 +58,12 @@ class TradingSession:
         self.train_seeds = s.get("train_seeds")
         self.reuse_dataset_days = float(s.get("reuse_dataset_days", 7))
         self.log_dir: Path = cfg.path("session.log_dir", "data/paper/sessions")
+        # the whole session (wait, watch, review, trainer wind-down) must end within this many minutes of
+        # starting: GitHub kills a job at 6 h, so the workflow passes ~300 and everything is planned to fit
+        self.deadline_minutes = float(s.get("deadline_minutes", 0) or 0)
+        self.review_after = bool(s.get("review_after", True))
         self.clock = clock or MarketClock()
+        self.started_at = self.now()
         self.sleep = sleep
         self.runner = runner
         self.trainer: subprocess.Popen | None = None
@@ -97,7 +102,10 @@ class TradingSession:
         return cmd
 
     def start_trainer(self, end: datetime) -> None:
-        minutes = self.train_minutes or max(1.0, (end - self.now()).total_seconds() / 60.0 - self.end_margin_minutes)
+        until = end
+        if self.deadline_minutes > 0:   # the trainer may run past the watch window, up to the job deadline
+            until = max(end, self.started_at + timedelta(minutes=self.deadline_minutes))
+        minutes = self.train_minutes or max(1.0, (until - self.now()).total_seconds() / 60.0 - self.end_margin_minutes)
         cmd = self.trainer_command(minutes)
         log.info("background trainer: %s", " ".join(cmd[2:]))
         self.trainer = subprocess.Popen(cmd, cwd=str(ROOT))
@@ -176,6 +184,7 @@ class TradingSession:
 
     # ------------------------------------------------------------------ main
     def run(self, force: bool = False) -> dict:
+        self.started_at = self.now()
         st = self.clock.status()
         log.info("market %s (source %s) - now %s NY", "OPEN" if st.is_open else "closed", st.source, st.now.strftime("%a %Y-%m-%d %H:%M"))
         today = (st.now if st.is_open else st.next_open).strftime("%Y-%m-%d")
@@ -195,6 +204,10 @@ class TradingSession:
         start = self.now()
         date = start.strftime("%Y-%m-%d")
         end = min(start + timedelta(hours=self.hours), st.next_close - timedelta(minutes=2))
+        hard_deadline = self.started_at + timedelta(minutes=self.deadline_minutes) if self.deadline_minutes > 0 else None
+        if hard_deadline is not None and end > hard_deadline - timedelta(minutes=self.end_margin_minutes):
+            end = hard_deadline - timedelta(minutes=self.end_margin_minutes)
+            log.warning("watch window shortened to %s to respect the job deadline", end.strftime("%H:%M"))
         self.summary = {"date": date, "mode": self.mode, "dry_run": self.dry_run, "start": start.isoformat(timespec="seconds"),
                         "planned_end": end.isoformat(timespec="seconds"), "clock": st.source, "open_prices": {}}
         if st.minutes_since_open < self.after_open_minutes:
@@ -258,8 +271,20 @@ class TradingSession:
                              "mean_move": final["mean_move"], "consensus_hit_rate": final["consensus_hit_rate"], "session_votes_settled": settled,
                              "snapshots": len(self.snapshots)})
         r.broker.save()
+        if self.review_after and not self.dry_run:
+            try:
+                from ..feedback.review import Review
+
+                rev = Review(self.cfg).review_day(self.now().date())
+                if rev:
+                    self.summary["review"] = {k: rev.get(k) for k in ("actual_return", "oracle_return", "regret", "captured", "best_model", "lessons", "file")}
+            except Exception as e:  # noqa: BLE001
+                log.warning("daily review failed: %s", e)
         if self.trainer is not None:
-            self.finish_trainer(self.end_margin_minutes)
+            grace = self.end_margin_minutes
+            if self.deadline_minutes > 0:
+                grace = max(1.0, (self.started_at + timedelta(minutes=self.deadline_minutes) - self.now()).total_seconds() / 60.0)
+            self.finish_trainer(grace)
         if not self.dry_run:
             try:
                 from ..report import build_dashboard

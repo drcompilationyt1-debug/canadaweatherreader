@@ -391,9 +391,38 @@ def cmd_session(cfg, args) -> int:
     session = TradingSession(cfg, mode=mode, hours=args.hours, dry_run=args.dry_run, offline=args.offline, with_llm=not args.no_llm,
                              train=False if args.no_train else None, clock=clock, train_minutes=args.train_minutes,
                              train_timesteps=args.train_timesteps, train_seeds=args.train_seeds, train_n_envs=args.train_n_envs,
-                             snapshot_minutes=args.snapshot_minutes, max_wait_minutes=args.max_wait_minutes)
+                             snapshot_minutes=args.snapshot_minutes, max_wait_minutes=args.max_wait_minutes,
+                             deadline_minutes=args.deadline_minutes)
     summary = session.run(force=args.force)
     print(json.dumps({k: v for k, v in summary.items() if k not in ("open_prices",)}, indent=1, default=str))
+    return 0
+
+
+def cmd_review(cfg, args) -> int:
+    """Post-trade review: replay a period and score what we did against the alternatives."""
+    from datetime import date
+
+    from .feedback.review import Review
+
+    rev = Review(cfg)
+    end = date.fromisoformat(args.end) if args.end else None
+    results = {}
+    if args.due:
+        results = rev.run_due(end)
+        if not results:
+            print("no review due")
+    else:
+        for period in args.period:
+            results[period] = rev.review_day(end) if period == "day" else rev.review_period(period, end)
+    for period, res in results.items():
+        print(f"\n== {period} review ==")
+        if not res:
+            print("  nothing to review (no session / decisions in that window)")
+            continue
+        for line in res["lessons"]:
+            print("  " + line)
+        print("  alternatives: " + ", ".join(f"{r['name']} {100 * r['return']:+.2f}%" for r in res["ranking"][:8]))
+        print(f"  saved: {res['file']}")
     return 0
 
 
@@ -610,10 +639,17 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--gate-after-minutes", type=float, default=30.0, metavar="MIN",
                    help="with --gate-minutes: also run when the market opened less than MIN minutes ago (late cron)")
     p.add_argument("--force", action="store_true", help="run even if a session already ran today")
+    p.add_argument("--deadline-minutes", type=float, help="finish everything (watch, review, trainer) within this many minutes of starting")
     p.add_argument("--offline", action="store_true")
     p.add_argument("--no-llm", action="store_true")
     p.add_argument("--i-understand-real-money", action="store_true")
     p.set_defaults(fn=cmd_session)
+
+    p = sub.add_parser("review", help="post-trade review: replay a day / week / month / year and score it against the alternatives")
+    p.add_argument("--period", nargs="*", choices=["day", "week", "month", "year"], default=["day"])
+    p.add_argument("--end", help="period end date (YYYY-MM-DD); default today / latest session")
+    p.add_argument("--due", action="store_true", help="run whichever week / month / year reviews are due")
+    p.set_defaults(fn=cmd_review)
 
     p = sub.add_parser("market-status", help="is the exchange open? next open / close (Alpaca clock or built-in NYSE calendar)")
     p.add_argument("--source", choices=["auto", "alpaca", "builtin"], default="auto")

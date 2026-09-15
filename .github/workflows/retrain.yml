@@ -81,7 +81,7 @@ jobs:
           pip install technical || echo "technical (freqtrade qtpylib) unavailable - that block stays masked"
       - name: foundation models + extra indicator libraries (Chronos, TimesFM, FinBERT, pandas-ta, PyPortfolioOpt, Kronos deps)
         run: |
-          pip install chronos-forecasting pandas-ta-classic PyPortfolioOpt transformers einops safetensors huggingface_hub || echo "some model libraries failed - those blocks stay masked"
+          pip install chronos-forecasting pandas-ta-classic PyPortfolioOpt transformers einops safetensors huggingface_hub quantstats || echo "some model libraries failed - those blocks stay masked"
           pip install "timesfm[torch]" || echo "timesfm unavailable - block stays masked"
       - uses: actions/cache@v4
         with:
@@ -102,6 +102,8 @@ jobs:
         run: python scripts/ci_state.py restore
       - name: doctor
         run: python -m stockbot doctor
+      - name: post-trade reviews (week after every trading week, month / year once they end)
+        run: python -m stockbot review --due || true
       - name: news history (incremental, Saturday)
         if: ${{ steps.day.outputs.refit == 'true' }}
         run: timeout 35m python -m stockbot news-history --start 2018-01-01 || echo "news history partial - resumes next time"
@@ -138,4 +140,6 @@ jobs:
             models/policy/ensemble.json
             models/policy/best.json
             reports/dashboard.html
+            data/experience/reviews/*.json
+            data/experience/reviews/*.html
           if-no-files-found: ignore

@@ -58,7 +58,7 @@ class TradingRunner:
         self.fees = self.fee_book.default
         # an order too small for the per-order minimums is not worth sending (per market)
         self.min_trade_usd = float(self.ex.get("min_trade_usd", 50))
-        self.cash_reserve = float(self.ex.get("cash_reserve", 0.01))   # share of cash never spent (fees / price moves before the fill)
+        self.cash_reserve = float(self.ex.get("cash_reserve", 0.10))   # share of own cash never spent (no margin, 10% buffer)
         for market, sched in [("default", self.fees)] + list(self.fee_book.by_market.items()):
             if sched is not None:
                 log.info("fees %s: %s -> orders below %.0f are skipped", market, sched.describe(), max(self.min_trade_usd, sched.min_trade_usd()))

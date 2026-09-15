@@ -121,12 +121,13 @@ signals:
   pandas_ta:     { enabled: true }                                                              # pandas-ta-classic: 12 indicators the native block lacks
   pypfopt:       { enabled: true, window: 252, refit_every: 21 }                                # PyPortfolioOpt: HRP / inverse-vol weights, corr to market
   alpha101:      { enabled: true }                                                              # WorldQuant 101 alphas (12 of them, cross-sectional ranks)
-  finbert:       { enabled: true, model: ProsusAI/finbert, lookback_days: 3, max_texts: 2500 } # FinBERT headline sentiment; ~36 headlines/s on a CPU, newest scored first, cache grows weekly
+  finbert:       { enabled: true, model: ProsusAI/finbert, lookback_days: 3, max_texts: 1200 } # FinBERT headline sentiment; ~36 headlines/s on a CPU, newest scored first, cache grows weekly
   chronos:       { enabled: true, model: amazon/chronos-bolt-small, context: 256, batch_size: 64, history_years: 0, stride: 1 }   # zero-shot foundation forecaster
   kronos:        { enabled: true, model: NeoQuasar/Kronos-small, context: 400, pred_len: 5, batch_size: 16, temperature: 0.8, history_years: 5, stride: 10 }   # K-line foundation model (small: 0.4 s/forecast on a CPU)
   timesfm:       { enabled: true, model: google/timesfm-2.5-200m-pytorch, context: 512, batch_size: 32, history_years: 6, stride: 5 }      # Google TimesFM
   fundamentals:  { enabled: true, lag_days: 60, refresh_days: 7 }                                # value / growth / profitability / leverage / size from Yahoo statements (point-in-time)
   xs_rank:       { enabled: true, horizon: 20, min_train_years: 3, refit_every: 1, n_estimators: 300 }   # cross-sectional ranking head (LightGBM on all blocks above, walk-forward)
+  reliability:   { enabled: true, horizon: 5, window: 60, min_obs: 10 }                          # trailing hit rate of every input at 5 days (signal-decay monitor), last in the layout
 
 fees:
   # The broker's real fee schedule, charged in the simulator, by the built-in paper broker and -
@@ -303,7 +304,10 @@ execution:
   max_gross_exposure: 1.0     # sum of |weights| per sleeve
   max_position: 0.10          # capital slice per ticker (fraction of equity); 30 names x 10% = fully invested at most
   min_trade_usd: 50
-  cash_reserve: 0.01          # never spend the last 1% of a sleeve's cash (fees, price moves before the fill); buys are cut to the cash on hand
+  # Buys are planned against the sleeve's OWN cash (Alpaca `cash`, moomoo `cash`; never margin buying power)
+  # and never spend more than (1 - cash_reserve) of it: a 10% buffer for fees, price moves before the fill and
+  # the odd rejected sell.  Sale proceeds are not reused in the same cycle (T+1 settlement in a cash account).
+  cash_reserve: 0.10
   # Real brokers (alpaca / moomoo / live) only get orders while the exchange is open, so every fill
   # happens at a live price and the move after it can be watched.  `stockbot trade --allow-closed`
   # overrides this once; the built-in paper simulator is not affected.
@@ -322,6 +326,8 @@ execution:
 feedback:
   experience_file: data/experience/trades.jsonl
   direction_file: data/experience/direction.jsonl   # per-model up/down votes and how they turned out (`stockbot forecast`)
+  review_dir: data/experience/reviews               # post-trade reviews (`stockbot review`): day / week / month / year replays + lessons
+  review_benchmark: SPY
 
 session:                      # `stockbot session`: the daily market-hours run (also what the GitHub workflow does)
   hours: 4                    # trade at the open, then watch the positions for this long
@@ -329,6 +335,8 @@ session:                      # `stockbot session`: the daily market-hours run (
   max_wait_minutes: 80        # started before the open: wait at most this long for it
   snapshot_minutes: 15        # log prices / equity / move-since-open this often
   end_margin_minutes: 15      # the background trainer must finish this long before the session ends
+  deadline_minutes: 0         # 0 = no job deadline; the GitHub workflow passes ~300 so watch + review + trainer end before the 6 h kill
+  review_after: true          # after the watch window, replay the day and score it against the alternatives (`stockbot review`)
   train: true                 # keep training the policy in the background while the market is watched
   train_minutes: 0            # 0 = whatever is left of the session after the margin
   train_timesteps: 2000000    # PPO steps per ensemble member per session (the time budget usually wins)

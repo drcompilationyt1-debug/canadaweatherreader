@@ -55,7 +55,8 @@ PROVIDER_CLASSES: list[type[SignalProvider]] = [k for k in [
     _optional(".thirdparty.kronos_signal", "KronosSignal"),
     _optional(".thirdparty.timesfm_signal", "TimesFMSignal"),
     _optional(".fundamentals", "FundamentalsSignal"),   # statements-based value / growth / quality / size
-    _optional(".xs_rank", "XSRankSignal"),               # LAST: ranks the universe from all the blocks above
+    _optional(".xs_rank", "XSRankSignal"),               # ranks the universe from all the blocks above
+    _optional(".reliability", "ReliabilitySignal"),      # LAST: trailing hit rate of every input (the review's lesson, as an input)
 ] if k is not None]
 
 

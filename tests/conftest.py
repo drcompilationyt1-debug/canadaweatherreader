@@ -31,6 +31,7 @@ def cfg(tmp_path):
         f"feedback.experience_file={(tmp_path / 'exp' / 'trades.jsonl').as_posix()}",
         f"feedback.direction_file={(tmp_path / 'exp' / 'direction.jsonl').as_posix()}",
         f"session.log_dir={(tmp_path / 'sessions').as_posix()}",
+        f"feedback.review_dir={(tmp_path / 'reviews').as_posix()}",
         "signals.alpha_factors.min_train_years=1",
         "signals.news_llm.enabled=true",
         "signals.trading_agents.enabled=false",
