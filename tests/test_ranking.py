@@ -90,6 +90,10 @@ def test_backtest_reports_the_rule_vs_benchmarks(cfg, frames):
     assert "excess_vs_benchmark" in res["rank_100k"] and res["equal_weight"]["turnover_per_year"] < 1.0
     assert res["rank_100k"]["phase"] and res["rank_100k"]["phase"]["min_total"] <= res["rank_100k"]["phase"]["mean_total"] <= res["rank_100k"]["phase"]["max_total"]
     assert round_trip_bps(cfg, 10_000, 10) > round_trip_bps(cfg, 100_000, 20) > 0
+    from stockbot.agent.backtest import blended_scores
+
+    sc = blended_scores(ds, {"technical.ret_20": 1.0, "nope.x": 0.5, "trend.slope_30": 0.5})
+    assert sc.notna().sum().sum() > 0                                                        # an absent input does not blank the score
     txt = format_report(rep)
     assert "rank_100k" in txt and "equal_weight" in txt
     px = pd.DataFrame({"A": np.linspace(100, 200, 60), "B": np.linspace(100, 50, 60)}, index=pd.date_range("2026-01-01", periods=60, freq="B"))

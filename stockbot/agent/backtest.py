@@ -39,7 +39,7 @@ def blended_scores(ds, inputs: dict[str, float] | None = None) -> pd.DataFrame:
         parts.append((pd.DataFrame(cols).sort_index().rank(axis=1, pct=True), float(w)))
     if not parts:
         raise ValueError("none of the rank inputs is in the dataset layout")
-    num = sum(df * w for df, w in parts)
+    num = sum((df * w).fillna(0.0) for df, w in parts)                 # a missing input drops out of the blend (it must not NaN the score)
     den = sum(df.notna() * w for df, w in parts)
     return num / den.replace(0.0, np.nan)
 
