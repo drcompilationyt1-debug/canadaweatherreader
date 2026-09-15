@@ -205,7 +205,7 @@ class AlpacaHistory:
             f = folder / f"{t}.parquet"
             if f.exists():
                 try:
-                    df = pd.read_parquet(f)
+                    df = _ny_index(pd.read_parquet(f))
                     have[t] = df
                     if len(df) and df.index.max().date() >= end and df.index.min().date() <= start:
                         continue
@@ -220,14 +220,19 @@ class AlpacaHistory:
                 fresh = {}
             for t, df in fresh.items():
                 old = have.get(t)
-                merged = pd.concat([old, df]) if old is not None and len(old) else df
-                merged = merged[~merged.index.duplicated(keep="last")].sort_index()
+                merged = pd.concat([_ny_index(old), _ny_index(df)]) if old is not None and len(old) else _ny_index(df)
+                merged = _ny_index(merged[~merged.index.duplicated(keep="last")].sort_index())
                 have[t] = merged
                 try:
                     merged.to_parquet(folder / f"{t}.parquet")
                 except Exception as e:  # noqa: BLE001
                     log.debug("bars cache %s: %s", t, e)
-        return {t: df[(df.index.date >= start) & (df.index.date <= end)] for t, df in have.items() if len(df)}
+        out = {}
+        for t, df in have.items():
+            if len(df):
+                df = _ny_index(df)
+                out[t] = df[(df.index.date >= start) & (df.index.date <= end)]
+        return out
 
     def day_paths(self, tickers: list[str], day: date, timeframe: str = "15Min") -> dict[str, pd.Series]:
         """Regular-hours close path of each ticker on ``day`` (09:30-16:00 New York)."""
@@ -247,6 +252,15 @@ class AlpacaHistory:
             (self.cache_dir / name).write_text(json.dumps(obj, default=str), encoding="utf-8")
         except Exception as e:  # noqa: BLE001
             log.debug("alpaca cache %s: %s", name, e)
+
+
+def _ny_index(df: pd.DataFrame) -> pd.DataFrame:
+    """One timezone object for every bar index: a cached (parquet) index and a fresh one can carry different
+    tz implementations, and concatenating those silently turns the index into plain objects."""
+    idx = pd.to_datetime(df.index, utc=True) if not isinstance(df.index, pd.DatetimeIndex) or df.index.tz is None         else df.index.tz_convert("UTC")
+    df = df.copy()
+    df.index = pd.DatetimeIndex(idx).tz_convert(NY)
+    return df
 
 
 def _iso(d: date | datetime, end_of_day: bool = False) -> str:

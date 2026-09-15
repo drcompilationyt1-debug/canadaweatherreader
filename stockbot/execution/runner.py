@@ -407,7 +407,9 @@ class TradingRunner:
                 sleeve = self.sleeve_of(t)
                 if sleeve not in cash_left:
                     cash_left[sleeve] = self.cash_for(t)
-                avail = cash_left[sleeve] * (1.0 - self.cash_reserve)
+                # own cash only, and a reserve of cash_reserve x the sleeve's equity always stays untouched (a floor,
+                # not a haircut per order: many small buys must not eat the reserve away)
+                avail = max(0.0, cash_left[sleeve] - self.cash_reserve * self.equity_for(t))
                 notional = dec.shares * price
                 if notional > avail:
                     if avail < self.min_trade_for(t):

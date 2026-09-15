@@ -307,7 +307,7 @@ execution:
   # Buys are planned against the sleeve's OWN cash (Alpaca `cash`, moomoo `cash`; never margin buying power)
   # and never spend more than (1 - cash_reserve) of it: a 10% buffer for fees, price moves before the fill and
   # the odd rejected sell.  Sale proceeds are not reused in the same cycle (T+1 settlement in a cash account).
-  cash_reserve: 0.10
+  cash_reserve: 0.10          # buys use own cash only (never margin) and always leave this share of the sleeve's equity in cash
   # Real brokers (alpaca / moomoo / live) only get orders while the exchange is open, so every fill
   # happens at a live price and the move after it can be watched.  `stockbot trade --allow-closed`
   # overrides this once; the built-in paper simulator is not affected.

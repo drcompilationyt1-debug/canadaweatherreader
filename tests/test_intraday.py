@@ -89,6 +89,13 @@ def test_alpaca_history_feeds(tmp_path, monkeypatch):
     n_calls = len(fake.calls)
     h.day_paths(["AAPL"], DAY)                                                 # served from the parquet cache
     assert len(fake.calls) == n_calls
+    # a later day forces a fetch that is merged with the cached bars: the index must stay a proper NY DatetimeIndex
+    cached_df = pd.read_parquet(tmp_path / "alpaca" / "bars_15Min" / "AAPL.parquet")
+    cached_df.index = cached_df.index.tz_convert("UTC")                       # a different tz object, as another pandas / pyarrow may give
+    cached_df.to_parquet(tmp_path / "alpaca" / "bars_15Min" / "AAPL.parquet")
+    merged = h.bars_cached(["AAPL"], DAY, DAY + timedelta(days=1))
+    assert isinstance(merged["AAPL"].index, pd.DatetimeIndex) and str(merged["AAPL"].index.tz) == "America/New_York"
+    assert len(merged["AAPL"]) == 26 and len(fake.calls) == n_calls + 2       # fetched (two pages), nothing duplicated
 
 
 def _synthetic_paths(n_tickers=12, n_days=40, seed=0):
