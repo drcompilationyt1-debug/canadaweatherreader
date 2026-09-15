@@ -330,6 +330,7 @@ execution:
     inputs: { xs_rank.xs_score: 1.0, timesfm.tfm_ret_20: 0.5 }
     policy_floor: 0.5
     policy_veto: 0.05
+    adaptive: true            # use the weekend-tuned blend (models/rank_weights.json: trailing-IC weights that backtested no worse)
   # Buys are planned against the sleeve's OWN cash (Alpaca `cash`, moomoo `cash`; never margin buying power)
   # and never spend more than (1 - cash_reserve) of it: a 10% buffer for fees, price moves before the fill and
   # the odd rejected sell.  Sale proceeds are not reused in the same cycle (T+1 settlement in a cash account).

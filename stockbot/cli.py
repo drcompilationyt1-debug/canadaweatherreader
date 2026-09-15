@@ -822,6 +822,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--start", help="out-of-sample start (default data.train_end)")
     p.add_argument("--years", type=int, default=3, help="length of the long window")
     p.add_argument("--out", help="write the report as JSON")
+    p.add_argument("--tune", action="store_true", help="re-weight the rank blend from trailing ICs (kept only if it backtests no worse)")
     p.set_defaults(fn=cmd_portfolio)
 
     p = sub.add_parser("account", help="the broker's own record (Alpaca): equity per day (ups and downs), positions, every fill")
