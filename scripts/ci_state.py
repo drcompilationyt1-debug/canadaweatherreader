@@ -46,8 +46,13 @@ def restore(remote: str, branch: str) -> int:
     if not files:
         print("state branch is empty")
         return 0
-    git("checkout", f"{remote}/{branch}", "--", *files)
-    git("reset", "-q", "--", *files, check=False)  # keep the files, do not stage them on the working branch
+    # directory pathspecs, not one argument per file: hundreds of file names overflow the Windows command line
+    specs = [p for p in STATE_PATHS if any(f == p or f.startswith(p.rstrip("/") + "/") for f in files)]
+    extra = sorted({f for f in files if not any(f == p or f.startswith(p.rstrip("/") + "/") for p in STATE_PATHS)})
+    for chunk in [specs] + [extra[i:i + 100] for i in range(0, len(extra), 100)]:
+        if chunk:
+            git("checkout", f"{remote}/{branch}", "--", *chunk)
+            git("reset", "-q", "--", *chunk, check=False)  # keep the files, do not stage them on the working branch
     print(f"restored {len(files)} files from {remote}/{branch}")
     return 0
 
