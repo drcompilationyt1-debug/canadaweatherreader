@@ -356,7 +356,7 @@ class Review:
         tickers = sorted(dec["ticker"].unique().tolist())
         if self.benchmark not in tickers:
             tickers.append(self.benchmark)
-        frames = load_frames(self.cfg, offline=True, tickers=tickers)
+        frames = load_frames(self.cfg, offline=False, refresh=False, tickers=tickers)   # fetch what the cache lacks: a fresh runner has none
         closes = pd.DataFrame({t: df["close"].astype(float) for t, df in frames.items()}).sort_index()
         closes = closes[(closes.index >= pd.Timestamp(start) - pd.Timedelta(days=10)) & (closes.index <= pd.Timestamp(end))]
         R = closes.pct_change()
