@@ -310,7 +310,10 @@ def learn(cfg: Config, period: str = "day", end: date | None = None, force: bool
         report["skipped"] = "disabled" if not s.get("enabled", True) else f"no policy in {ckpt}"
         return report
     bundle = PolicyBundle.load(ckpt)
-    samples = build_samples(cfg, bundle.layout.obs_dim, period=period, end=end, frames=frames, refresh=refresh, today=today)
+    from ..signals.layout import PORTFOLIO_FEATURES
+
+    obs_dim_now = bundle.layout.signal_dim + len(PORTFOLIO_FEATURES)   # what the runner records today, whatever the policy was trained on
+    samples = build_samples(cfg, obs_dim_now, period=period, end=end, frames=frames, refresh=refresh, today=today)
     n = len(samples["meta"])
     expected = bundle.model_obs_dim()
     if n and expected and samples["X"].shape[1] > expected:      # the policy predates the newest portfolio feature

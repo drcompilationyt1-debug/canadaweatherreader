@@ -148,7 +148,7 @@ class MarketDataset:
     @classmethod
     def load(cls, folder: str | Path) -> "MarketDataset":
         folder = Path(folder)
-        layout = ObservationLayout.load(folder / "layout.json")
+        layout = ObservationLayout.load(folder / "layout.json").with_current_portfolio()   # a dataset holds signals only
         meta = json.loads((folder / "meta.json").read_text(encoding="utf-8")) if (folder / "meta.json").exists() else {}
         data = {}
         for f in sorted(folder.glob("*.npz")):

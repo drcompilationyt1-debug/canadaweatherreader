@@ -163,6 +163,31 @@ def test_training_episodes_vary_the_budget_and_show_it(cfg, frames):
     assert sorted(summary["cash"].tolist()) == [10000.0, 100000.0] and set(curves) == {"AAA@10000", "AAA@100000"}
 
 
+def test_layout_files_record_their_portfolio_features(cfg, frames, tmp_path):
+    from stockbot.agent.train import _same_layout
+    from stockbot.env.dataset import MarketDataset
+    from stockbot.signals.layout import LEGACY_PORTFOLIO_FEATURES, PORTFOLIO_FEATURES, ObservationLayout
+
+    ctx = build_context(cfg, with_llm=False, with_news=False)
+    providers = [p for p in build_providers(cfg, ctx) if p.name in ("technical", "trend")]
+    layout = build_layout(providers)
+    assert layout.portfolio_features == PORTFOLIO_FEATURES and layout.obs_dim == layout.signal_dim + 7
+    # a layout file from before fee_drag: 6 portfolio features, a different full signature, the same signal signature
+    d = layout.to_dict()
+    del d["portfolio"]
+    (tmp_path / "layout.json").write_text(json.dumps(d), encoding="utf-8")
+    old = ObservationLayout.load(tmp_path / "layout.json")
+    assert old.portfolio_features == LEGACY_PORTFOLIO_FEATURES and old.obs_dim == layout.signal_dim + 6
+    assert old.signature() == layout.signature() and old.full_signature() != layout.full_signature()
+    assert not _same_layout(tmp_path, layout) and _same_layout(tmp_path / "nothing-here", layout)
+    layout.save(tmp_path / "new" / "layout.json")
+    assert _same_layout(tmp_path / "new", layout) and ObservationLayout.load(tmp_path / "new" / "layout.json").obs_dim == layout.obs_dim
+    # a dataset saved with the old layout loads with today's portfolio features (it only holds signals)
+    ds = MarketDataset.build(frames, providers, old, ctx, fit=True, train_end="2018-12-31")
+    ds.save(tmp_path / "ds")
+    assert MarketDataset.load(tmp_path / "ds").layout.obs_dim == layout.obs_dim
+
+
 def test_policy_trained_before_fee_drag_still_predicts(cfg):
     ctx = build_context(cfg, with_llm=False, with_news=False)
     layout = build_layout([p for p in build_providers(cfg, ctx) if p.name in ("technical", "trend")])

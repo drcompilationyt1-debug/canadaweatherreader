@@ -12,6 +12,7 @@ import numpy as np
 # THIS account (0.04 = 4 bps on a $10k slice, 0.4 = 40 bps on a $1k slice) - the policy learns what to do with a
 # small budget and with a large one
 PORTFOLIO_FEATURES = ["exposure", "equity_ret", "drawdown", "position_age", "is_long", "is_short", "fee_drag"]
+LEGACY_PORTFOLIO_FEATURES = PORTFOLIO_FEATURES[:6]        # layout files written before fee_drag existed
 
 
 @dataclass(frozen=True)
@@ -31,15 +32,20 @@ class Block:
 
 
 class ObservationLayout:
-    def __init__(self, blocks: list[tuple[str, list[str]]]):
+    def __init__(self, blocks: list[tuple[str, list[str]]], portfolio_features: list[str] | None = None):
+        self.portfolio_features = list(portfolio_features or PORTFOLIO_FEATURES)
         self.blocks: list[Block] = []
         off = 0
         for name, names in blocks:
             self.blocks.append(Block(name, len(names), tuple(names), off))
             off += 1 + len(names)
         self.signal_dim = off
-        self.portfolio_dim = len(PORTFOLIO_FEATURES)
+        self.portfolio_dim = len(self.portfolio_features)
         self.obs_dim = self.signal_dim + self.portfolio_dim
+
+    def with_current_portfolio(self) -> "ObservationLayout":
+        """The same signal blocks with today's portfolio features (a dataset holds signals only, so it always uses these)."""
+        return ObservationLayout([(b.name, list(b.feature_names)) for b in self.blocks])
 
     # ------------------------------------------------------------------ helpers
     def block(self, name: str) -> Block:
@@ -57,7 +63,7 @@ class ObservationLayout:
         for b in self.blocks:
             cols.append(f"{b.name}.available")
             cols.extend(f"{b.name}.{f}" for f in b.feature_names)
-        cols.extend(f"portfolio.{f}" for f in PORTFOLIO_FEATURES)
+        cols.extend(f"portfolio.{f}" for f in self.portfolio_features)
         return cols
 
     def signature(self) -> str:
@@ -67,15 +73,16 @@ class ObservationLayout:
 
     def full_signature(self) -> str:
         """Identity of the whole observation (signals + portfolio features): what a trained policy expects."""
-        return hashlib.sha1((self.signature() + "|" + ",".join(PORTFOLIO_FEATURES)).encode()).hexdigest()[:12]
+        return hashlib.sha1((self.signature() + "|" + ",".join(self.portfolio_features)).encode()).hexdigest()[:12]
 
     def to_dict(self) -> dict:
         return {"blocks": [{"name": b.name, "features": list(b.feature_names)} for b in self.blocks],
-                "signature": self.signature(), "obs_dim": self.obs_dim}
+                "portfolio": list(self.portfolio_features), "signature": self.signature(), "full_signature": self.full_signature(),
+                "obs_dim": self.obs_dim}
 
     @classmethod
     def from_dict(cls, d: dict) -> "ObservationLayout":
-        return cls([(b["name"], list(b["features"])) for b in d["blocks"]])
+        return cls([(b["name"], list(b["features"])) for b in d["blocks"]], d.get("portfolio") or LEGACY_PORTFOLIO_FEATURES)
 
     def save(self, path: str | Path) -> None:
         Path(path).parent.mkdir(parents=True, exist_ok=True)
