@@ -48,22 +48,55 @@ def closes(ds) -> pd.DataFrame:
     return pd.DataFrame({t: pd.Series(td.close, index=pd.DatetimeIndex(td.dates)) for t, td in ds.data.items()}).sort_index()
 
 
+def trend_state(px: pd.DataFrame, benchmark: str = "SPY", sma: int = 200, band: float = 0.02) -> pd.Series:
+    """Faber-style trend switch: on while the benchmark closes above its ``sma``-day average (a ``band`` either side to
+    avoid whipsaw), off below it.  Checked daily; it flips a couple of times a year."""
+    c = px[benchmark].astype(float)
+    m = c.rolling(int(sma)).mean()
+    state = pd.Series(np.nan, index=px.index)
+    on = True
+    for d in px.index:
+        cm, mm = c.get(d), m.get(d)
+        if pd.notna(cm) and pd.notna(mm):
+            if on and cm < mm * (1.0 - band):
+                on = False
+            elif not on and cm > mm * (1.0 + band):
+                on = True
+        state[d] = float(on)
+    return state
+
+
 def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, every: int = 10, hysteresis: int = 3,
-             fee_bps: float = 8.0, end=None) -> dict:
-    """Daily portfolio returns of the rank-core rule (``score`` None = equal-weight everything), fees on turnover."""
+             fee_bps: float = 8.0, end=None, core: dict | None = None, trend: dict | None = None, reserve: float = 0.0) -> dict:
+    """Daily portfolio returns of the rank-core rule (``score`` None = equal-weight everything), fees on turnover.
+    ``core`` = {ticker, share}: a buy-and-hold slice bought once and never sold; ``trend`` = {benchmark, sma, band}: the
+    rank slots go to cash while the benchmark is below its moving average; ``reserve`` = cash never invested."""
     idx = px.index[(px.index >= pd.Timestamp(start)) & ((px.index <= pd.Timestamp(end)) if end is not None else True)]
     rets = px.pct_change(fill_method=None).reindex(idx).fillna(0.0)
     wts = pd.DataFrame(0.0, index=idx, columns=px.columns)
+    core_t, core_share = (str(core.get("ticker", "SPY")), float(core.get("share", 0.0))) if core else (None, 0.0)
+    if core_t is not None and core_t not in px.columns:
+        core_t, core_share = None, 0.0
+    satellite = max(0.0, 1.0 - core_share - float(reserve))
+    on = trend_state(px, str(trend.get("benchmark", "SPY")), int(trend.get("sma", 200)), float(trend.get("band", 0.02))) if trend else None
     held: list[str] = []
     for i, d in enumerate(idx):
+        if core_t is not None:
+            wts.loc[d, core_t] = core_share
         if score is None:
-            wts.loc[d] = 1.0 / px.shape[1]
+            others = [t for t in px.columns if t != core_t]
+            wts.loc[d, others] = satellite / len(others)
             continue
-        if i % every == 0:
+        risk_on = True if on is None else bool(on.get(d, 1.0) >= 0.5)
+        if not risk_on:
+            held = []                                                     # the trend filter is off: satellite in cash
+        elif i % every == 0 or not held:
             s = score.loc[d].dropna() if d in score.index else pd.Series(dtype=float)
+            if core_t is not None:
+                s = s.drop(core_t, errors="ignore")
             held = select_top(s.to_dict(), held, k, hysteresis) if len(s) else held
         if held:
-            wts.loc[d, held] = 1.0 / len(held)
+            wts.loc[d, held] = satellite / max(k, 1)                      # a slot is full or empty: no trims
     prev = wts.shift(1).fillna(0.0)
     turnover = (wts - prev).abs().sum(axis=1)
     daily = (prev * rets).sum(axis=1) - turnover * fee_bps / 1e4
@@ -94,16 +127,23 @@ def run_backtests(cfg, ds, budgets: dict[str, dict] | None = None, oos_start=Non
     last = px.index[-1]
     oos_start = pd.Timestamp(oos_start or cfg.get_path("data.train_end") or (last - pd.DateOffset(years=1)))
     windows = {"oos": oos_start, f"{years}y": last - pd.DateOffset(years=years)}
+    def _profile(c, rk_, budget):
+        core = dict(c.get_path("execution.core", {}) or {})
+        tf = dict(rk_.get("trend_filter", {}) or {})
+        return {"budget": float(budget), "k": int(rk_.get("top_k", 20)), "every": every_bars_of(rk_.get("every_bars", 10)),
+                "hysteresis": int(rk_.get("hysteresis", 3)), "reserve": float(c.get_path("execution.cash_reserve", 0.1) or 0.0),
+                "core": {"ticker": str(core.get("ticker", "SPY")), "share": float(core.get("share", 0.0) or 0.0)} if float(core.get("share", 0.0) or 0.0) > 0 else None,
+                "trend": {"benchmark": str(tf.get("benchmark", "SPY")), "sma": int(tf.get("sma", 200)), "band": float(tf.get("band", 0.02))} if tf.get("enabled") else None}
+
     if budgets is None:
-        budgets = {"100k": {"budget": 100_000, "k": int(rk.get("top_k", 20)), "every": every_bars_of(rk.get("every_bars", 10))}}
+        budgets = {"100k": _profile(cfg, rk, cfg.get_path("env.initial_cash", 100_000))}
         try:
             from ..config import account_config, account_names
 
             for name in account_names(cfg):
                 ca = account_config(cfg, name)
                 r2 = dict(ca.get_path("execution.rank", {}) or {})
-                budgets[name] = {"budget": float(ca.get_path("env.initial_cash", 10_000)), "k": int(r2.get("top_k", 10)),
-                                 "every": every_bars_of(r2.get("every_bars", 21))}
+                budgets[name] = _profile(ca, r2, ca.get_path("env.initial_cash", 10_000))
         except Exception as e:  # noqa: BLE001
             log.debug("account budgets: %s", e)
     hyst = int(rk.get("hysteresis", 3))
@@ -118,9 +158,13 @@ def run_backtests(cfg, ds, budgets: dict[str, dict] | None = None, oos_start=Non
         ew = simulate(px, None, start)
         res["equal_weight"] = {k: v for k, v in ew.items() if k != "daily"}
         for bname, bset in budgets.items():
-            fee = round_trip_bps(cfg, bset["budget"], bset["k"])
-            r = simulate(px, score, start, k=bset["k"], every=bset["every"], hysteresis=hyst, fee_bps=fee)
+            core_share = (bset.get("core") or {}).get("share", 0.0) if bset.get("core") else 0.0
+            satellite_budget = bset["budget"] * max(0.0, 1.0 - core_share - bset.get("reserve", 0.0))
+            fee = round_trip_bps(cfg, satellite_budget, bset["k"])
+            r = simulate(px, score, start, k=bset["k"], every=bset["every"], hysteresis=bset.get("hysteresis", hyst), fee_bps=fee,
+                         core=bset.get("core"), trend=bset.get("trend"), reserve=bset.get("reserve", 0.0))
             res[f"rank_{bname}"] = {**{k: v for k, v in r.items() if k != "daily"}, "k": bset["k"], "every_bars": bset["every"], "fee_bps": fee,
+                                    "core": bset.get("core"), "trend_filter": bool(bset.get("trend")), "reserve": bset.get("reserve", 0.0),
                                     "excess_vs_benchmark": r["total"] - res.get(benchmark, {}).get("total", 0.0)}
         out["results"][wname] = res
     return out

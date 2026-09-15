@@ -232,7 +232,7 @@ class TradingSession:
         for t, row in (snap.get("tickers") or {}).items():
             shares = float(row.get("held") or 0.0)
             open_px = self.summary.get("open_prices", {}).get(t)
-            if shares <= 0 or not open_px or t in exited:
+            if shares <= 0 or not open_px or t in exited or t == getattr(r, "core_ticker", None):
                 continue
             if not same_day and t in bought:
                 continue                                              # no same-day round trips (cash account / day-trade rules)

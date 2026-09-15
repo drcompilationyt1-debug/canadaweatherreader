@@ -139,7 +139,7 @@ class PolicyBundle:
             info = json.loads(ens.read_text(encoding="utf-8"))
             members, paths = [], []
             for p in info.get("members", []):
-                mp = Path(p)
+                mp = Path(str(p).replace("\\", "/"))             # written on Windows, read on Linux (or the reverse)
                 mp = mp if mp.is_absolute() else folder / mp
                 if mp.exists():
                     members.append(load_model(mp, meta.get("algo", "ppo"), device=device))

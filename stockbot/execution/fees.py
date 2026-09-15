@@ -25,6 +25,10 @@ PRESETS: dict[str, dict[str, float]] = {
     "moomoo_intl": {"commission_per_share": 0.0, "commission_min": 0.0, "platform_per_share": 0.0, "platform_min": 0.0,
                     "per_order": 0.99, "sec_fee_rate": 0.0000206, "sec_min": 0.01, "finra_taf_per_share": 0.000195,
                     "fractional_pct": 0.0099, "fractional_max": 0.99},
+    # Webull (Canada / US): commission-free stocks and ETFs, regulatory fees on sells only, no fractional surcharge
+    "webull": {"commission_per_share": 0.0, "commission_min": 0.0, "platform_per_share": 0.0, "platform_min": 0.0,
+               "per_order": 0.0, "sec_fee_rate": 0.0000206, "sec_min": 0.01, "finra_taf_per_share": 0.000195,
+               "fractional_pct": 0.0, "fractional_max": 0.0},
     "none": {"commission_per_share": 0.0, "commission_min": 0.0, "platform_per_share": 0.0, "platform_min": 0.0, "per_order": 0.0,
              "sec_fee_rate": 0.0, "sec_min": 0.0, "finra_taf_per_share": 0.0, "fractional_pct": 0.0, "fractional_max": 0.0},
     # moomoo Canada, Canadian stocks (TSX / TSX-V, CAD): commission C$0.0049/sh min C$0.49 + platform C$0.01/sh min C$1.00,

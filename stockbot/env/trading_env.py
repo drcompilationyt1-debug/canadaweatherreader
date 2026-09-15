@@ -59,7 +59,11 @@ class TradingEnv(gym.Env):
             from ..execution.fees import FeeBook
 
             # one schedule per market: a Canadian episode pays moomoo Canada's fees, a US one moomoo's US fees
-            self.fee_book = FeeBook.from_names(fees.lower(), {m: str(p).lower() for m, p in (c.get("fees_by_market") or {}).items()})
+            by_market = {m: str(p).lower() for m, p in (c.get("fees_by_market") or {}).items()}
+            self.fee_book = FeeBook.from_names(fees.lower(), by_market)
+            # training may draw the broker's fee schedule per episode (moomoo vs a commission-free Webull): the fee_drag
+            # input then spans both worlds and the policy learns what each one can afford
+            self.fee_books = {str(p).lower(): FeeBook.from_names(str(p).lower(), by_market) for p in (c.get("fee_choices") or [])}
             fees = self.fee_book.default
         self.portfolio = Portfolio(c["initial_cash"], c["commission"], c["slippage"], c["allow_short"],
                                    c["short_borrow_rate_annual"], c["max_leverage"], fees=fees,
@@ -110,7 +114,11 @@ class TradingEnv(gym.Env):
         self.td, self.t, self.end = self._pick_window(options)
         self._vol = self._vol_for(self.td) if self.vol_target > 0 else None
         if self.fee_book is not None:
-            self.portfolio.fees = self.fee_book.for_ticker(self.td.ticker)
+            book = self.fee_book
+            choices = list(getattr(self, "fee_books", {}) or {})
+            if choices and not self.eval_mode:
+                book = self.fee_books[choices[int(self.rng.integers(len(choices)))]]
+            self.portfolio.fees = book.for_ticker(self.td.ticker)
         cash = (options or {}).get("cash")
         choices = self.c.get("cash_choices")
         rng_cash = self.c.get("cash_range")

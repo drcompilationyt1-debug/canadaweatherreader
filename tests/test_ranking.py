@@ -68,9 +68,9 @@ def test_runner_holds_the_top_k_and_rebalances_on_schedule(cfg, frames):
     top2 = sorted(frames, key=lambda t: -float(frames[t]["close"].pct_change(20).iloc[-1]))[:2]
     assert set(r.last_rank["chosen"]) == set(top2)                      # the two names with the best 20-day return
     assert r.state["last_rebalance_date"] == str(frames["AAA"].index[-1].date())
-    amounts = sorted((d.amount_usd for d in bought), reverse=True)        # 1/K of the book each (full conviction) ...
-    assert amounts[0] == pytest.approx(0.5 * r.broker.equity(), rel=0.05)
-    assert sum(amounts) == pytest.approx(0.9 * r.broker.equity(), rel=0.05)   # ... the second cut to keep the 10% cash reserve
+    amounts = sorted((d.amount_usd for d in bought), reverse=True)        # (1 - 10% reserve) / K of the book each at full conviction
+    assert amounts[0] == pytest.approx(0.45 * r.broker.equity(), rel=0.05)
+    assert sum(amounts) == pytest.approx(0.9 * r.broker.equity(), rel=0.05)
     decisions2 = r.cycle(dry_run=False, refresh=False)                   # same day: not a rebalance day -> hold
     assert all(d.action == "HOLD" for d in decisions2) and "rank core" in r.last_cycle_note
 
@@ -120,3 +120,78 @@ def test_weekend_tuning_reweights_from_trailing_ic_with_a_guard(cfg, frames, tmp
     assert load_tuned_inputs(tmp_path, {"x": 1.0}) == {"x": 1.0}
     out.write_text('{"accepted": true, "inputs": {"trend.slope_30": 1.0}}', encoding="utf-8")
     assert load_tuned_inputs(tmp_path, {"x": 1.0}) == {"trend.slope_30": 1.0}
+
+
+def test_core_and_trend_filter_in_the_backtest():
+    from stockbot.agent.backtest import simulate, trend_state
+    from stockbot.execution.fees import FeeSchedule
+
+    idx = pd.date_range("2026-01-01", periods=120, freq="B")
+    spy = np.r_[np.linspace(100, 110, 60), np.linspace(110, 80, 60)]                      # rises, then falls through its average
+    px = pd.DataFrame({"SPY": spy, "A": np.linspace(100, 130, 120), "B": np.linspace(100, 90, 120)}, index=idx)
+    st = trend_state(px, "SPY", sma=20, band=0.0)
+    assert st.iloc[30] == 1.0 and st.iloc[-1] == 0.0
+    sc = pd.DataFrame({"A": 1.0, "B": 0.0}, index=idx)
+    r = simulate(px, sc, "2026-01-01", k=1, every=5, hysteresis=0, fee_bps=0.0, core={"ticker": "SPY", "share": 0.5},
+                 trend={"benchmark": "SPY", "sma": 20, "band": 0.0}, reserve=0.1)
+    assert r["total"] < 0.2 and r["turnover_per_year"] > 0                                  # the satellite went to cash in the fall
+    r2 = simulate(px, sc, "2026-01-01", k=1, every=5, hysteresis=0, fee_bps=0.0, core={"ticker": "SPY", "share": 0.5}, reserve=0.1)
+    assert r2["total"] < r["total"] + 0.15                                                  # without the filter the satellite rode A up and SPY down
+    assert FeeSchedule.from_preset("webull").cost(10, 100.0, "buy") == 0.0 and FeeSchedule.from_preset("webull").cost(10, 100.0, "sell") < 0.05
+
+
+def test_runner_keeps_a_buy_only_core_and_obeys_the_trend_filter(cfg, frames):
+    from stockbot.execution.base import Order
+
+    cfg.set_path("execution.core", {"ticker": "AAA", "share": 0.5})
+    cfg.set_path("execution.rank", {"enabled": True, "top_k": 1, "every_bars": 3, "hysteresis": 0, "inputs": {"technical.ret_20": 1.0},
+                                    "policy_floor": 1.0, "policy_veto": 0.05, "adaptive": False})
+    cfg.set_path("execution.max_position", 0.5)
+    ctx = build_context(cfg, with_llm=False, with_news=False)
+    providers = [p for p in build_providers(cfg, ctx) if p.name in ("technical", "trend")]
+    bundle = PolicyBundle(BuyEverything(), build_layout(providers), {"algo": "ppo"})
+    r = TradingRunner(cfg, mode="paper", bundle=bundle, frames_loader=lambda refresh: frames, with_llm=False)
+    assert r.core_ticker == "AAA" and r.core_share == 0.5
+    decisions = r.cycle(dry_run=False, refresh=False)
+    by = {d.ticker: d for d in decisions}
+    eq = r.broker.equity()
+    assert by["AAA"].action == "BUY" and by["AAA"].amount_usd == pytest.approx(0.5 * eq, rel=0.05)        # the core: half the book
+    sat = [d for d in decisions if d.ticker != "AAA" and d.action == "BUY"]
+    assert len(sat) == 1 and sat[0].amount_usd == pytest.approx(0.4 * eq, rel=0.05)                        # one slot = 1 - 0.5 - 0.1 reserve
+    assert "AAA" not in r.last_rank["chosen"]
+    # the core is never sold: even a policy that wants nothing leaves it alone, and the satellite holds off-schedule
+    r.bundle = PolicyBundle(type("Flat", (), {"num_timesteps": 0, "predict": staticmethod(lambda obs, deterministic=True: (np.array([-1.0], dtype=np.float32), None))})(),
+                            bundle.layout, {"algo": "ppo"})
+    decisions2 = r.cycle(dry_run=False, refresh=False)
+    assert all(d.action == "HOLD" for d in decisions2) and r.broker.position("AAA").shares > 0
+    # the trend filter turns off when the benchmark closes below its average: the satellite is sold, the core stays
+    cfg.set_path("execution.rank.trend_filter", {"enabled": True, "benchmark": "AAA", "sma": 20, "band": 0.0})
+    low = {t: df.copy() for t, df in frames.items()}
+    low["AAA"].loc[low["AAA"].index[-1], "close"] = float(low["AAA"]["close"].iloc[-25:].mean()) * 0.8
+    r2 = TradingRunner(cfg, mode="paper", bundle=bundle, frames_loader=lambda refresh: low, with_llm=False)
+    r2.state["last_rebalance_date"] = None
+    decisions3 = r2.cycle(dry_run=False, refresh=False)
+    assert r2.state["trend_on"] is False and r2.last_rank["trend_on"] is False
+    sells = [d for d in decisions3 if d.action == "SELL"]
+    assert sat[0].ticker in {d.ticker for d in sells} and r2.broker.position("AAA").shares > 0 and "trend filter off" in r2.last_cycle_note
+
+
+def test_training_draws_the_fee_regime_per_episode(cfg, frames):
+    from stockbot.config import env_settings
+    from stockbot.env.dataset import MarketDataset
+    from stockbot.env.trading_env import TradingEnv
+
+    ctx = build_context(cfg, with_llm=False, with_news=False)
+    providers = [p for p in build_providers(cfg, ctx) if p.name in ("technical", "trend")]
+    ds = MarketDataset.build(frames, providers, build_layout(providers), ctx, fit=True, train_end="2018-12-31")
+    env_cfg = {**env_settings(cfg), "fees": "moomoo", "fee_scale": 0.1, "fee_choices": ["moomoo", "webull"]}
+    env = TradingEnv(ds, env_cfg, seed=1)
+    seen = {env.reset()[0] is not None and env.portfolio.fees.preset for _ in range(30)}
+    assert seen == {"moomoo", "webull"}
+    drags = {}
+    for _ in range(30):
+        env.reset(options={"cash": 10_000})
+        drags.setdefault(env.portfolio.fees.preset, set()).add(round(float(env.fee_drag(100.0)), 4))
+    assert max(drags["moomoo"]) > max(drags["webull"])                                       # the fee_drag input tells the regimes apart
+    evl = TradingEnv(ds, env_cfg, seed=1, eval_mode=True)
+    assert {evl.reset()[0] is not None and evl.portfolio.fees.preset for _ in range(5)} == {"moomoo"}

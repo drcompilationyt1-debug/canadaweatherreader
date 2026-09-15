@@ -70,6 +70,13 @@ class TradingRunner:
         self.rank_veto = float(rk.get("policy_veto", 0.05))
         self.last_rank: dict = {}
         self._rebalanced = False
+        # a buy-and-hold core inside the account (execution.core): bought once, topped up, never sold by the bot
+        core = dict(self.ex.get("core", {}) or {})
+        self.core_ticker = (str(core.get("ticker") or "").strip() or None) if float(core.get("share", 0.0) or 0.0) > 0 else None
+        self.core_share = float(core.get("share", 0.0) or 0.0) if self.core_ticker else 0.0
+        # Faber-style trend filter on the rank slots: to cash while the benchmark sits below its moving average
+        tf = dict(rk.get("trend_filter", {}) or {})
+        self.trend_filter = tf if bool(tf.get("enabled", False)) else None
         # real brokers only get orders while the exchange is open (execution.require_market_open)
         self.require_open = bool(self.ex.get("require_market_open", True)) and not allow_closed
         self.clock = clock
@@ -443,6 +450,38 @@ class TradingRunner:
                 log.info("at most %d names: keeping %s; %d others set to zero", self.max_names, ", ".join(keep), len(dropped))
         return weights
 
+    def core_now(self, ticker: str, equity: float) -> float:
+        """The core's current weight (fraction of the account's equity)."""
+        try:
+            pos = self.broker.position(ticker)
+            return float(pos.shares * self.last_close(ticker) / equity) if equity > 0 else 0.0
+        except Exception:  # noqa: BLE001
+            return 0.0
+
+    def trend_on(self, as_of: str) -> bool:
+        """The trend filter's state (persisted): off once the benchmark closes below its moving average by the band, on
+        again above it by the band.  The bar dated ``as_of`` may be today's partial bar and is not used."""
+        tf = self.trend_filter
+        if not tf:
+            return True
+        df = self.frames.get(str(tf.get("benchmark", "SPY")))
+        n, band = int(tf.get("sma", 200)), float(tf.get("band", 0.02))
+        if df is None or len(df) < n + 2:
+            return bool(self.state.get("trend_on", True))
+        c = df["close"].astype(float)
+        if str(c.index[-1].date()) == as_of and as_of == datetime.now().strftime("%Y-%m-%d"):
+            c = c.iloc[:-1]
+        close, sma = float(c.iloc[-1]), float(c.iloc[-n:].mean())
+        on = bool(self.state.get("trend_on", True))
+        if on and close < sma * (1.0 - band):
+            on = False
+        elif not on and close > sma * (1.0 + band):
+            on = True
+        if on != bool(self.state.get("trend_on", True)):
+            log.warning("trend filter %s: %s %.2f vs %d-day average %.2f", "ON" if on else "OFF", tf.get("benchmark", "SPY"), close, n, sma)
+        self.state["trend_on"] = on
+        return on
+
     def _rank_position(self, ticker: str) -> int | None:
         scores = self.last_rank.get("scores") or {}
         if ticker not in scores or not np.isfinite(scores[ticker]):
@@ -463,20 +502,30 @@ class TradingRunner:
             except Exception:  # noqa: BLE001
                 current[t] = 0.0
         self._rebalanced = False
+        core_t = self.core_ticker if self.core_ticker in tickers else None
+        core_w = {core_t: max(self.core_share, self.core_now(core_t, eq_of[core_t]))} if core_t else {}   # buy-only, never sold
+        universe = [t for t in tickers if t != core_t]
+        satellite = max(0.0, 1.0 - self.core_share - self.cash_reserve)          # what the rank slots share
+        was_on = bool(self.state.get("trend_on", True))
+        if not self.trend_on(as_of):
+            self.last_cycle_note = (self.last_cycle_note + "; " if self.last_cycle_note else "") + "trend filter off: rank slots in cash"
+            self._rebalanced = True
+            self.last_rank = {"scores": {}, "chosen": [], "as_of": as_of, "trend_on": False}
+            return {**{t: 0.0 for t in universe}, **core_w}
         index = self.frames["SPY"].index if "SPY" in self.frames else next(iter(self.frames.values())).index
-        if not rebalance_due(index, self.state.get("last_rebalance_date"), as_of, self.rank_every):
+        if was_on and not rebalance_due(index, self.state.get("last_rebalance_date"), as_of, self.rank_every):
             self.last_cycle_note = (self.last_cycle_note + "; " if self.last_cycle_note else "") + \
                 f"rank core: next rebalance {self.rank_every} bars after {self.state.get('last_rebalance_date')} - positions kept"
             log.info("rank core: not a rebalance day (every %d bars, last %s) - holding", self.rank_every, self.state.get("last_rebalance_date"))
-            return {t: current[t] * self.max_position for t in tickers}
+            return {**{t: current[t] * self.max_position for t in universe}, **core_w}
         sig_dim = self.bundle.layout.signal_dim
-        scores = rank_scores(self.bundle.layout, {t: obs_by[t][:sig_dim] for t in tickers}, self.rank_inputs)
-        held = [t for t in tickers if abs(current[t]) > 0.05]
+        scores = rank_scores(self.bundle.layout, {t: obs_by[t][:sig_dim] for t in universe}, self.rank_inputs)
+        held = [t for t in universe if abs(current[t]) > 0.05]
         chosen = select_top(scores, held, self.rank_top_k, self.rank_hysteresis)
-        ppo_frac = {t: float(np.clip(targets.get(t, 0.0), 0.0, 1.0)) for t in tickers}
+        ppo_frac = {t: float(np.clip(targets.get(t, 0.0), 0.0, 1.0)) for t in universe}
         slots = slot_weights(chosen, self.rank_top_k, ppo_frac, self.rank_floor, self.rank_veto)
-        weights = {t: min(slots.get(t, 0.0), self.max_position) for t in tickers}
-        self.last_rank = {"scores": scores, "chosen": chosen, "as_of": as_of}
+        weights = {**{t: min(slots.get(t, 0.0) * satellite, self.max_position) for t in universe}, **core_w}
+        self.last_rank = {"scores": scores, "chosen": chosen, "as_of": as_of, "trend_on": True}
         self._rebalanced = True
         dropped = [t for t in held if t not in chosen]
         log.info("rank core: top-%d by %s -> %s%s", self.rank_top_k, "+".join(self.rank_inputs), ", ".join(chosen),
@@ -560,9 +609,14 @@ class TradingRunner:
         planned: dict[str, tuple[Decision, float, float]] = {}
         for t in tickers:
             price = self.price(t)
-            slice_cap = eq_of[t] * self.max_position
-            _, current = self.portfolio_state(t, price, eq_of[t])
-            target = weights[t] / self.max_position if self.max_position > 0 else 0.0
+            if self.core_ticker and t == self.core_ticker and self.core_share > 0:      # the core: its own slice, buy-only
+                slice_cap = eq_of[t] * self.core_share
+                current = self.core_now(t, eq_of[t]) / self.core_share
+                target = max(weights.get(t, 0.0) / self.core_share, current)
+            else:
+                slice_cap = eq_of[t] * self.max_position
+                _, current = self.portfolio_state(t, price, eq_of[t])
+                target = weights[t] / self.max_position if self.max_position > 0 else 0.0
             dec = decide(t, target, current, slice_cap, price, self.deadband, allow_short, self.min_trade_for(t))
             if self.whole_shares and dec.action != "HOLD":                     # moomoo Canada: whole shares only
                 whole = float(int(abs(dec.shares)))

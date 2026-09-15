@@ -306,7 +306,7 @@ def train_ensemble(cfg: Config, dataset: MarketDataset, n_seeds: int, total_time
                  f" {member_minutes:.0f} min" if member_minutes else "")
         train(sub, total_timesteps=total_timesteps, resume=member_resume, dataset=dataset, n_envs=n_envs, seeds=1, max_minutes=member_minutes)
         best = member_dir / "best.zip"
-        member = str((best if best.exists() else member_dir / "latest.zip").relative_to(ckpt))
+        member = (best if best.exists() else member_dir / "latest.zip").relative_to(ckpt).as_posix()
         score = -float("inf")
         if (member_dir / "best.json").exists():
             try:
@@ -356,7 +356,7 @@ def register_ensemble(cfg: Config, min_score: float | None = None) -> Path:
                 score = float(json.loads((member_dir / "best.json").read_text(encoding="utf-8")).get("score", -np.inf))
             except Exception:  # noqa: BLE001
                 pass
-        scores[str(target.relative_to(ckpt))] = score
+        scores[target.relative_to(ckpt).as_posix()] = score
     if not scores:
         raise FileNotFoundError(f"no trained members under {root}")
     members = select_members(scores, min_score)

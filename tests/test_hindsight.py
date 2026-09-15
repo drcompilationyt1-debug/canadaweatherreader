@@ -273,3 +273,18 @@ def test_period_review_has_path_oracle_attribution_and_ic(cfg, monkeypatch):
     assert res["execution"]["fills"] == 2
     if "round_trips" in res:
         assert res["round_trips"]["n"] == 1
+
+
+def test_ensemble_member_paths_load_with_either_separator(cfg, frames):
+    import json
+    import shutil
+
+    from stockbot.agent.policy import EnsemblePolicy, PolicyBundle
+
+    _train_small_bundle(cfg, frames)
+    ckpt = cfg.path("train.checkpoint_dir")
+    (ckpt / "ensemble" / "seed0").mkdir(parents=True, exist_ok=True)
+    shutil.copy(ckpt / "latest.zip", ckpt / "ensemble" / "seed0" / "latest.zip")
+    (ckpt / "ensemble.json").write_text(json.dumps({"members": ["ensemble\seed0\latest.zip"]}), encoding="utf-8")   # written on Windows
+    b = PolicyBundle.load(ckpt)
+    assert isinstance(b.model, EnsemblePolicy) and len(b.model.members) == 1

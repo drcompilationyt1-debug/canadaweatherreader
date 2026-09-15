@@ -154,6 +154,8 @@ env:
   cash_range: [10000, 100000]    # every training episode starts with a random budget between these (log-uniform): the simulator
                                  # covers everything from the $10k book to the $100k one; with the fee_drag feature the policy
   cash_choices: null             # learns what each budget can afford (alternative: a fixed list of budgets to pick from)
+  fee_choices: [moomoo, webull]  # the broker's fee schedule is drawn per episode too (moomoo Canada vs commission-free Webull), so
+                                 # the fee_drag input spans both and the same policy can run at either broker (fees.preset per account)
   commission: 0.0005        # 5 bps per side - only used with fees.preset: bps; otherwise the simulator charges the
                             # fees.preset schedule as if one position were execution.max_position of real equity
   slippage: 0.0005          # 5 bps per side
@@ -331,6 +333,14 @@ execution:
     policy_floor: 0.5
     policy_veto: 0.05
     adaptive: true            # use the weekend-tuned blend (models/rank_weights.json: trailing-IC weights that backtested no worse)
+    trend_filter:             # Faber (2007): the rank slots go to cash while the benchmark closes below its moving average
+      enabled: false          # (a band either side avoids whipsaw); on for the small account, off here - see accounts.small
+      benchmark: SPY
+      sma: 200
+      band: 0.02
+  core:                       # a buy-and-hold slice inside the account: bought once, topped up when it drifts below share,
+    ticker: SPY               # never sold by the bot (not by the rank layer, not by the intraday exit); the rank slots share
+    share: 0.0                # the rest minus the cash reserve.  0 = no core (the $100k account); 0.5 for the $10k account
   # Buys are planned against the sleeve's OWN cash (Alpaca `cash`, moomoo `cash`; never margin buying power)
   # and never spend more than (1 - cash_reserve) of it: a 10% buffer for fees, price moves before the fill and
   # the odd rejected sell.  Sale proceeds are not reused in the same cycle (T+1 settlement in a cash account).
@@ -428,9 +438,13 @@ accounts:                     # extra accounts traded in the SAME session from t
       alpaca: { paper: true, fractional: false, keys_env: ALPACA_10K, history_dir: data/paper/small/alpaca }   # moomoo Canada: whole shares
       state_file: data/paper/small/state.json
       sleeves: { ca: { state_file: data/paper/small/state_ca.json, initial_cash: 10000 } }
-      max_position: 0.10      # $1,000 slots on $10k ...
-      rank: { top_k: 10, every_bars: 21 }   # ... in the top 10 names, rebalanced monthly: a round trip costs ~40 bps here
-      min_trade_usd: 400
+      # the patient profile (grid on the cached dataset, 2026-09-15): half in SPY bought once and never sold, the other half
+      # in the top 5 names rebalanced monthly with a wide hysteresis, slots full or empty, the trend filter on the satellite,
+      # $800 minimum orders -> SPY's return with a higher Sharpe, a 9% drawdown and ~6 turnovers a year at ~50 bps each
+      core: { ticker: SPY, share: 0.5 }
+      max_position: 0.10      # a rank slot = (1 - 0.5 core - 0.1 reserve) / 5 = 8% of the book, $800 on $10k
+      rank: { top_k: 5, every_bars: 21, hysteresis: 5, policy_floor: 1.0, trend_filter: { enabled: true } }
+      min_trade_usd: 800      # never an order the US$1.99 minimum would make expensive
       cadence: daily          # (the rank layer's every_bars sets the cadence)
       cash_reserve: 0.10
     env: { initial_cash: 10000 }
