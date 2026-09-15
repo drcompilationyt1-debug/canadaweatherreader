@@ -242,3 +242,27 @@ def test_alpaca_ledger_and_keys(tmp_path, monkeypatch):
     assert VirtualLedger(tmp_path / "ledger.json").fees == pytest.approx(3.98) and "whole shares" in b.constraints()
     b.fees = None
     assert b.equity() == pytest.approx(100000.0)                                                           # no fee model: Alpaca's own numbers
+
+
+def test_new_fee_ledger_starts_from_the_fees_already_recorded(cfg, frames, tmp_path):
+    from stockbot.execution.alpaca import AlpacaBroker, VirtualLedger
+    from stockbot.execution.fees import FeeSchedule
+    from stockbot.feedback.experience import ExperienceStore
+
+    store = ExperienceStore(cfg.path("feedback.experience_file"))
+    for k, (mode, fee) in enumerate((("alpaca", 1.99), ("alpaca", 2.49), ("paper", 9.0))):
+        store.record(mode=mode, ticker="AAA", date=f"2026-09-1{k + 1}", obs=np.zeros(3), action=0.0, target_exposure=0.5, weight=0.05, decision="BUY",
+                     price=100.0, equity=1e5, availability={}, fills=[{"ticker": "AAA", "side": "buy", "qty": 1, "price": 100.0, "cost": fee}], fees=fee)
+    r = TradingRunner(cfg, mode="paper", bundle=_bundle(cfg), frames_loader=lambda refresh: frames, with_llm=False)
+    fake = AlpacaBroker.__new__(AlpacaBroker)
+    fake.fees = FeeSchedule.from_preset("moomoo")
+    fake.fractional = False
+    fake.ledger = VirtualLedger(tmp_path / "alpaca_ledger.json")
+    fake.client = SimpleNamespace(get_account=lambda: SimpleNamespace(equity="100000", cash="60000"))
+    r.broker = fake
+    r._seed_ledgers()
+    assert fake.ledger.fees == pytest.approx(4.48) and fake.ledger.n_fills == 2                         # the alpaca fills only
+    assert fake.equity() == pytest.approx(100000 - 4.48) and (tmp_path / "alpaca_ledger.json").exists()
+    fake.ledger.add(1.0)
+    r._seed_ledgers()                                                                                     # an existing ledger is left alone
+    assert fake.ledger.fees == pytest.approx(5.48)

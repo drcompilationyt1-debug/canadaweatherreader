@@ -322,7 +322,7 @@ execution:
   require_market_open: true
   alpaca:
     paper: true               # true = Alpaca's free paper-trading account (web dashboard included)
-    fractional: true
+    fractional: false         # moomoo Canada trades whole shares only: both paper accounts follow that (whole-share orders)
     keys_env: ALPACA          # <keys_env>_API_KEY / <keys_env>_SECRET_KEY hold the keys (another account: ALPACA_10K)
   moomoo:
     env: simulate             # simulate (paper account) | real (needs MOOMOO_TRADE_PASSWORD + --i-understand-real-money)

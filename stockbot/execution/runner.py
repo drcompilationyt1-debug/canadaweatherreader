@@ -99,8 +99,31 @@ class TradingRunner:
         self.state_file = cfg.path("execution.state_file", "data/paper/state.json").with_name(f"runner_{mode}.json")
         self.state = self._load_state()
         self.broker = broker or self._make_broker()
+        self._seed_ledgers()
 
     # ------------------------------------------------------------------ setup
+    def _seed_ledgers(self) -> None:
+        """A new virtual fee ledger (Alpaca) starts from the moomoo fees already recorded for this account, so the equity
+        the strategy sees is net of every fee it has ever paid, not only of those from today on."""
+        from .alpaca import AlpacaBroker
+
+        brokers = list(getattr(self.broker, "sleeves", {}).values()) or [self.broker]
+        for b in brokers:
+            if not isinstance(b, AlpacaBroker) or b.ledger.path is None or b.ledger.path.exists():
+                continue
+            recs = self.store.load()
+            if recs is None or len(recs) == 0:
+                continue
+            dec = recs[recs["type"] == "decision"]
+            if "mode" in dec.columns:
+                dec = dec[dec["mode"].isin(["alpaca", "live"])]
+            fees = float(pd.to_numeric(dec["fees"], errors="coerce").fillna(0.0).sum()) if "fees" in dec.columns and len(dec) else 0.0
+            n = int(dec["fills"].apply(lambda f: len(f) if isinstance(f, list) else 0).sum()) if "fills" in dec.columns and len(dec) else 0
+            if fees > 0:
+                b.ledger.fees, b.ledger.n_fills = fees, n
+                b.ledger.save()
+                log.info("virtual fee ledger seeded from the experience store: %.2f over %d fills", fees, n)
+
     def _default_loader(self, refresh: bool) -> dict[str, pd.DataFrame]:
         d = self.cfg.section("data")
         return load_universe(list(self.cfg.get("universe", [])), d.get("start", "2008-01-01"), None, d.get("interval", "1d"),
