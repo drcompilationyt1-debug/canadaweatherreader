@@ -51,19 +51,19 @@ def closes(ds) -> pd.DataFrame:
 def trend_state(px: pd.DataFrame, benchmark: str = "SPY", sma: int = 200, band: float = 0.02) -> pd.Series:
     """Faber-style trend switch: on while the benchmark closes above its ``sma``-day average (a ``band`` either side to
     avoid whipsaw), off below it.  Checked daily; it flips a couple of times a year."""
-    c = px[benchmark].astype(float)
+    c = px[benchmark].astype(float).dropna()           # the benchmark's own bars: the union index has gaps (other markets' holidays)
     m = c.rolling(int(sma)).mean()
-    state = pd.Series(np.nan, index=px.index)
+    states = {}
     on = True
-    for d in px.index:
+    for d in c.index:
         cm, mm = c.get(d), m.get(d)
         if pd.notna(cm) and pd.notna(mm):
             if on and cm < mm * (1.0 - band):
                 on = False
             elif not on and cm > mm * (1.0 + band):
                 on = True
-        state[d] = float(on)
-    return state
+        states[d] = float(on)
+    return pd.Series(states).reindex(px.index).ffill().fillna(1.0)
 
 
 def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, every: int = 10, hysteresis: int = 3,
