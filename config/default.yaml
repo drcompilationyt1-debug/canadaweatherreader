@@ -343,7 +343,7 @@ execution:
     share: 0.0                # (bought back - buy low with the proceeds); moved only when the change clears band.  The rank
     decide: model             # slots share what is left minus the cash reserve.  0 = no core (the $100k account); the $10k
     min_share: 0.25           # account uses 0.5.  decide: hold = bought once, topped up, never sold.  Never sold intraday.
-    max_share: 0.65
+    max_share: 0.5
     every_bars: 21
     band: 0.05
   # Buys are planned against the sleeve's OWN cash (Alpaca `cash`, moomoo `cash`; never margin buying power)
@@ -443,11 +443,13 @@ accounts:                     # extra accounts traded in the SAME session from t
       alpaca: { paper: true, fractional: false, keys_env: ALPACA_10K, history_dir: data/paper/small/alpaca }   # moomoo Canada: whole shares
       state_file: data/paper/small/state.json
       sleeves: { ca: { state_file: data/paper/small/state_ca.json, initial_cash: 10000 } }
-      # the patient profile (grid on the cached dataset, 2026-09-15): half in SPY timed by the model between 25% and 65% (trim
+      # the patient profile (grid on the cached dataset, 2026-09-15): half in SPY timed by the model between 25% and 50% (trim
       # high, rebuild low), the other half in the top 5 names rebalanced monthly with a wide hysteresis, slots full or empty,
       # the trend filter on the satellite,
       # $800 minimum orders -> SPY's return with a higher Sharpe, a 9% drawdown and ~6 turnovers a year at ~50 bps each
-      core: { ticker: SPY, share: 0.5, decide: model, min_share: 0.25, max_share: 0.65, every_bars: 21, band: 0.05 }
+      # the core: the model trims SPY towards 25% when its conviction is low (sell high) and rebuilds it to 50% when conviction
+      # returns (buy low with the proceeds); a ceiling above 50% only starved the satellite in the backtest
+      core: { ticker: SPY, share: 0.5, decide: model, min_share: 0.25, max_share: 0.5, every_bars: 21, band: 0.05 }
       max_position: 0.10      # a rank slot = (1 - 0.5 core - 0.1 reserve) / 5 = 8% of the book, $800 on $10k
       rank: { top_k: 5, every_bars: 21, hysteresis: 5, policy_floor: 1.0, trend_filter: { enabled: true } }
       min_trade_usd: 800      # never an order the US$1.99 minimum would make expensive
