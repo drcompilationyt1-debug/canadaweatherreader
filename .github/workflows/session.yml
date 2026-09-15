@@ -150,6 +150,9 @@ jobs:
       - name: market status
         if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
         run: python -m stockbot market-status
+      - name: intraday exit model (from the broker's 15-min bars - when should a held name have been sold?)
+        if: ${{ !(inputs.dry_run == true) && (steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true') }}
+        run: timeout 8m python -m stockbot intraday-fit --days 40 || true
       # (the session itself learns from yesterday - and any finished week / month / year not learned yet - in a background
       #  process while the LLM agents warm up before the open: session.learn_before_open)
       - name: session
@@ -166,6 +169,9 @@ jobs:
       - name: learn any finished unit the morning could not (fallback; usually a quick skip - today's close is not in yet)
         if: ${{ always() && !(inputs.dry_run == true) && (steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true') }}
         run: timeout 10m python -m stockbot review --learn --due --max-minutes 8 --offline || true
+      - name: account (the broker's equity per day and every fill, cached with the state)
+        if: ${{ always() && (steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true') }}
+        run: python -m stockbot account --sync --period 1M --days 25 --fills 25 || true
       - name: forecast scorecard
         if: ${{ always() && (steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true') }}
         run: python -m stockbot forecast --no-refresh || true

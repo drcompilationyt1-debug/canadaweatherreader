@@ -361,6 +361,12 @@ session:                      # `stockbot session`: the daily market-hours run (
   review_after: true          # after the watch window, replay the day and score it against the alternatives (`stockbot review`)
   learn_before_open: true     # before the open, learn from yesterday (and any finished week / month / year not learned yet) in a
   learn_margin_minutes: 8     # background process alongside the agent warm-up; it must be done this many minutes before the open
+  intraday_exit:              # during the watch window, sell a held name when the exit model - fitted on the broker's 15-minute
+    enabled: true             # bars by `stockbot intraday-fit` - says the close will most likely be lower than where we can sell now
+    min_prob: 0.6             # ("up 1% at 11:00, gave it all back by 14:00"); confidence needed ...
+    min_gain: 0.005           # ... and a move worth acting on: take a profit of at least this since the open ...
+    stop_loss: 0.02           # ... or cut a loss past this
+    model_dir: models/intraday_exit
   train: true                 # keep training the policy in the background while the market is watched
   train_minutes: 0            # 0 = whatever is left of the session after the margin
   train_timesteps: 2000000    # PPO steps per ensemble member per session (the time budget usually wins)

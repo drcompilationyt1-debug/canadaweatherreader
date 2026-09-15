@@ -129,6 +129,75 @@ class Review:
                "fees_bps": float(fees / notional * 1e4) if notional > 0 else None}
         return out, fills, fees
 
+    def _full_day(self, day: date, names: list[str], dec_by: dict, held_now: dict[str, float], slice_cap: float, equity0: float,
+                  mode: str) -> tuple[dict, list[str], float | None]:
+        """The whole 09:30-16:00 session from the broker's 15-minute bars (Alpaca): every move that was available on the
+        full day, the best exit of every name we held, what the intraday exit model would have done, and the fills."""
+        if mode not in ("alpaca", "live"):
+            return {}, [], None
+        try:
+            from ..execution.alpaca_history import AlpacaHistory
+            from .intraday import ExitModel, what_if_exit
+
+            if not AlpacaHistory.available():
+                return {}, [], None
+            hist = AlpacaHistory(self.cfg)
+            paths = hist.day_paths(names, day)
+        except Exception as e:  # noqa: BLE001
+            log.debug("broker bars unavailable for %s: %s", day, e)
+            return {}, [], None
+        if not paths:
+            return {}, [], None
+        n_steps = max(len(s) for s in paths.values())
+        paths = {t: s for t, s in paths.items() if len(s) == n_steps}
+        labels = ["open"] + [ts.strftime("%H:%M") for ts in next(iter(paths.values())).index]
+        prices = {t: [float(dec_by.get(t, {}).get("price") or s.iloc[0])] + s.to_numpy(float).tolist() for t, s in paths.items()}
+        wi = what_if_day(prices, held_now, slice_cap, equity0, self._fee_cost, labels=labels, levels=self.levels, gross_cap=self.gross_cap,
+                         workers=self.workers)
+        moves_close = {t: p[-1] / p[0] - 1.0 for t, p in prices.items()}
+        hold_to_close = sum(held_now.get(t, 0.0) * slice_cap * moves_close[t] for t in prices) / equity0 if equity0 else None
+        block = {"source": "alpaca 15Min bars", "n_names": len(prices), "steps": n_steps, "what_if": wi, "moves_close": moves_close,
+                 "hold_to_close_return": hold_to_close}
+        lessons = [f"the whole day from the broker's bars ({len(prices)} names, {n_steps} steps): best set of moves {_pct(wi['best_return'])}, "
+                   f"sizing regret {_pct(wi['sizing_regret'])}, timing regret {_pct(wi['timing_regret'])}"]
+        ie = self.cfg.get_path("session.intraday_exit", {}) or {}
+        model = ExitModel.load(self.cfg.path("session.intraday_exit.model_dir", "models/intraday_exit"))
+        exit_total = hold_total = 0.0
+        held_lines, per_held = [], {}
+        for t in sorted(prices, key=lambda t: -held_now.get(t, 0.0)):
+            e = held_now.get(t, 0.0)
+            if e <= 1e-6:
+                continue
+            c = np.asarray(prices[t][1:], dtype=float)
+            p0 = float(prices[t][0])
+            fee_rt = 2.0 * self._fee_frac(t, max(e * slice_cap, 1.0), p0)
+            w = what_if_exit(c, p0, fee_rt)
+            row = {"exposure": e, **w}
+            line = f"{t}: high-water {_pct(w['high_water'])}, best exit {labels[w['best_exit_k'] + 1]} for {_pct(w['best_exit_return'])}, close {_pct(w['hold_return'])}"
+            if model is not None:
+                rp = model.replay(c, p0, None, fee_rt, min_prob=float(ie.get("min_prob", 0.6)), min_gain=float(ie.get("min_gain", 0.005)),
+                                  stop_loss=float(ie.get("stop_loss", 0.02)))
+                exit_total += e * slice_cap * rp["exit_return"]
+                hold_total += e * slice_cap * rp["hold_return"]
+                row["exit_model"] = rp
+                line += (f"; the exit model would have sold at {labels[rp['exit_k'] + 1]} for {_pct(rp['exit_return'])} (p={rp['prob']:.2f})"
+                         if rp["exit_k"] is not None else "; the exit model would have held")
+            per_held[t] = row
+            if w["gain_vs_hold"] > 0.002:
+                held_lines.append(line)
+        block["held"] = per_held
+        if model is not None and per_held and equity0:
+            block["exit_model_return"] = exit_total / equity0
+            lessons.append(f"following the exit model on the names we held: {_pct(exit_total / equity0)} vs holding to the close {_pct(hold_total / equity0)}")
+        lessons.extend(held_lines[:3])
+        try:
+            fills = hist.fills(after=day, until=day + timedelta(days=1))
+            block["broker_fills"] = [{"ts": str(r["ts"]), "ticker": r["ticker"], "side": r["side"], "qty": r["qty"], "price": r["price"]}
+                                     for _, r in fills.iterrows()] if len(fills) else []
+        except Exception as e:  # noqa: BLE001
+            log.debug("broker fills unavailable: %s", e)
+        return block, lessons, hold_to_close
+
     @staticmethod
     def _rank_alternatives(actual: float, alts: dict[str, float]) -> list[dict]:
         rows = [{"name": "actual", "return": actual}] + [{"name": k, "return": v} for k, v in alts.items()]
@@ -255,6 +324,15 @@ class Review:
             if execution.get("shortfall_bps") is not None:
                 more.append(f"execution: {execution['fills']} fills, {execution['shortfall_bps']:+.1f} bps vs the decision price, "
                             f"fees {execution['fees_bps']:.1f} bps of notional")
+        try:
+            full, full_lessons, hold_to_close = self._full_day(day, names, dec_by, held_now, slice_cap, equity0, str(summary.get("mode", "")))
+            if full:
+                extra["full_day"] = full
+                more.extend(full_lessons)
+                if hold_to_close is not None:
+                    alts["hold_to_close"] = hold_to_close
+        except Exception as e:  # noqa: BLE001
+            log.debug("full-day review failed: %s", e)
         if self.benchmark in moves:
             extra["regime"] = {"benchmark_return": moves[self.benchmark],
                                "label": "up" if moves[self.benchmark] > 0.002 else "down" if moves[self.benchmark] < -0.002 else "flat"}

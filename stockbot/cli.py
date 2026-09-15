@@ -544,6 +544,50 @@ def cmd_experience(cfg, args) -> int:
     return 0
 
 
+def cmd_account(cfg, args) -> int:
+    """The broker's own record (Alpaca): equity per day, positions, every fill."""
+    from datetime import date, timedelta
+
+    from .execution.alpaca_history import AlpacaHistory
+
+    if not AlpacaHistory.available():
+        print("no Alpaca keys (ALPACA_API_KEY / ALPACA_SECRET_KEY)")
+        return 1
+    h = AlpacaHistory(cfg)
+    daily = h.daily(args.period)
+    if len(daily):
+        d = daily.tail(args.days)
+        ups, downs = int((d["direction"] == "up").sum()), int((d["direction"] == "down").sum())
+        print(f"== account per day ({args.period}): {ups} up days, {downs} down days, P&L {d['profit_loss'].sum():+,.2f} ==")
+        print(d.to_string(index=False, formatters={"equity": "{:,.2f}".format, "profit_loss": "{:+,.2f}".format, "profit_loss_pct": "{:+.2%}".format}))
+    try:
+        pos = h.positions()
+        if len(pos):
+            print("\n== positions ==")
+            print(pos.to_string(index=False, formatters={"unrealized_plpc": "{:+.2%}".format, "unrealized_pl": "{:+,.2f}".format, "today_pl": "{:+,.2f}".format}))
+    except Exception as e:  # noqa: BLE001
+        print("positions unavailable:", e)
+    fills = h.sync_fills() if args.sync else h.fills(after=date.today() - timedelta(days=45))
+    if len(fills):
+        print(f"\n== last {min(args.fills, len(fills))} of {len(fills)} fills ==")
+        print(fills[["ts", "ticker", "side", "qty", "price", "notional"]].tail(args.fills).to_string(index=False))
+    else:
+        print("\nno fills in the window")
+    if args.sync:
+        h.portfolio_history("3M", "1D")
+        print(f"\ncached under {h.cache_dir} (saved with the state)")
+    return 0
+
+
+def cmd_intraday_fit(cfg, args) -> int:
+    """Fit the intraday exit model on the broker's 15-minute bars."""
+    from .feedback.intraday import fit_from_alpaca
+
+    rep = fit_from_alpaca(cfg, days=args.days, timeframe=args.timeframe, holdout_days=args.holdout_days)
+    print(json.dumps(rep, indent=1, default=str))
+    return 0
+
+
 def cmd_retrain(cfg, args) -> int:
     from .agent.train import retrain
     from .feedback.experience import ExperienceStore
@@ -731,6 +775,19 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(fn=cmd_report)
 
     sub.add_parser("experience", help="summary of logged paper / live decisions and outcomes").set_defaults(fn=cmd_experience)
+
+    p = sub.add_parser("account", help="the broker's own record (Alpaca): equity per day (ups and downs), positions, every fill")
+    p.add_argument("--period", default="1M", help="1D | 1W | 1M | 3M | 1A | all")
+    p.add_argument("--days", type=int, default=30, help="how many of the latest days to print")
+    p.add_argument("--fills", type=int, default=30)
+    p.add_argument("--sync", action="store_true", help="cache the history and every fill under data/paper/alpaca (saved with the state)")
+    p.set_defaults(fn=cmd_account)
+
+    p = sub.add_parser("intraday-fit", help="fit the intraday exit model on the broker's 15-minute bars: when should a held name have been sold?")
+    p.add_argument("--days", type=int, default=40)
+    p.add_argument("--timeframe", default="15Min")
+    p.add_argument("--holdout-days", type=int, default=5)
+    p.set_defaults(fn=cmd_intraday_fit)
 
     p = sub.add_parser("retrain", help="refresh data, refit sub-models and continue training (feedback loop)")
     p.add_argument("--timesteps", type=int)

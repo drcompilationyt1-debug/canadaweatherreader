@@ -29,6 +29,8 @@ import numpy as np
 from ..config import Config
 from ..logging_utils import get_logger
 from ..paths import ROOT
+from .base import Order
+from .fees import FeeBook
 from .market_hours import MarketClock, NY
 from .runner import TradingRunner
 
@@ -69,6 +71,17 @@ class TradingSession:
         # background process while the LLM agents warm up; it must end learn_margin_minutes before the open
         self.learn_before_open = bool(s.get("learn_before_open", True))
         self.learn_margin_minutes = float(s.get("learn_margin_minutes", 8))
+        # during the watch window: sell a held name when the intraday exit model (fitted on the broker's 15-minute
+        # bars, `stockbot intraday-fit`) says the close will most likely be lower than where we could sell now
+        ie = dict(s.get("intraday_exit", {}) or {})
+        self.exit_enabled = bool(ie.get("enabled", True))
+        self.exit_min_prob = float(ie.get("min_prob", 0.6))
+        self.exit_min_gain = float(ie.get("min_gain", 0.005))
+        self.exit_stop_loss = float(ie.get("stop_loss", 0.02))
+        self.exit_model_dir = cfg.path("session.intraday_exit.model_dir", "models/intraday_exit")
+        self.exit_model = None
+        self.exited: set[str] = set()
+        self.fees = FeeBook.from_config(cfg)
         self.clock = clock or MarketClock()
         self.started_at = self.now()
         self.sleep = sleep
@@ -118,6 +131,55 @@ class TradingSession:
         if self.deadline_at is not None:
             cands.append(self.deadline_at.astimezone(self.started_at.tzinfo) if self.deadline_at.tzinfo else self.deadline_at)
         return min(cands) if cands else None
+
+    def _prev_close(self, ticker: str) -> float | None:
+        df = self.runner.frames.get(ticker) if self.runner is not None else None
+        if df is None or len(df) < 2:
+            return None
+        last = df.index[-1]
+        return float(df["close"].iloc[-2]) if last.date() == self.now().date() else float(df["close"].iloc[-1])
+
+    def _intraday_exits(self, snap: dict) -> int:
+        """Ask the exit model about every held name on the path since the open; sell the ones it flags."""
+        if self.exit_model is None or self.dry_run or self.runner is None:
+            return 0
+        r = self.runner
+        n = 0
+        for t, row in (snap.get("tickers") or {}).items():
+            shares = float(row.get("held") or 0.0)
+            open_px = self.summary.get("open_prices", {}).get(t)
+            if shares <= 0 or not open_px or t in self.exited:
+                continue
+            path = [float(open_px)] + [float(s["tickers"][t]["price"]) for s in self.snapshots if t in (s.get("tickers") or {}) and s["tickers"][t].get("price")]
+            price = float(row.get("price") or path[-1])
+            sched = self.fees.for_ticker(t)
+            notional = max(shares * price, 1.0)
+            fee_rt = 2.0 * float(sched.cost(shares, price, "sell")) / notional if sched is not None else 0.0
+            adv = self.exit_model.advice(np.asarray(path), float(open_px), self._prev_close(t), fee_rt, min_prob=self.exit_min_prob,
+                                        min_gain=self.exit_min_gain, stop_loss=self.exit_stop_loss)
+            if not adv.get("exit"):
+                continue
+            try:
+                fill = r.broker.submit(Order(t, "sell", shares, note="intraday exit"))
+            except Exception as e:  # noqa: BLE001
+                log.warning("intraday exit %s failed: %s", t, e)
+                continue
+            if fill is None:
+                continue
+            n += 1
+            self.exited.add(t)
+            rec = {"type": "exit", "ts": self.now().isoformat(timespec="seconds"), "ticker": t, "qty": float(fill.qty), "price": float(fill.price),
+                   "fees": float(fill.cost), "prob": adv.get("prob"), "ret_open": adv.get("ret_open"), "ret_max": adv.get("ret_max"),
+                   "reason": adv.get("reason")}
+            self._append(rec)
+            log.info("intraday exit: sold %.3f %s @ %.2f (%s: %+.2f%% since the open, high %+.2f%%, p=%.2f)", fill.qty, t, fill.price,
+                     adv.get("reason"), 100 * float(adv.get("ret_open") or 0.0), 100 * float(adv.get("ret_max") or 0.0), float(adv.get("prob") or 0.0))
+        if n:
+            try:
+                r.broker.save()
+            except Exception as e:  # noqa: BLE001
+                log.debug("broker save after exits: %s", e)
+        return n
 
     def learn_command(self, minutes: float) -> list[str]:
         cmd = [sys.executable, "-m", "stockbot", "review", "--learn", "--due", "--max-minutes", f"{minutes:.0f}",
@@ -318,20 +380,38 @@ class TradingSession:
                 log.error("could not start the trainer: %s", e)
                 self.summary["trainer"] = {"error": str(e)}
 
+        if self.exit_enabled and not self.dry_run and self.exit_model is None:
+            try:
+                from ..feedback.intraday import ExitModel
+
+                self.exit_model = ExitModel.load(self.exit_model_dir)
+            except Exception as e:  # noqa: BLE001
+                log.warning("intraday exit model unavailable: %s", e)
+                self.exit_model = None
+            m = (self.exit_model.meta.get("metrics") or {}) if self.exit_model is not None else {}
+            log.info("intraday exit model: %s", f"on (holdout auc {m.get('auc', float('nan')):.2f}, p>={self.exit_min_prob:.2f}, gain>={100 * self.exit_min_gain:.1f}%)"
+                     if self.exit_model is not None else "none fitted yet (stockbot intraday-fit)")
         k = 0
         while self.now() < end:
             nxt = min(self.now() + timedelta(minutes=self.snapshot_minutes), end)
             self._sleep_until(nxt)
             k += 1
+            snap = None
             try:
-                self.snapshot(f"t+{k * self.snapshot_minutes:.0f}m")
+                snap = self.snapshot(f"t+{k * self.snapshot_minutes:.0f}m")
             except Exception as e:  # noqa: BLE001
                 log.warning("snapshot failed: %s", e)
+            if snap is not None:
+                try:
+                    self._intraday_exits(snap)
+                except Exception as e:  # noqa: BLE001
+                    log.warning("intraday exit check failed: %s", e)
             if self.trainer is not None and self.trainer.poll() is not None and "returncode" not in self.summary.get("trainer", {}):
                 self.summary["trainer"]["returncode"] = self.trainer.returncode
                 log.info("trainer finished early with code %s", self.trainer.returncode)
 
         final = self.snapshot("end")
+        self.summary["exits"] = len(self.exited)
         settled = 0
         for t, row in final["tickers"].items():
             if self.dry_run:

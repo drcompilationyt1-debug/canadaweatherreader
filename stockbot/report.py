@@ -102,8 +102,18 @@ def _alpaca_state(cfg: Config) -> dict:
               for t, e in zip(hist.timestamp, hist.equity) if e is not None]
         acct = b.client.get_account()
         positions = {t: {"shares": p.shares, "avg_price": p.avg_price} for t, p in b.positions().items()}
+        extra: dict = {"fills": []}
+        try:
+            from .execution.alpaca_history import AlpacaHistory
+
+            h = AlpacaHistory(cfg)
+            extra["daily"] = h.daily("1M").tail(30).iloc[::-1].to_dict("records")
+            f = h.sync_fills()
+            extra["fills"] = f.tail(30).iloc[::-1].assign(ts=lambda d: d["ts"].astype(str).str[:16]).to_dict("records") if len(f) else []
+        except Exception as e:  # noqa: BLE001
+            log.debug("alpaca history unavailable: %s", e)
         return {"cash": float(acct.cash), "initial_cash": float(getattr(acct, "last_equity", acct.equity)),
-                "equity_history": eq, "positions": positions, "fills": [], "last_prices": {}, "broker": b.name}
+                "equity_history": eq, "positions": positions, "last_prices": {}, "broker": b.name, **extra}
     except Exception as e:  # noqa: BLE001
         log.warning("alpaca dashboard data unavailable: %s", e)
         return {}
@@ -252,6 +262,12 @@ def build_dashboard(cfg: Config, mode: str = "paper", out: str | Path | None = N
              "</div>",
              "<h2>Equity</h2>", _svg_line(list(range(len(ys))), ys, labels=labels),
              "<h2>Latest session</h2>", "".join(sess_parts) or "<div class='muted'>no session yet</div>",
+             "<h2>Account: per-day ups and downs (broker)</h2>",
+             _table(pd.DataFrame(state["daily"]), fmt={"equity": "{:,.0f}", "profit_loss": "{:+,.0f}", "profit_loss_pct": "{:+.2%}"})
+             if state.get("daily") else "<div class='muted'>no broker history</div>",
+             "<h2>Transactions (broker fills)</h2>",
+             _table(pd.DataFrame(state["fills"])[["ts", "ticker", "side", "qty", "price", "notional"]], fmt={"qty": "{:.3f}", "price": "{:.2f}", "notional": "{:,.0f}"})
+             if state.get("fills") else "<div class='muted'>no fills yet</div>",
              "<h2>Who predicts the direction?</h2>", "".join(score_parts) or "<div class='muted'>nothing settled yet</div>",
              "<h2>Positions</h2>", _table(pos_df, fmt={"shares": "{:.3f}", "avg_price": "{:.2f}", "last": "{:.2f}", "value": "{:,.0f}", "unrealized_pnl": "{:+,.0f}"}),
              "<h2>Recent decisions</h2>", _table(dec_df, fmt={"target_exposure": "{:+.2f}", "weight": "{:+.3f}", "price": "{:.2f}"}),
