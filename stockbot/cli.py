@@ -546,7 +546,7 @@ def cmd_experience(cfg, args) -> int:
     return 0
 
 
-def cmd_backtest(cfg, args) -> int:
+def cmd_portfolio(cfg, args) -> int:
     """The rank-core rule as a portfolio vs SPY and equal-weight, at each budget's fees (the yardstick that matters)."""
     from .agent.backtest import format_report, run_backtests
     from .agent.train import cached_dataset
@@ -809,11 +809,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("experience", help="summary of logged paper / live decisions and outcomes").set_defaults(fn=cmd_experience)
 
-    p = sub.add_parser("backtest", help="the rank-core decision rule as a portfolio vs SPY / equal-weight, net of each budget's fees")
+    p = sub.add_parser("portfolio", help="the rank-core decision rule as a portfolio vs SPY / equal-weight, net of each budget's fees")
     p.add_argument("--start", help="out-of-sample start (default data.train_end)")
     p.add_argument("--years", type=int, default=3, help="length of the long window")
     p.add_argument("--out", help="write the report as JSON")
-    p.set_defaults(fn=cmd_backtest)
+    p.set_defaults(fn=cmd_portfolio)
 
     p = sub.add_parser("account", help="the broker's own record (Alpaca): equity per day (ups and downs), positions, every fill")
     p.add_argument("--period", default="1M", help="1D | 1W | 1M | 3M | 1A | all")
