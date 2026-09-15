@@ -75,14 +75,16 @@ def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, e
     rets = px.pct_change(fill_method=None).reindex(idx).fillna(0.0)
     wts = pd.DataFrame(0.0, index=idx, columns=px.columns)
     core_t, core_share = (str(core.get("ticker", "SPY")), float(core.get("share", 0.0))) if core else (None, 0.0)
+    core_series = core.get("series") if core else None                    # the core's weight per day (the model's timing)
     if core_t is not None and core_t not in px.columns:
-        core_t, core_share = None, 0.0
-    satellite = max(0.0, 1.0 - core_share - float(reserve))
+        core_t, core_share, core_series = None, 0.0, None
     on = trend_state(px, str(trend.get("benchmark", "SPY")), int(trend.get("sma", 200)), float(trend.get("band", 0.02))) if trend else None
     held: list[str] = []
     for i, d in enumerate(idx):
+        share_d = float(core_series.get(d, core_share)) if core_series is not None else core_share
+        satellite = max(0.0, 1.0 - share_d - float(reserve))
         if core_t is not None:
-            wts.loc[d, core_t] = core_share
+            wts.loc[d, core_t] = share_d
         if score is None:
             others = [t for t in px.columns if t != core_t]
             wts.loc[d, others] = satellite / len(others)
@@ -105,6 +107,47 @@ def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, e
             "sharpe": float(daily.mean() / daily.std() * np.sqrt(252)) if len(daily) > 1 and daily.std() > 0 else 0.0,
             "max_drawdown": float((eq / eq.cummax() - 1.0).min()) if len(eq) else 0.0,
             "turnover_per_year": float(turnover.sum() / max(len(idx), 1) * 252), "days": int(len(idx))}
+
+
+def core_series_from_policy(cfg, ds, ticker: str, start, min_share: float, max_share: float, every: int = 21, band: float = 0.05,
+                            baseline: float | None = None) -> pd.Series | None:
+    """The core's weight per day as the current policy would time it: its conviction on the core name (from a run of the
+    policy along the window) placed between min_share and max_share every ``every`` bars, held between decisions, moved
+    only when the change clears ``band`` - the runner's rule.  None without a policy."""
+    try:
+        from ..config import env_settings
+        from .evaluate import run_window
+        from .policy import PolicyBundle
+
+        ckpt = cfg.path("train.checkpoint_dir", "models/policy")
+        if ticker not in ds.data or not PolicyBundle.exists(ckpt):
+            return None
+        bundle = PolicyBundle.load(ckpt)
+        td = ds.data[ticker]
+        dates = pd.DatetimeIndex(td.dates)
+        i0 = max(int(dates.searchsorted(pd.Timestamp(start))) - 1, td.min_start)
+        length = len(td) - 2 - i0
+        if length < 5:
+            return None
+
+        class _Fit:
+            def predict(self, obs, deterministic=True):
+                return bundle.model.predict(bundle.fit_obs(np.asarray(obs, np.float32)), deterministic=deterministic)
+
+        res = run_window(_Fit(), ds, ticker, env_settings(cfg), start=i0, length=length)
+        conv = pd.Series(np.asarray(res["exposures"], float), index=pd.to_datetime(res["dates"][1:]))
+        out, cur, last_i = {}, float(baseline if baseline is not None else (min_share + max_share) / 2), None
+        for i, d in enumerate(conv.index):
+            if last_i is None or i - last_i >= every:
+                target = min_share + (max_share - min_share) * float(np.clip(conv.iloc[i], 0.0, 1.0))
+                if abs(target - cur) >= band:
+                    cur = target
+                last_i = i
+            out[d] = cur
+        return pd.Series(out)
+    except Exception as e:  # noqa: BLE001
+        log.debug("core timing from the policy unavailable: %s", e)
+        return None
 
 
 def round_trip_bps(cfg, budget: float, k: int, price: float = 100.0, ticker: str = "SPY") -> float:
@@ -130,9 +173,15 @@ def run_backtests(cfg, ds, budgets: dict[str, dict] | None = None, oos_start=Non
     def _profile(c, rk_, budget):
         core = dict(c.get_path("execution.core", {}) or {})
         tf = dict(rk_.get("trend_filter", {}) or {})
+        share = float(core.get("share", 0.0) or 0.0)
+        core_spec = None
+        if share > 0:
+            core_spec = {"ticker": str(core.get("ticker", "SPY")), "share": share, "decide": str(core.get("decide", "model")),
+                         "min_share": float(core.get("min_share", share * 0.5)), "max_share": float(core.get("max_share", share * 1.3)),
+                         "every": every_bars_of(core.get("every_bars", 21)), "band": float(core.get("band", 0.05))}
         return {"budget": float(budget), "k": int(rk_.get("top_k", 20)), "every": every_bars_of(rk_.get("every_bars", 10)),
                 "hysteresis": int(rk_.get("hysteresis", 3)), "reserve": float(c.get_path("execution.cash_reserve", 0.1) or 0.0),
-                "core": {"ticker": str(core.get("ticker", "SPY")), "share": float(core.get("share", 0.0) or 0.0)} if float(core.get("share", 0.0) or 0.0) > 0 else None,
+                "core": core_spec,
                 "trend": {"benchmark": str(tf.get("benchmark", "SPY")), "sma": int(tf.get("sma", 200)), "band": float(tf.get("band", 0.02))} if tf.get("enabled") else None}
 
     if budgets is None:
@@ -158,13 +207,23 @@ def run_backtests(cfg, ds, budgets: dict[str, dict] | None = None, oos_start=Non
         ew = simulate(px, None, start)
         res["equal_weight"] = {k: v for k, v in ew.items() if k != "daily"}
         for bname, bset in budgets.items():
+            core = dict(bset["core"]) if bset.get("core") else None
+            if core and core.get("decide", "model") == "model":                  # the policy's own timing of the core
+                series = core_series_from_policy(cfg, ds, core["ticker"], start, core["min_share"], core["max_share"], core["every"], core["band"],
+                                                 baseline=core["share"])
+                if series is not None:
+                    core["series"] = series
+            bset = {**bset, "core": core}
             core_share = (bset.get("core") or {}).get("share", 0.0) if bset.get("core") else 0.0
             satellite_budget = bset["budget"] * max(0.0, 1.0 - core_share - bset.get("reserve", 0.0))
             fee = round_trip_bps(cfg, satellite_budget, bset["k"])
             r = simulate(px, score, start, k=bset["k"], every=bset["every"], hysteresis=bset.get("hysteresis", hyst), fee_bps=fee,
                          core=bset.get("core"), trend=bset.get("trend"), reserve=bset.get("reserve", 0.0))
             res[f"rank_{bname}"] = {**{k: v for k, v in r.items() if k != "daily"}, "k": bset["k"], "every_bars": bset["every"], "fee_bps": fee,
-                                    "core": bset.get("core"), "trend_filter": bool(bset.get("trend")), "reserve": bset.get("reserve", 0.0),
+                                    "core": {k2: v2 for k2, v2 in (bset.get("core") or {}).items() if k2 != "series"} if bset.get("core") else None,
+                                    "core_timed_by_policy": bool(bset.get("core") and "series" in bset["core"]),
+                                    "core_avg_share": float(bset["core"]["series"].mean()) if bset.get("core") and "series" in bset["core"] else None,
+                                    "trend_filter": bool(bset.get("trend")), "reserve": bset.get("reserve", 0.0),
                                     "excess_vs_benchmark": r["total"] - res.get(benchmark, {}).get("total", 0.0)}
         out["results"][wname] = res
     return out

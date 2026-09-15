@@ -338,9 +338,14 @@ execution:
       benchmark: SPY
       sma: 200
       band: 0.02
-  core:                       # a buy-and-hold slice inside the account: bought once, topped up when it drifts below share,
-    ticker: SPY               # never sold by the bot (not by the rank layer, not by the intraday exit); the rank slots share
-    share: 0.0                # the rest minus the cash reserve.  0 = no core (the $100k account); 0.5 for the $10k account
+  core:                       # the index sleeve inside the account, timed by the model: every every_bars its conviction on the
+    ticker: SPY               # core name places the weight between min_share (trimmed - sell high, cash kept) and max_share
+    share: 0.0                # (bought back - buy low with the proceeds); moved only when the change clears band.  The rank
+    decide: model             # slots share what is left minus the cash reserve.  0 = no core (the $100k account); the $10k
+    min_share: 0.25           # account uses 0.5.  decide: hold = bought once, topped up, never sold.  Never sold intraday.
+    max_share: 0.65
+    every_bars: 21
+    band: 0.05
   # Buys are planned against the sleeve's OWN cash (Alpaca `cash`, moomoo `cash`; never margin buying power)
   # and never spend more than (1 - cash_reserve) of it: a 10% buffer for fees, price moves before the fill and
   # the odd rejected sell.  Sale proceeds are not reused in the same cycle (T+1 settlement in a cash account).
@@ -438,10 +443,11 @@ accounts:                     # extra accounts traded in the SAME session from t
       alpaca: { paper: true, fractional: false, keys_env: ALPACA_10K, history_dir: data/paper/small/alpaca }   # moomoo Canada: whole shares
       state_file: data/paper/small/state.json
       sleeves: { ca: { state_file: data/paper/small/state_ca.json, initial_cash: 10000 } }
-      # the patient profile (grid on the cached dataset, 2026-09-15): half in SPY bought once and never sold, the other half
-      # in the top 5 names rebalanced monthly with a wide hysteresis, slots full or empty, the trend filter on the satellite,
+      # the patient profile (grid on the cached dataset, 2026-09-15): half in SPY timed by the model between 25% and 65% (trim
+      # high, rebuild low), the other half in the top 5 names rebalanced monthly with a wide hysteresis, slots full or empty,
+      # the trend filter on the satellite,
       # $800 minimum orders -> SPY's return with a higher Sharpe, a 9% drawdown and ~6 turnovers a year at ~50 bps each
-      core: { ticker: SPY, share: 0.5 }
+      core: { ticker: SPY, share: 0.5, decide: model, min_share: 0.25, max_share: 0.65, every_bars: 21, band: 0.05 }
       max_position: 0.10      # a rank slot = (1 - 0.5 core - 0.1 reserve) / 5 = 8% of the book, $800 on $10k
       rank: { top_k: 5, every_bars: 21, hysteresis: 5, policy_floor: 1.0, trend_filter: { enabled: true } }
       min_trade_usd: 800      # never an order the US$1.99 minimum would make expensive

@@ -143,7 +143,7 @@ def test_core_and_trend_filter_in_the_backtest():
 def test_runner_keeps_a_buy_only_core_and_obeys_the_trend_filter(cfg, frames):
     from stockbot.execution.base import Order
 
-    cfg.set_path("execution.core", {"ticker": "AAA", "share": 0.5})
+    cfg.set_path("execution.core", {"ticker": "AAA", "share": 0.5, "decide": "hold"})
     cfg.set_path("execution.rank", {"enabled": True, "top_k": 1, "every_bars": 3, "hysteresis": 0, "inputs": {"technical.ret_20": 1.0},
                                     "policy_floor": 1.0, "policy_veto": 0.05, "adaptive": False})
     cfg.set_path("execution.max_position", 0.5)
@@ -159,7 +159,7 @@ def test_runner_keeps_a_buy_only_core_and_obeys_the_trend_filter(cfg, frames):
     sat = [d for d in decisions if d.ticker != "AAA" and d.action == "BUY"]
     assert len(sat) == 1 and sat[0].amount_usd == pytest.approx(0.4 * eq, rel=0.05)                        # one slot = 1 - 0.5 - 0.1 reserve
     assert "AAA" not in r.last_rank["chosen"]
-    # the core is never sold: even a policy that wants nothing leaves it alone, and the satellite holds off-schedule
+    # decide: hold -> the core is never sold: even a policy that wants nothing leaves it alone, and the satellite holds off-schedule
     r.bundle = PolicyBundle(type("Flat", (), {"num_timesteps": 0, "predict": staticmethod(lambda obs, deterministic=True: (np.array([-1.0], dtype=np.float32), None))})(),
                             bundle.layout, {"algo": "ppo"})
     decisions2 = r.cycle(dry_run=False, refresh=False)
@@ -195,3 +195,56 @@ def test_training_draws_the_fee_regime_per_episode(cfg, frames):
     assert max(drags["moomoo"]) > max(drags["webull"])                                       # the fee_drag input tells the regimes apart
     evl = TradingEnv(ds, env_cfg, seed=1, eval_mode=True)
     assert {evl.reset()[0] is not None and evl.portfolio.fees.preset for _ in range(5)} == {"moomoo"}
+
+
+def test_model_timed_core_trims_high_and_rebuilds_low(cfg, frames):
+    cfg.set_path("execution.core", {"ticker": "AAA", "share": 0.5, "decide": "model", "min_share": 0.25, "max_share": 0.65, "every_bars": 3, "band": 0.05})
+    cfg.set_path("execution.rank", {"enabled": True, "top_k": 1, "every_bars": 3, "hysteresis": 0, "inputs": {"technical.ret_20": 1.0},
+                                    "policy_floor": 1.0, "policy_veto": 0.05, "adaptive": False})
+    cfg.set_path("execution.max_position", 0.5)
+    ctx = build_context(cfg, with_llm=False, with_news=False)
+    providers = [p for p in build_providers(cfg, ctx) if p.name in ("technical", "trend")]
+    layout = build_layout(providers)
+    full = PolicyBundle(BuyEverything(), layout, {"algo": "ppo"})
+    flat = PolicyBundle(type("Flat", (), {"num_timesteps": 0, "predict": staticmethod(lambda obs, deterministic=True: (np.array([-1.0], dtype=np.float32), None))})(),
+                        layout, {"algo": "ppo"})
+    r = TradingRunner(cfg, mode="paper", bundle=full, frames_loader=lambda refresh: frames, with_llm=False)
+    assert r.core_decide == "model" and r.core_min == 0.25 and r.core_max == 0.65
+    decisions = r.cycle(dry_run=False, refresh=False)
+    by = {d.ticker: d for d in decisions}
+    eq = r.broker.equity()
+    assert by["AAA"].action == "BUY" and by["AAA"].amount_usd == pytest.approx(0.65 * eq, rel=0.05)         # full conviction: the ceiling
+    sat = [d for d in decisions if d.ticker != "AAA" and d.action == "BUY"]
+    assert len(sat) == 1 and sat[0].amount_usd == pytest.approx((1 - 0.65 - 0.1) * eq, rel=0.1)          # the slots share what is left
+    assert r.state["core_last_date"] == str(frames["AAA"].index[-1].date())
+    # no conviction, but not a core decision day yet: the core is kept
+    r.bundle = flat
+    decisions2 = r.cycle(dry_run=False, refresh=False)
+    assert {d.action for d in decisions2 if d.ticker == "AAA"} == {"HOLD"}
+    # on a core decision day with no conviction it is trimmed to the floor (sold high), never below it
+    r.state["core_last_date"] = None
+    r.state["last_rebalance_date"] = None
+    decisions3 = r.cycle(dry_run=False, refresh=False)
+    core3 = next(d for d in decisions3 if d.ticker == "AAA")
+    assert core3.action == "SELL"
+    assert r.core_now("AAA", r.broker.equity()) == pytest.approx(0.25, abs=0.03)
+    # and with conviction back it is rebuilt towards the ceiling with the cash on hand
+    r.bundle = full
+    r.state["core_last_date"] = None
+    decisions4 = r.cycle(dry_run=False, refresh=False)
+    core4 = next(d for d in decisions4 if d.ticker == "AAA")
+    assert core4.action == "BUY" and r.core_now("AAA", r.broker.equity()) > 0.45
+
+
+def test_backtest_core_series_and_policy_timing(cfg, frames):
+    from stockbot.agent.backtest import core_series_from_policy, simulate
+    from stockbot.env.dataset import MarketDataset
+
+    idx = pd.date_range("2026-01-01", periods=40, freq="B")
+    px = pd.DataFrame({"SPY": np.linspace(100, 120, 40), "A": np.linspace(100, 110, 40)}, index=idx)
+    series = pd.Series(np.where(np.arange(40) < 20, 0.65, 0.25), index=idx)
+    r = simulate(px, pd.DataFrame({"A": 1.0}, index=idx), "2026-01-01", k=1, every=5, hysteresis=0, fee_bps=0.0,
+                 core={"ticker": "SPY", "share": 0.5, "series": series}, reserve=0.1)
+    assert r["turnover_per_year"] > 0 and 0.0 < r["total"] < 0.2
+    assert core_series_from_policy(cfg, MarketDataset.build(frames, [], build_layout([]), build_context(cfg, with_llm=False, with_news=False),
+                                                            fit=False, train_end="2018-12-31"), "AAA", "2019-06-01", 0.25, 0.65) is None   # no policy trained
