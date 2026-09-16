@@ -30,30 +30,40 @@ def main() -> int:
     ap.add_argument("--remote", default="origin")
     ap.add_argument("--branch", default="state")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--keep", nargs="*", default=[], help="extra local paths (dirs or files) to keep over the state branch, e.g. models/dataset models/signals")
+    ap.add_argument("--no-policy", action="store_true", help="leave the state branch's policy alone (push only the --keep paths)")
     args = ap.parse_args()
+    keep_local = ([] if args.no_policy else KEEP_LOCAL) + [k for k in args.keep if k not in KEEP_LOCAL]
     policy = ROOT / "models" / "policy"
-    if not (policy / "ensemble.json").exists() and not (policy / "latest.zip").exists():
+    if not args.no_policy and not (policy / "ensemble.json").exists() and not (policy / "latest.zip").exists():
         print(f"no trained policy in {policy}")
         return 1
     with tempfile.TemporaryDirectory() as tmp:
         keep = Path(tmp) / "keep"
-        for rel in KEEP_LOCAL:
+        for rel in keep_local:
             src = ROOT / rel
-            if src.exists():
+            if src.is_dir():
                 shutil.copytree(src, keep / rel, ignore=shutil.ignore_patterns("checkpoints", "archive"))
+            elif src.is_file():
+                (keep / rel).parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(src, keep / rel)
         print("refreshing the live state from", f"{args.remote}/{args.branch}")
         ci_state.restore(args.remote, args.branch)
-        for rel in KEEP_LOCAL:
+        for rel in keep_local:
             src = keep / rel
-            if src.exists():
-                dst = ROOT / rel
+            dst = ROOT / rel
+            if src.is_dir():
                 if dst.exists():
                     shutil.rmtree(dst)
                 shutil.copytree(src, dst)
                 print("kept the local", rel)
+            elif src.is_file():
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(src, dst)
+                print("kept the local", rel)
     if args.dry_run:
-        r = subprocess.run(["git", "status", "--short", "--", "models/policy"], cwd=ROOT, capture_output=True, text=True)
-        print(r.stdout or "(models/policy unchanged vs the working tree)")
+        r = subprocess.run(["git", "status", "--short", "--"] + keep_local, cwd=ROOT, capture_output=True, text=True)
+        print(r.stdout or "(kept paths unchanged vs the working tree)")
         print("dry run - not pushed")
         return 0
     return ci_state.save(args.remote, args.branch)
