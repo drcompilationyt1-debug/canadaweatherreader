@@ -26,6 +26,9 @@ on:
         description: "ignore the current policy and train fresh"
         type: boolean
         default: false
+      max_minutes:
+        description: "wall-clock budget for the PPO updates (the dataset build comes on top; the job has 350 minutes in all)"
+        default: "220"
 
 concurrency:
   group: stockbot-state
@@ -124,7 +127,7 @@ jobs:
           --timesteps ${{ inputs.timesteps || '4000000' }}
           --seeds ${{ inputs.seeds || '3' }}
           --n-envs 4
-          --max-minutes 220
+          --max-minutes ${{ inputs.max_minutes || '220' }}
           ${{ steps.day.outputs.refit == 'true' && '' || '--reuse-dataset-days 3' }}
           ${{ inputs.from_scratch == true && '--from-scratch' || '' }}
       - name: evaluate
