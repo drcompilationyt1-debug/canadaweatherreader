@@ -29,6 +29,9 @@ on:
       max_minutes:
         description: "wall-clock budget for the PPO updates (the dataset build comes on top; the job has 350 minutes in all)"
         default: "220"
+      chain_minutes:
+        description: "after this run saves, start another run that continues training for this many minutes on the cached dataset (0 = none)"
+        default: "0"
 
 concurrency:
   group: stockbot-state
@@ -40,6 +43,7 @@ jobs:
     timeout-minutes: 350         # GitHub's hard limit is 360
     permissions:
       contents: write
+      actions: write             # a run may start the follow-up run that continues the training
     env:
       ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
       ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
@@ -152,6 +156,15 @@ jobs:
       - name: save state
         if: always()
         run: python scripts/ci_state.py save
+      - name: continue the training in a follow-up run (the cached dataset, the policy resumed)
+        if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.chain_minutes != '0' && inputs.chain_minutes != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh workflow run retrain.yml --ref ${{ github.ref_name }}
+          -f refit=false -f from_scratch=false
+          -f seeds=${{ inputs.seeds || '3' }} -f timesteps=${{ inputs.timesteps || '4000000' }}
+          -f max_minutes=${{ inputs.chain_minutes }} -f chain_minutes=0
       - uses: actions/upload-artifact@v4
         if: always()
         with:
