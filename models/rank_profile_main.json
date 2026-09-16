@@ -1,0 +1,257 @@
+{
+ "account": "main",
+ "tuned_at": "2026-09-15",
+ "accepted": true,
+ "profile": {
+  "top_k": 25,
+  "every_bars": 10,
+  "hysteresis": 3,
+  "core_share": 0.0,
+  "core_ticker": "SPY"
+ },
+ "current": {
+  "top_k": 20,
+  "every_bars": 10,
+  "hysteresis": 3,
+  "core_share": 0.0
+ },
+ "current_result": {
+  "1y": {
+   "total": 0.23746218333474212,
+   "sharpe": 1.8694855528741967,
+   "max_drawdown": -0.061622046966954835,
+   "turnover_per_year": 13.20046875,
+   "days": 256
+  },
+  "3y": {
+   "total": 0.8263741088487406,
+   "sharpe": 1.4115055971799395,
+   "max_drawdown": -0.16701721674076608,
+   "turnover_per_year": 12.284999999999998,
+   "days": 768
+  }
+ },
+ "best_result": {
+  "1y": {
+   "total": 0.23259501440426722,
+   "sharpe": 1.9233699164955407,
+   "max_drawdown": -0.05683271430278547,
+   "turnover_per_year": 10.524937500000002,
+   "days": 256
+  },
+  "3y": {
+   "total": 0.9314657783411922,
+   "sharpe": 1.5994718431397694,
+   "max_drawdown": -0.15983265810962932,
+   "turnover_per_year": 10.265062500000003,
+   "days": 768
+  }
+ },
+ "best": {
+  "top_k": 25,
+  "every_bars": 10,
+  "hysteresis": 3,
+  "core_share": 0.0
+ },
+ "reason": "a better structure over both windows",
+ "candidates": [
+  {
+   "top_k": 15,
+   "every_bars": 5,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "1y_sharpe": 1.42519087925479,
+   "1y_total": 0.19281016609096002,
+   "3y_sharpe": 1.5818469212956316,
+   "3y_total": 0.9959231324345632,
+   "1y_maxdd": -0.07150611852787925
+  },
+  {
+   "top_k": 15,
+   "every_bars": 5,
+   "hysteresis": 5,
+   "core_share": 0.0,
+   "1y_sharpe": 1.581847493532855,
+   "1y_total": 0.21253011638237984,
+   "3y_sharpe": 1.6726580712987953,
+   "3y_total": 1.0726453333203452,
+   "1y_maxdd": -0.06680885890437294
+  },
+  {
+   "top_k": 15,
+   "every_bars": 10,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "1y_sharpe": 1.5783571140499768,
+   "1y_total": 0.21531692939365765,
+   "3y_sharpe": 1.4015630657761715,
+   "3y_total": 0.8336156305549665,
+   "1y_maxdd": -0.08239427712775127
+  },
+  {
+   "top_k": 15,
+   "every_bars": 10,
+   "hysteresis": 5,
+   "core_share": 0.0,
+   "1y_sharpe": 1.4966441066142582,
+   "1y_total": 0.1982512798088063,
+   "3y_sharpe": 1.3898575489729192,
+   "3y_total": 0.8203584136142963,
+   "1y_maxdd": -0.07259983752932264
+  },
+  {
+   "top_k": 15,
+   "every_bars": 21,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "1y_sharpe": 1.4021722142397266,
+   "1y_total": 0.1795500625851818,
+   "3y_sharpe": 1.5906854052508386,
+   "3y_total": 0.9938264877757106,
+   "1y_maxdd": -0.06970304301364749
+  },
+  {
+   "top_k": 15,
+   "every_bars": 21,
+   "hysteresis": 5,
+   "core_share": 0.0,
+   "1y_sharpe": 1.5201668536501156,
+   "1y_total": 0.19311468408833465,
+   "3y_sharpe": 1.6257725030289107,
+   "3y_total": 1.0126019277927614,
+   "1y_maxdd": -0.07145246248138237
+  },
+  {
+   "top_k": 20,
+   "every_bars": 5,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "1y_sharpe": 1.7204362142764507,
+   "1y_total": 0.2164611231790039,
+   "3y_sharpe": 1.6072087218103914,
+   "3y_total": 0.9690225487314634,
+   "1y_maxdd": -0.06837810174913816
+  },
+  {
+   "top_k": 20,
+   "every_bars": 5,
+   "hysteresis": 5,
+   "core_share": 0.0,
+   "1y_sharpe": 1.7061176276419519,
+   "1y_total": 0.21555231377543227,
+   "3y_sharpe": 1.529017864144199,
+   "3y_total": 0.9054480157552747,
+   "1y_maxdd": -0.067542460687258
+  },
+  {
+   "top_k": 20,
+   "every_bars": 10,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "1y_sharpe": 1.8694855528741967,
+   "1y_total": 0.23746218333474212,
+   "3y_sharpe": 1.4115055971799395,
+   "3y_total": 0.8263741088487406,
+   "1y_maxdd": -0.061622046966954835
+  },
+  {
+   "top_k": 20,
+   "every_bars": 10,
+   "hysteresis": 5,
+   "core_share": 0.0,
+   "1y_sharpe": 1.733575461803508,
+   "1y_total": 0.22582463708581368,
+   "3y_sharpe": 1.4619112367972615,
+   "3y_total": 0.8493471838745317,
+   "1y_maxdd": -0.06939864919314154
+  },
+  {
+   "top_k": 20,
+   "every_bars": 21,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "1y_sharpe": 1.5813094188395003,
+   "1y_total": 0.19917483627087496,
+   "3y_sharpe": 1.765224886562701,
+   "3y_total": 1.064818708296165,
+   "1y_maxdd": -0.0815445496644448
+  },
+  {
+   "top_k": 20,
+   "every_bars": 21,
+   "hysteresis": 5,
+   "core_share": 0.0,
+   "1y_sharpe": 1.6511903748589867,
+   "1y_total": 0.2136592406022908,
+   "3y_sharpe": 1.7140871430859437,
+   "3y_total": 1.0521622559468091,
+   "1y_maxdd": -0.07547259367825321
+  },
+  {
+   "top_k": 25,
+   "every_bars": 5,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "1y_sharpe": 1.6808149187625703,
+   "1y_total": 0.1986319818245761,
+   "3y_sharpe": 1.6321852989268077,
+   "3y_total": 0.9441813446240002,
+   "1y_maxdd": -0.06884985462545712
+  },
+  {
+   "top_k": 25,
+   "every_bars": 5,
+   "hysteresis": 5,
+   "core_share": 0.0,
+   "1y_sharpe": 1.8918460433881137,
+   "1y_total": 0.22789135557962648,
+   "3y_sharpe": 1.644504430362551,
+   "3y_total": 0.9380522714973085,
+   "1y_maxdd": -0.06974887098089755
+  },
+  {
+   "top_k": 25,
+   "every_bars": 10,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "1y_sharpe": 1.9233699164955407,
+   "1y_total": 0.23259501440426722,
+   "3y_sharpe": 1.5994718431397694,
+   "3y_total": 0.9314657783411922,
+   "1y_maxdd": -0.05683271430278547
+  },
+  {
+   "top_k": 25,
+   "every_bars": 10,
+   "hysteresis": 5,
+   "core_share": 0.0,
+   "1y_sharpe": 1.866602281986736,
+   "1y_total": 0.22932648134147948,
+   "3y_sharpe": 1.5660042052248222,
+   "3y_total": 0.9065585868336825,
+   "1y_maxdd": -0.0612478468681964
+  },
+  {
+   "top_k": 25,
+   "every_bars": 21,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "1y_sharpe": 1.788313236071693,
+   "1y_total": 0.21376693447640194,
+   "3y_sharpe": 1.5999573231298687,
+   "3y_total": 0.9032782373280737,
+   "1y_maxdd": -0.06556421896797837
+  },
+  {
+   "top_k": 25,
+   "every_bars": 21,
+   "hysteresis": 5,
+   "core_share": 0.0,
+   "1y_sharpe": 1.8973187449881386,
+   "1y_total": 0.2358338686343482,
+   "3y_sharpe": 1.696695488887033,
+   "3y_total": 0.9884418646904165,
+   "1y_maxdd": -0.06980307358999793
+  }
+ ]
+}

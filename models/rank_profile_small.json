@@ -1,0 +1,147 @@
+{
+ "account": "small",
+ "tuned_at": "2026-09-15",
+ "accepted": false,
+ "profile": {
+  "top_k": 5,
+  "every_bars": 21,
+  "hysteresis": 3,
+  "core_share": 0.0,
+  "core_ticker": "SPY"
+ },
+ "current": {
+  "top_k": 5,
+  "every_bars": 21,
+  "hysteresis": 3,
+  "core_share": 0.0
+ },
+ "current_result": {
+  "1y": {
+   "total": 0.057457838801564076,
+   "sharpe": 0.4170978908328048,
+   "max_drawdown": -0.12138048997355644,
+   "turnover_per_year": 11.1628125,
+   "days": 256
+  },
+  "3y": {
+   "total": 1.1329291552660998,
+   "sharpe": 1.3961138524903671,
+   "max_drawdown": -0.22754651651474578,
+   "turnover_per_year": 12.3440625,
+   "days": 768
+  }
+ },
+ "best_result": {
+  "1y": {
+   "total": 0.11246569588530475,
+   "sharpe": 0.8662608727152477,
+   "max_drawdown": -0.0899291821712529,
+   "turnover_per_year": 10.631250000000001,
+   "days": 256
+  },
+  "3y": {
+   "total": 0.8024947062910304,
+   "sharpe": 1.2856667161518482,
+   "max_drawdown": -0.20540343400068506,
+   "turnover_per_year": 10.395000000000001,
+   "days": 768
+  }
+ },
+ "best": {
+  "top_k": 10,
+  "every_bars": 21,
+  "hysteresis": 3,
+  "core_share": 0.0
+ },
+ "reason": "the current structure is as good or the best one fails the long-window guard - kept",
+ "candidates": [
+  {
+   "top_k": 5,
+   "every_bars": 21,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "1y_sharpe": 0.4170978908328048,
+   "1y_total": 0.057457838801564076,
+   "3y_sharpe": 1.3961138524903671,
+   "3y_total": 1.1329291552660998,
+   "1y_maxdd": -0.12138048997355644
+  },
+  {
+   "top_k": 5,
+   "every_bars": 21,
+   "hysteresis": 5,
+   "core_share": 0.0,
+   "1y_sharpe": 0.3968511033271818,
+   "1y_total": 0.05401146338073226,
+   "3y_sharpe": 1.338713966361825,
+   "3y_total": 1.0601325995151574,
+   "1y_maxdd": -0.12138048997355644
+  },
+  {
+   "top_k": 5,
+   "every_bars": 42,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "1y_sharpe": 0.3270890819277924,
+   "1y_total": 0.04225032181343269,
+   "3y_sharpe": 1.1372197822338732,
+   "3y_total": 0.8615688001253285,
+   "1y_maxdd": -0.14220822830068436
+  },
+  {
+   "top_k": 5,
+   "every_bars": 42,
+   "hysteresis": 5,
+   "core_share": 0.0,
+   "1y_sharpe": 0.20497694338358732,
+   "1y_total": 0.020863190395516762,
+   "3y_sharpe": 1.3103737073320993,
+   "3y_total": 1.1121780841034945,
+   "1y_maxdd": -0.14220822830068436
+  },
+  {
+   "top_k": 10,
+   "every_bars": 21,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "1y_sharpe": 0.8662608727152477,
+   "1y_total": 0.11246569588530475,
+   "3y_sharpe": 1.2856667161518482,
+   "3y_total": 0.8024947062910304,
+   "1y_maxdd": -0.0899291821712529
+  },
+  {
+   "top_k": 10,
+   "every_bars": 21,
+   "hysteresis": 5,
+   "core_share": 0.0,
+   "1y_sharpe": 0.7171995807186708,
+   "1y_total": 0.09017987231883873,
+   "3y_sharpe": 1.315887041176993,
+   "3y_total": 0.8120604448603539,
+   "1y_maxdd": -0.08834020382811214
+  },
+  {
+   "top_k": 10,
+   "every_bars": 42,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "1y_sharpe": 0.6748170453166497,
+   "1y_total": 0.07980863982154851,
+   "3y_sharpe": 1.272480016830751,
+   "3y_total": 0.8414640188256692,
+   "1y_maxdd": -0.07827674069150803
+  },
+  {
+   "top_k": 10,
+   "every_bars": 42,
+   "hysteresis": 5,
+   "core_share": 0.0,
+   "1y_sharpe": 0.7019937555499627,
+   "1y_total": 0.08632512911162338,
+   "3y_sharpe": 1.4694508868013314,
+   "3y_total": 1.0074285816622197,
+   "1y_maxdd": -0.09452848601376318
+  }
+ ]
+}

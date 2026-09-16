@@ -1,0 +1,95 @@
+{
+ "tuned_at": "2026-09-15",
+ "inputs": {
+  "xs_rank.xs_score": 1.0,
+  "timesfm.tfm_ret_20": 0.5
+ },
+ "tuned": {
+  "xs_rank.xs_score": 1.0,
+  "timesfm.tfm_ret_20": 1.0
+ },
+ "static": {
+  "xs_rank.xs_score": 1.0,
+  "timesfm.tfm_ret_20": 0.5
+ },
+ "ic": {
+  "xs_rank.xs_score": {
+   "ic": 0.07434849603705167,
+   "t": 6.053988773796448,
+   "days": 239
+  },
+  "timesfm.tfm_ret_20": {
+   "ic": 0.030158552421852808,
+   "t": 2.4931501459859806,
+   "days": 239
+  },
+  "es_agent.es_action": {
+   "ic": 0.0025583590045149106,
+   "t": 0.24248989009888505,
+   "days": 239
+  },
+  "qlib.qlib_score": {
+   "ic": 0.004722974247239845,
+   "t": 0.37429142344573835,
+   "days": 239
+  },
+  "kronos.kr_ret_5": {
+   "ic": 0.004854256797326752,
+   "t": 0.366553590719951,
+   "days": 239
+  },
+  "chronos.chr_ret_20": {
+   "ic": 0.007882042603377073,
+   "t": 0.7881227521214392,
+   "days": 239
+  },
+  "dl_forecast.dl_pred": {
+   "ic": -0.014804058984236226,
+   "t": -1.0235275984393146,
+   "days": 239
+  },
+  "alpha_factors.af_pred": {
+   "ic": -0.005444350011033768,
+   "t": -0.45276267888863825,
+   "days": 239
+  },
+  "technical.ret_20": {
+   "ic": -0.003951935871199946,
+   "t": -0.31009248650445825,
+   "days": 239
+  },
+  "fundamentals.f_ey": {
+   "ic": 0.023037266617346792,
+   "t": 1.3900151603180273,
+   "days": 187
+  },
+  "dqn_agent.dqn_buy_pref": {
+   "ic": -0.0117650883101805,
+   "t": -1.4199723378404758,
+   "days": 239
+  },
+  "trend.slope_30": {
+   "ic": 0.002657809824927717,
+   "t": 0.20058754497263162,
+   "days": 239
+  }
+ },
+ "backtest_last_year": {
+  "static": {
+   "total": 0.26072281947620746,
+   "sharpe": 1.815540942580318,
+   "max_drawdown": -0.06823510746925365,
+   "turnover_per_year": 14.6671875,
+   "days": 256
+  },
+  "tuned": {
+   "total": 0.2339669421989896,
+   "sharpe": 1.682837024321227,
+   "max_drawdown": -0.08563609964002672,
+   "turnover_per_year": 12.99375,
+   "days": 256
+  }
+ },
+ "accepted": false,
+ "reason": "tuned blend did worse over the last year - static kept"
+}

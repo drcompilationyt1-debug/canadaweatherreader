@@ -1,0 +1,73 @@
+{
+ "learned": {
+  "day": "2026-09-14"
+ },
+ "signature": "9a9987ce2786",
+ "last": {
+  "period": "day",
+  "ran_at": "2026-09-15T17:27:15.403218+00:00",
+  "checkpoint": "/home/runner/work/canadaweatherreader/canadaweatherreader/models/policy",
+  "budget_minutes": 7.977607464790344,
+  "samples": 50,
+  "start": "2026-09-14",
+  "end": "2026-09-14",
+  "signature": "9a9987ce2786",
+  "yardstick": {
+   "tickers": 8,
+   "bars": 500,
+   "epochs": 8
+  },
+  "seconds": 7.0,
+  "members": {
+   "seed0/best.zip": {
+    "path": "/home/runner/work/canadaweatherreader/canadaweatherreader/models/policy/ensemble/seed0/best.zip",
+    "loss_before": 0.425466924905777,
+    "loss_after": 0.3620101809501648,
+    "anchor_drift": 0.008694790303707123,
+    "samples": 50,
+    "epochs": 8,
+    "score_before": 0.550160281219415,
+    "score_after": 0.5475298131858881,
+    "accepted": true,
+    "seconds": 1.4
+   },
+   "seed1/best.zip": {
+    "path": "/home/runner/work/canadaweatherreader/canadaweatherreader/models/policy/ensemble/seed1/best.zip",
+    "loss_before": 1.2273478507995605,
+    "loss_after": 0.7874666452407837,
+    "anchor_drift": 0.04117708280682564,
+    "samples": 50,
+    "epochs": 8,
+    "score_before": 0.45964553710105155,
+    "score_after": 0.4811801703229224,
+    "accepted": true,
+    "seconds": 1.4
+   },
+   "seed2/best.zip": {
+    "path": "/home/runner/work/canadaweatherreader/canadaweatherreader/models/policy/ensemble/seed2/best.zip",
+    "loss_before": 0.42396435141563416,
+    "loss_after": 0.3945266306400299,
+    "anchor_drift": 0.0016350677469745278,
+    "samples": 50,
+    "epochs": 8,
+    "score_before": 0.5207608313171034,
+    "score_after": 0.5274757840811424,
+    "accepted": true,
+    "seconds": 1.4
+   }
+  },
+  "accepted": 3,
+  "mean_target": 0.4399999976158142,
+  "mean_level_best": 0.72,
+  "mean_level_ours": 0.4
+ },
+ "history": [
+  {
+   "ran_at": "2026-09-15T17:27:15.403218+00:00",
+   "period": "day",
+   "end": "2026-09-14",
+   "samples": 50,
+   "accepted": 3
+  }
+ ]
+}

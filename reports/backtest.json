@@ -1,0 +1,84 @@
+{
+ "inputs": {
+  "xs_rank.xs_score": 1.0,
+  "timesfm.tfm_ret_20": 0.5
+ },
+ "windows": {
+  "oos": "2025-09-01",
+  "3y": "2023-09-14"
+ },
+ "results": {
+  "oos": {
+   "SPY": {
+    "total": 0.19798231668984823,
+    "sharpe": 1.4273453819091448,
+    "max_drawdown": -0.08884968175523855
+   },
+   "equal_weight": {
+    "total": 0.21782346094880745,
+    "sharpe": 1.8414588474267046,
+    "max_drawdown": -0.06319629782785452,
+    "turnover_per_year": 0.9509433962264151,
+    "days": 265
+   },
+   "rank_100k": {
+    "total": 0.2846066083412182,
+    "sharpe": 1.8777178983574963,
+    "max_drawdown": -0.1007293176910371,
+    "turnover_per_year": 15.120000000000001,
+    "days": 265,
+    "k": 20,
+    "every_bars": 10,
+    "fee_bps": 8.1855,
+    "excess_vs_benchmark": 0.08662429165136998
+   },
+   "rank_small": {
+    "total": 0.2024356378891381,
+    "sharpe": 1.170593561664978,
+    "max_drawdown": -0.11766361853925744,
+    "turnover_per_year": 11.030943396226418,
+    "days": 265,
+    "k": 10,
+    "every_bars": 21,
+    "fee_bps": 40.0255,
+    "excess_vs_benchmark": 0.0044533211992898725
+   }
+  },
+  "3y": {
+   "SPY": {
+    "total": 0.7767283019505045,
+    "sharpe": 1.3187572926339333,
+    "max_drawdown": -0.18755239553632796
+   },
+   "equal_weight": {
+    "total": 0.8621727485256707,
+    "sharpe": 1.5900563229068172,
+    "max_drawdown": -0.1661674162349156,
+    "turnover_per_year": 0.328125,
+    "days": 768
+   },
+   "rank_100k": {
+    "total": 0.9884912992733292,
+    "sharpe": 1.4394865693048522,
+    "max_drawdown": -0.18414097502080795,
+    "turnover_per_year": 14.4375,
+    "days": 768,
+    "k": 20,
+    "every_bars": 10,
+    "fee_bps": 8.1855,
+    "excess_vs_benchmark": 0.21176299732282478
+   },
+   "rank_small": {
+    "total": 0.9909773764024348,
+    "sharpe": 1.3507693546882311,
+    "max_drawdown": -0.2254443958895378,
+    "turnover_per_year": 11.55,
+    "days": 768,
+    "k": 10,
+    "every_bars": 21,
+    "fee_bps": 40.0255,
+    "excess_vs_benchmark": 0.2142490744519303
+   }
+  }
+ }
+}

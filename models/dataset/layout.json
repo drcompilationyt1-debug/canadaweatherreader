@@ -1,0 +1,421 @@
+{
+ "blocks": [
+  {
+   "name": "technical",
+   "features": [
+    "ret_1",
+    "ret_5",
+    "ret_20",
+    "ret_60",
+    "vol_20",
+    "vol_60",
+    "rsi_14",
+    "macd_hist",
+    "bb_pctb",
+    "bb_width",
+    "atr_pct",
+    "sma20_r",
+    "sma50_r",
+    "sma200_r",
+    "ema_cross",
+    "vol_z",
+    "hi52",
+    "lo52",
+    "stoch_k",
+    "obv_slope",
+    "gap",
+    "range_pct"
+   ]
+  },
+  {
+   "name": "candles",
+   "features": [
+    "n_recent",
+    "direction_score",
+    "edge_5",
+    "edge_20",
+    "win_edge_5",
+    "win_edge_20",
+    "doji",
+    "hammer",
+    "inverted_hammer",
+    "hanging_man",
+    "shooting_star",
+    "bullish_engulfing",
+    "bearish_engulfing",
+    "bullish_harami",
+    "bearish_harami",
+    "piercing_line",
+    "dark_cloud_cover",
+    "morning_star",
+    "evening_star",
+    "three_white_soldiers",
+    "three_black_crows",
+    "bullish_marubozu",
+    "bearish_marubozu",
+    "tweezer_bottom",
+    "tweezer_top"
+   ]
+  },
+  {
+   "name": "trend",
+   "features": [
+    "slope_10",
+    "slope_30",
+    "slope_90",
+    "r2_30",
+    "r2_90",
+    "adx_14",
+    "di_diff",
+    "above_sma200",
+    "golden_cross",
+    "trend_age"
+   ]
+  },
+  {
+   "name": "alpha_factors",
+   "features": [
+    "af_pred",
+    "af_rank"
+   ]
+  },
+  {
+   "name": "market_regime",
+   "features": [
+    "turbulence",
+    "turbulence_pct",
+    "mkt_ret_20",
+    "mkt_vol_20",
+    "breadth"
+   ]
+  },
+  {
+   "name": "talib_candles",
+   "features": [
+    "n_recent",
+    "direction_score",
+    "edge_5",
+    "edge_20",
+    "win_edge_5",
+    "win_edge_20",
+    "cdl2crows",
+    "cdl3blackcrows",
+    "cdl3inside",
+    "cdl3linestrike",
+    "cdl3outside",
+    "cdl3starsinsouth",
+    "cdl3whitesoldiers",
+    "cdlabandonedbaby",
+    "cdladvanceblock",
+    "cdlbelthold",
+    "cdlbreakaway",
+    "cdlclosingmarubozu",
+    "cdlconcealbabyswall",
+    "cdlcounterattack",
+    "cdldarkcloudcover",
+    "cdldoji",
+    "cdldojistar",
+    "cdldragonflydoji",
+    "cdlengulfing",
+    "cdleveningdojistar",
+    "cdleveningstar",
+    "cdlgapsidesidewhite",
+    "cdlgravestonedoji",
+    "cdlhammer",
+    "cdlhangingman",
+    "cdlharami",
+    "cdlharamicross",
+    "cdlhighwave",
+    "cdlhikkake",
+    "cdlhikkakemod",
+    "cdlhomingpigeon",
+    "cdlidentical3crows",
+    "cdlinneck",
+    "cdlinvertedhammer",
+    "cdlkicking",
+    "cdlkickingbylength",
+    "cdlladderbottom",
+    "cdllongleggeddoji",
+    "cdllongline",
+    "cdlmarubozu",
+    "cdlmatchinglow",
+    "cdlmathold",
+    "cdlmorningdojistar",
+    "cdlmorningstar",
+    "cdlonneck",
+    "cdlpiercing",
+    "cdlrickshawman",
+    "cdlrisefall3methods",
+    "cdlseparatinglines",
+    "cdlshootingstar",
+    "cdlshortline",
+    "cdlspinningtop",
+    "cdlstalledpattern",
+    "cdlsticksandwich",
+    "cdltakuri",
+    "cdltasukigap",
+    "cdlthrusting",
+    "cdltristar",
+    "cdlunique3river",
+    "cdlupsidegap2crows",
+    "cdlxsidegap3methods"
+   ]
+  },
+  {
+   "name": "trendet",
+   "features": [
+    "tt_up",
+    "tt_down",
+    "tt_up_len",
+    "tt_down_len"
+   ]
+  },
+  {
+   "name": "sentiment",
+   "features": [
+    "vader_mean",
+    "vader_posneg",
+    "vader_n",
+    "vader_extreme"
+   ]
+  },
+  {
+   "name": "news_llm",
+   "features": [
+    "llm_sentiment",
+    "llm_impact",
+    "llm_confidence",
+    "llm_horizon",
+    "llm_direction",
+    "llm_n_items"
+   ]
+  },
+  {
+   "name": "qlib",
+   "features": [
+    "qlib_score",
+    "qlib_rank"
+   ]
+  },
+  {
+   "name": "freqtrade",
+   "features": [
+    "ha_streak",
+    "hma_ratio",
+    "vwap_ratio"
+   ]
+  },
+  {
+   "name": "trading_agents",
+   "features": [
+    "ta_decision",
+    "ta_is_buy",
+    "ta_is_sell"
+   ]
+  },
+  {
+   "name": "ai_hedge_fund",
+   "features": [
+    "ahf_conviction",
+    "ahf_bullish_share",
+    "ahf_bearish_share"
+   ]
+  },
+  {
+   "name": "strategy_zoo",
+   "features": [
+    "lean_ema_cross",
+    "lean_macd_trend",
+    "lean_rsi",
+    "lean_ema_alpha",
+    "lean_bollinger",
+    "lean_momentum",
+    "hz_turtle",
+    "hz_ma_agent",
+    "hz_signal_rolling",
+    "ak_engulfing",
+    "ak_macd",
+    "ak_rsi",
+    "ak_stochastic",
+    "ak_ma_cross",
+    "ak_support",
+    "ak_action",
+    "vote"
+   ]
+  },
+  {
+   "name": "es_agent",
+   "features": [
+    "es_buy",
+    "es_sell",
+    "es_action"
+   ]
+  },
+  {
+   "name": "dl_forecast",
+   "features": [
+    "dl_pred",
+    "dl_confidence"
+   ]
+  },
+  {
+   "name": "dqn_agent",
+   "features": [
+    "dqn_buy_pref",
+    "dqn_sell_pref",
+    "dqn_action"
+   ]
+  },
+  {
+   "name": "llm_trader",
+   "features": [
+    "nofx_direction",
+    "nofx_confidence",
+    "nofx_size",
+    "nofx_open",
+    "nofx_close"
+   ]
+  },
+  {
+   "name": "ta_keras",
+   "features": [
+    "akm_action",
+    "akm_p_buy",
+    "akm_p_sell",
+    "akm_price_chg"
+   ]
+  },
+  {
+   "name": "pandas_ta",
+   "features": [
+    "pta_supertrend",
+    "pta_squeeze",
+    "pta_vortex",
+    "pta_kst",
+    "pta_cci",
+    "pta_mfi",
+    "pta_cmf",
+    "pta_ao",
+    "pta_tsi",
+    "pta_uo",
+    "pta_er",
+    "pta_psar"
+   ]
+  },
+  {
+   "name": "pypfopt",
+   "features": [
+    "po_hrp_w",
+    "po_invvol_w",
+    "po_corr_mkt",
+    "po_risk_share"
+   ]
+  },
+  {
+   "name": "alpha101",
+   "features": [
+    "a001",
+    "a003",
+    "a006",
+    "a012",
+    "a014",
+    "a018",
+    "a026",
+    "a033",
+    "a038",
+    "a041",
+    "a044",
+    "a101",
+    "a101_mean"
+   ]
+  },
+  {
+   "name": "finbert",
+   "features": [
+    "fb_net",
+    "fb_pos",
+    "fb_neg",
+    "fb_n"
+   ]
+  },
+  {
+   "name": "chronos",
+   "features": [
+    "chr_ret_5",
+    "chr_ret_20",
+    "chr_up_5",
+    "chr_spread_5"
+   ]
+  },
+  {
+   "name": "kronos",
+   "features": [
+    "kr_ret_1",
+    "kr_ret_5",
+    "kr_range_5"
+   ]
+  },
+  {
+   "name": "timesfm",
+   "features": [
+    "tfm_ret_5",
+    "tfm_ret_20",
+    "tfm_spread_5"
+   ]
+  },
+  {
+   "name": "fundamentals",
+   "features": [
+    "f_ey",
+    "f_bp",
+    "f_sp",
+    "f_growth",
+    "f_margin",
+    "f_roe",
+    "f_leverage",
+    "f_size"
+   ]
+  },
+  {
+   "name": "xs_rank",
+   "features": [
+    "xs_score",
+    "xs_rank",
+    "xs_top",
+    "xs_bottom"
+   ]
+  },
+  {
+   "name": "reliability",
+   "features": [
+    "rel_dl_forecast",
+    "rel_alpha_factors",
+    "rel_qlib",
+    "rel_es_agent",
+    "rel_dqn_agent",
+    "rel_ta_keras",
+    "rel_llm_trader",
+    "rel_news_llm",
+    "rel_sentiment",
+    "rel_candles",
+    "rel_talib_candles",
+    "rel_strategy_zoo",
+    "rel_trend",
+    "rel_trading_agents",
+    "rel_ai_hedge_fund",
+    "rel_chronos",
+    "rel_kronos",
+    "rel_timesfm",
+    "rel_finbert",
+    "rel_alpha101",
+    "rel_supertrend",
+    "rel_xs_rank",
+    "rel_momentum",
+    "rel_mean",
+    "rel_n"
+   ]
+  }
+ ],
+ "signature": "9a9987ce2786",
+ "obs_dim": 305
+}
