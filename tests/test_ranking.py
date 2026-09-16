@@ -276,8 +276,10 @@ def test_structure_tuning_decides_slots_cadence_and_the_index_sleeve(cfg, frames
     if rep["accepted"]:                                                          # ... and only a two-window improvement is adopted
         assert rep["best_result"]["2y"]["sharpe"] >= rep["current_result"]["2y"]["sharpe"] - 0.02
         assert load_tuned_profile(tmp_path, "main") == rep["profile"]
-    else:
-        assert load_tuned_profile(tmp_path, "main") is None
+    else:                                                                        # nothing adopted: the file carries the current structure
+        prof = load_tuned_profile(tmp_path, "main")
+        assert prof is None or {k: prof[k] for k in rep["current"]} == rep["current"]
+    assert rep["guard_passed"] in (True, False) and "proposal" in rep and rep["accepted"] is False   # a first pass is never adopted
     # the runner picks a tuned structure up (and a tuned index sleeve becomes a model-timed core)
     (cfg.path("models_dir")).mkdir(parents=True, exist_ok=True)
     (cfg.path("models_dir") / "rank_profile_main.json").write_text(
@@ -286,3 +288,79 @@ def test_structure_tuning_decides_slots_cadence_and_the_index_sleeve(cfg, frames
     r = TradingRunner(cfg, mode="paper", bundle=bundle, frames_loader=lambda refresh: frames, with_llm=False)
     assert (r.rank_top_k, r.rank_every, r.rank_hysteresis) == (1, 21, 2)
     assert r.core_ticker == "AAA" and r.core_share == 0.4 and r.core_min == 0.2 and r.core_max == 0.4 and r.core_decide == "model"
+
+
+def test_sector_cap_and_vol_targeting():
+    from stockbot.execution.ranking import vol_scale
+
+    scores = {f"T{i}": 10 - i for i in range(10)}
+    sectors = {"T0": "Tech", "T1": "Tech", "T2": "Tech", "T3": "Energy", "T4": "Tech", "T5": "Health", "T9": "Index"}
+    assert select_top(scores, [], 4, 0, sectors=sectors, max_per_sector=2) == ["T0", "T1", "T3", "T5"]     # two Tech at most
+    assert select_top(scores, ["T2"], 4, 3, sectors=sectors, max_per_sector=2) == ["T2", "T0", "T3", "T5"]  # a held name takes a Tech slot first
+    assert select_top(scores, [], 4, 0) == ["T0", "T1", "T2", "T3"]                                          # no cap without sectors
+    assert vol_scale([], 0.2) == 1.0 and vol_scale([0.001] * 30, 0.2) == 1.0                                 # no history / calm: 1x
+    wild = [0.03, -0.03] * 15
+    s = vol_scale(wild, 0.2, window=20, floor=0.4)
+    assert 0.4 <= s < 1.0 and vol_scale(wild, 0.2, floor=0.6) >= 0.6
+
+
+def test_backtest_sector_cap_and_vol_targeting_apply():
+    from stockbot.agent.backtest import simulate
+
+    idx = pd.date_range("2026-01-01", periods=80, freq="B")
+    rng = np.random.default_rng(3)
+    px = pd.DataFrame({t: 100 * np.cumprod(1 + rng.normal(0.0005, 0.03, 80)) for t in ("A", "B", "C", "D")}, index=idx)
+    sc = pd.DataFrame({"A": 4.0, "B": 3.0, "C": 2.0, "D": 1.0}, index=idx)
+    plain = simulate(px, sc, "2026-01-01", k=2, every=5, hysteresis=0, fee_bps=0.0)
+    capped = simulate(px, sc, "2026-01-01", k=2, every=5, hysteresis=0, fee_bps=0.0, sectors={"A": "X", "B": "X", "C": "Y"}, max_per_sector=1)
+    assert plain["total"] != capped["total"]                                                                 # B is replaced by C
+    targeted = simulate(px, sc, "2026-01-01", k=2, every=5, hysteresis=0, fee_bps=0.0, vol_target=0.10, vol_window=10, vol_floor=0.4)
+    assert abs(targeted["total"]) < abs(plain["total"]) or targeted["max_drawdown"] > plain["max_drawdown"]  # 3%-a-day names get scaled down
+
+
+def test_tuners_adopt_a_change_only_on_two_consecutive_weekly_passes(tmp_path):
+    from stockbot.agent.backtest import _confirmed
+    from stockbot.execution.ranking import load_tuned_profile
+
+    prop = {"top_k": 25, "every_bars": 10, "hysteresis": 3, "core_share": 0.0}
+    assert _confirmed({}, prop, True, "2026-09-19") == (False, 1)                                         # first pass: wait
+    week1 = {"guard_passed": True, "proposal": prop, "streak": 1, "tuned_at": "2026-09-19", "accepted": False}
+    assert _confirmed(week1, prop, True, "2026-09-26") == (True, 2)                                       # second pass: adopted
+    assert _confirmed(week1, {**prop, "top_k": 15}, True, "2026-09-26") == (False, 1)                     # a different proposal restarts
+    assert _confirmed(week1, prop, False, "2026-09-26") == (False, 0)                                     # failed the guard: nothing
+    assert _confirmed(week1, prop, True, "2026-09-19") == (False, 1)                                      # a rerun the same day is not a week
+    old = {"accepted": True, "best": prop, "tuned_at": "2026-09-12"}                                      # last week's file format
+    assert _confirmed(old, prop, True, "2026-09-19") == (True, 2)
+
+    import json
+    f = tmp_path / "rank_profile_main.json"
+    base = {"top_k": 20, "every_bars": 10, "hysteresis": 3, "core_share": 0.0}
+    f.write_text(json.dumps({"guard_passed": False, "accepted": False, "profile": {**prop, "core_ticker": "SPY"}, "config_base": base}), encoding="utf-8")
+    assert load_tuned_profile(tmp_path, "main", base)["top_k"] == 25                                      # in force even on a quiet week
+    assert load_tuned_profile(tmp_path, "main", {**base, "top_k": 30}) is None                            # the config was edited: it wins
+    assert load_tuned_profile(tmp_path, "main")["top_k"] == 25
+    f.write_text(json.dumps({"accepted": False, "profile": base}), encoding="utf-8")                      # old format, nothing accepted
+    assert load_tuned_profile(tmp_path, "main", base) is None
+
+
+def test_backtest_eligibility_is_point_in_time(cfg, tmp_path):
+    from stockbot.agent.backtest import eligibility, simulate
+
+    idx = pd.date_range("2026-01-01", periods=60, freq="B")
+    rng = np.random.default_rng(5)
+    px = pd.DataFrame({t: 100 * np.cumprod(1 + rng.normal(0.001, 0.02, 60)) for t in ("A", "B", "C")}, index=idx)
+    el = pd.DataFrame(True, index=idx, columns=px.columns)
+    el.loc[:, "A"] = False                                                            # A never eligible
+    ew_without_a = simulate(px[["B", "C"]], None, idx[0])
+    assert abs(simulate(px, None, idx[0], eligible=el)["total"] - ew_without_a["total"]) < 1e-12
+    sc = pd.DataFrame({"A": 3.0, "B": 2.0, "C": 1.0}, index=idx)                        # A ranks first but may not be chosen
+    r_el = simulate(px, sc, idx[0], k=1, every=5, hysteresis=0, fee_bps=0.0, eligible=el)
+    r_b = simulate(px[["B", "C"]], sc[["B", "C"]], idx[0], k=1, every=5, hysteresis=0, fee_bps=0.0)
+    assert abs(r_el["total"] - r_b["total"]) < 1e-12
+    import json
+    f = tmp_path / "membership.json"
+    f.write_text(json.dumps({"member_from": {"A": "2026-02-01"}}), encoding="utf-8")
+    cfg.set_path("universe_membership", str(f))
+    e = eligibility(cfg, px)
+    assert e is not None and not e.loc[pd.Timestamp("2026-01-15"), "A"] and e.loc[pd.Timestamp("2026-02-02"), "A"] and e["B"].all()
+

@@ -45,6 +45,8 @@ def cfg(tmp_path):
         "env.cash_choices=null",
         "train.eval_cash=null",
         "execution.rank.enabled=false",
+        "execution.rank.max_per_sector=0",
+        "execution.rank.vol_target.enabled=false",
         "env.fee_choices=null",
         f"session.intraday_exit.model_dir={(tmp_path / 'intraday_exit').as_posix()}",
         "train.n_steps=64",

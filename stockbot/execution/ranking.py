@@ -27,7 +27,7 @@ DEFAULT_INPUTS = {"xs_rank.xs_score": 1.0, "timesfm.tfm_ret_20": 0.5}
 # inputs the weekend tuner may add to the blend, weighted by their trailing information coefficient
 CANDIDATE_INPUTS = ["xs_rank.xs_score", "timesfm.tfm_ret_20", "es_agent.es_action", "qlib.qlib_score", "kronos.kr_ret_5",
                     "chronos.chr_ret_20", "dl_forecast.dl_pred", "alpha_factors.af_pred", "technical.ret_20", "fundamentals.f_ey",
-                    "dqn_agent.dqn_buy_pref", "trend.slope_30"]
+                    "dqn_agent.dqn_buy_pref", "trend.slope_30", "factors.mom_12_1", "factors.hi_52w", "factors.sec_rel_3m"]
 ANCHOR = "xs_rank.xs_score"
 
 
@@ -47,9 +47,10 @@ def load_tuned_inputs(models_dir, fallback: dict[str, float] | None = None) -> d
     return dict(fallback or DEFAULT_INPUTS)
 
 
-def load_tuned_profile(models_dir, account: str = "main") -> dict | None:
-    """The weekend-tuned structure of an account (``models/rank_profile_<account>.json``: top_k, every_bars, hysteresis,
-    core_share) when it passed its guard, else None."""
+def load_tuned_profile(models_dir, account: str = "main", config_base: dict | None = None) -> dict | None:
+    """The structure in force for an account (``models/rank_profile_<account>.json``: top_k, every_bars, hysteresis, core_share):
+    what the weekend tuner adopted after two consecutive weekly passes, kept until it adopts something else.  A file tuned
+    from a different config than ``config_base`` is ignored: an edit to the config wins until the tuner runs again."""
     import json
     from pathlib import Path
 
@@ -57,8 +58,17 @@ def load_tuned_profile(models_dir, account: str = "main") -> dict | None:
     if f.exists():
         try:
             d = json.loads(f.read_text(encoding="utf-8"))
-            if d.get("accepted") and d.get("profile"):
-                return dict(d["profile"])
+            prof = d.get("profile")
+            in_force = bool(prof) and ("guard_passed" in d or d.get("accepted"))
+            base = d.get("config_base")
+            if in_force and config_base is not None and isinstance(base, dict):
+                for k, v in config_base.items():
+                    if k in base and abs(float(base[k]) - float(v)) > 1e-9:
+                        log.info("rank profile %s tuned from a different config (%s: %s -> %s) - the config wins until the next tune",
+                                 account, k, base[k], v)
+                        return None
+            if in_force:
+                return dict(prof)
         except Exception as e:  # noqa: BLE001
             log.warning("rank profile file %s unreadable: %s", f, e)
     return None
@@ -97,17 +107,49 @@ def rank_scores(layout, obs_by: dict[str, np.ndarray], inputs: dict[str, float] 
     return {t: float(score.get(t, np.nan)) for t in tickers}
 
 
-def select_top(scores: dict[str, float], held: list[str], k: int, hysteresis: int = 3) -> list[str]:
-    """Top-``k`` names by score; a held name keeps its slot while it ranks within ``k + hysteresis``."""
+def select_top(scores: dict[str, float], held: list[str], k: int, hysteresis: int = 3, sectors: dict[str, str] | None = None,
+               max_per_sector: int = 0) -> list[str]:
+    """Top-``k`` names by score; a held name keeps its slot while it ranks within ``k + hysteresis``; at most
+    ``max_per_sector`` names from one sector (0 = no cap; names without a sector are never capped)."""
     ranked = [t for t, s in sorted(scores.items(), key=lambda kv: -kv[1]) if np.isfinite(s)]
     rank = {t: i for i, t in enumerate(ranked)}
-    keep = sorted([t for t in held if t in rank and rank[t] < k + hysteresis], key=lambda t: rank[t])[:k]
+    counts: dict[str, int] = {}
+
+    def fits(t: str) -> bool:
+        if not max_per_sector or not sectors:
+            return True
+        sec = sectors.get(t)
+        return not sec or sec in ("Unknown", "Index") or counts.get(sec, 0) < max_per_sector
+
+    def take(t: str) -> None:
+        sec = (sectors or {}).get(t)
+        if sec:
+            counts[sec] = counts.get(sec, 0) + 1
+
+    keep: list[str] = []
+    for t in sorted([t for t in held if t in rank and rank[t] < k + hysteresis], key=lambda t: rank[t]):
+        if len(keep) < k and fits(t):
+            keep.append(t)
+            take(t)
     for t in ranked:
         if len(keep) >= k:
             break
-        if t not in keep:
+        if t not in keep and fits(t):
             keep.append(t)
+            take(t)
     return keep
+
+
+def vol_scale(daily_returns, target_vol: float, window: int = 20, floor: float = 0.4, cap: float = 1.0) -> float:
+    """Volatility targeting (Moreira & Muir): the multiplier on gross exposure that brings the book's recent realised
+    volatility to ``target_vol`` (annualised), between ``floor`` and ``cap``.  1.0 while there is no history yet."""
+    r = np.asarray([x for x in daily_returns if x is not None and np.isfinite(x)], dtype=float)
+    if target_vol <= 0 or len(r) < max(5, window // 2):
+        return 1.0
+    vol = float(np.std(r[-window:], ddof=1) * np.sqrt(252))
+    if vol <= 1e-9:
+        return 1.0
+    return float(np.clip(target_vol / vol, floor, cap))
 
 
 def bars_since(index, last_date: str | None, as_of: str) -> int | None:

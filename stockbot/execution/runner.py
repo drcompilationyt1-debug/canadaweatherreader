@@ -68,6 +68,27 @@ class TradingRunner:
             self.rank_inputs = load_tuned_inputs(cfg.path("models_dir", "models"), self.rank_inputs)
         self.rank_floor = float(rk.get("policy_floor", 0.5))
         self.rank_veto = float(rk.get("policy_veto", 0.05))
+        self.max_per_sector = int(rk.get("max_per_sector", 0) or 0)
+        vt = dict(rk.get("vol_target", {}) or {})
+        self.vol_target = float(vt.get("target", 0.0) or 0.0) if bool(vt.get("enabled", False)) else 0.0
+        self.vol_window = int(vt.get("window", 20))
+        self.vol_floor = float(vt.get("floor", 0.4))
+        self._sectors: dict[str, str] | None = None
+        self._vec_cache: dict[str, np.ndarray] = {}                       # provider|ticker|last bar -> vector (one process, one day)
+        self.portfolio_agent = None
+        if self.rank_enabled and bool((rk.get("portfolio_rl") or {}).get("enabled", False)):
+            from ..agent.portfolio_rl import PortfolioAgent
+
+            self.portfolio_agent = PortfolioAgent.load(cfg.path("models_dir", "models"), self.account)
+            if self.portfolio_agent is not None:
+                log.info("portfolio agent in force for %s: it decides rebalance timing and exposure", self.account)
+        self.llm_trader_top_n = int(cfg.get_path("signals.llm_trader.top_n", 0) or 0)
+        self.llm_trader_budget = float(cfg.get_path("signals.llm_trader.budget_minutes", 0) or 0)
+        from ..signals.pruning import load_block_mask
+
+        self.block_mask = list(load_block_mask(cfg.path("models_dir", "models"))) if bool(cfg.get_path("signals.pruning.enabled", True)) else []
+        if self.block_mask:
+            log.info("block mask: %s masked (no value for six months)", ", ".join(self.block_mask))
         self.last_rank: dict = {}
         self._rebalanced = False
         # the core sleeve (execution.core): a broad index the model times between min_share and max_share around its
@@ -85,7 +106,8 @@ class TradingRunner:
         if self.rank_enabled and bool(rk.get("adaptive", True)):        # the weekend tuner's structure, when it passed its guard
             from .ranking import load_tuned_profile
 
-            prof = load_tuned_profile(cfg.path("models_dir", "models"), self.account)
+            base = {"top_k": self.rank_top_k, "every_bars": self.rank_every, "hysteresis": self.rank_hysteresis, "core_share": self.core_share}
+            prof = load_tuned_profile(cfg.path("models_dir", "models"), self.account, base)
             if prof:
                 self.rank_top_k = int(prof.get("top_k", self.rank_top_k))
                 self.rank_every = every_bars_of(prof.get("every_bars", self.rank_every))
@@ -317,17 +339,37 @@ class TradingRunner:
                 vectors[t][p.name] = None if a is None or len(a) == 0 or np.isnan(a[-1]).any() else a[-1]
         elif p.live_only or custom_latest:
             for t in frames:
-                vectors[t][p.name] = p.safe_latest(t, frames[t])
+                vectors[t][p.name] = self._cached(p, t, frames[t], lambda t=t: p.safe_latest(t, frames[t]))
         else:
-            for t in frames:
+            def _last(t):
                 a = p.safe_history(t, frames[t])
-                vectors[t][p.name] = None if a is None or len(a) == 0 or np.isnan(a[-1]).any() else a[-1]
+                return None if a is None or len(a) == 0 or np.isnan(a[-1]).any() else a[-1]
+
+            for t in frames:
+                vectors[t][p.name] = self._cached(p, t, frames[t], lambda t=t: _last(t))
+
+    FRESH_EVERY_CYCLE = {"news_llm", "sentiment", "finbert", "llm_trader"}        # they read the news, not the bars
+
+    def _cached(self, p: SignalProvider, t: str, df: pd.DataFrame, compute):
+        """A ticker's vector is reused within the process while its last bar is unchanged: the pre-open warm-up and every
+        cycle of the session see the same daily bars, so the slow per-ticker models run once a day, not once a cycle."""
+        if p.name in self.FRESH_EVERY_CYCLE or len(df) == 0:
+            return compute()
+        key = f"{p.name}|{t}|{df.index[-1]}|{len(df)}"
+        if key in self._vec_cache:
+            return self._vec_cache[key]
+        v = compute()
+        if v is not None:                                                  # a failure is retried next cycle
+            if len(self._vec_cache) > 50_000:
+                self._vec_cache.clear()
+            self._vec_cache[key] = v
+        return v
 
     def select_agent_tickers(self, vectors: dict[str, dict], top_n: int) -> list[str]:
         """The ``top_n`` tickers where the other models agree most (largest |consensus|, bullish first on ties)."""
         scores = {}
         for t, vecs in vectors.items():
-            sig = self.bundle.layout.assemble_latest(vecs)
+            sig = self.bundle.layout.apply_mask(self.bundle.layout.assemble_latest(vecs), self.block_mask)
             scores[t] = consensus(votes_from_vector(self.bundle.layout, sig))
         return sorted(scores, key=lambda t: (-abs(scores[t]), -scores[t]))[:max(0, top_n)]
 
@@ -346,10 +388,16 @@ class TradingRunner:
             budget = float(budget_minutes)
         agents = self.agent_providers() if top_n > 0 else []
         skip = skip or set()
+        deferred = None
         for p in self.providers:
             if not p.enabled or p in agents:
                 continue
             if p.name in skip:
+                for t in frames:
+                    vectors[t][p.name] = None
+                continue
+            if p.name == "llm_trader" and self.llm_trader_top_n > 0:         # one LLM call per name: only where it can matter, below
+                deferred = p
                 for t in frames:
                     vectors[t][p.name] = None
                 continue
@@ -360,6 +408,20 @@ class TradingRunner:
                     vectors[t][p.name] = None
                 continue
             self._compute_provider(p, frames, vectors)
+        if deferred is not None:
+            ok, why = deferred.availability()
+            reasons[deferred.name] = why
+            if ok:
+                held = [t for t in self.ctx.extra.get("positions", {}) or {} if t in frames]
+                picks = held + [t for t in self.select_agent_tickers(vectors, self.llm_trader_top_n) if t not in held]
+                deadline = time.time() + self.llm_trader_budget * 60.0 if self.llm_trader_budget > 0 else None
+                log.info("llm_trader on %d names (%d held + top-%d consensus, budget %.0f min)", len(picks), len(held), self.llm_trader_top_n,
+                         self.llm_trader_budget)
+                for t in picks:
+                    if deadline is not None and time.time() >= deadline:
+                        log.warning("llm_trader: budget exhausted before %s", t)
+                        break
+                    vectors[t][deferred.name] = deferred.safe_latest(t, frames[t])
         self.agent_tickers = []
         if agents:
             selected = self.select_agent_tickers(vectors, top_n)
@@ -566,18 +628,57 @@ class TradingRunner:
             self.last_rank = {"scores": {}, "chosen": [], "as_of": as_of, "trend_on": False}
             return {**{t: 0.0 for t in universe}, **core_w}
         index = self.frames["SPY"].index if "SPY" in self.frames else next(iter(self.frames.values())).index
-        if was_on and not rebalance_due(index, self.state.get("last_rebalance_date"), as_of, self.rank_every):
+        sig_dim = self.bundle.layout.signal_dim
+        scores = rank_scores(self.bundle.layout, {t: obs_by[t][:sig_dim] for t in universe}, self.rank_inputs)
+        agent_exposure = None
+        due = rebalance_due(index, self.state.get("last_rebalance_date"), as_of, self.rank_every)
+        if was_on and self.portfolio_agent is not None:                    # the adopted agent decides timing and exposure
+            try:
+                from .ranking import bars_since
+
+                since = bars_since(index, self.state.get("last_rebalance_date"), as_of)
+                exposure_now = float(sum(abs(current[t]) for t in universe) * self.max_position)
+                eq_now = float(self.broker.equity())
+                dd = eq_now / float(self.state.get("peak_equity") or eq_now or 1.0) - 1.0
+                agent_exposure, agent_reb = self.portfolio_agent.decide(
+                    self.frames, scores, None, exposure_now, since, self.rank_every, list(self.state.get("book_returns", [])), dd,
+                    float(self.state.get("last_turnover", 0.0)), self.rank_top_k)
+                due = bool(agent_reb) or since is None
+                log.info("portfolio agent: %s, exposure %.0f%%", "rebalance" if due else "hold", 100 * agent_exposure)
+            except Exception as e:  # noqa: BLE001
+                log.warning("portfolio agent failed (%s) - the cadence rule decides", e)
+                agent_exposure = None
+        if was_on and not due:
             self.last_cycle_note = (self.last_cycle_note + "; " if self.last_cycle_note else "") + \
                 f"rank core: next rebalance {self.rank_every} bars after {self.state.get('last_rebalance_date')} - positions kept"
             log.info("rank core: not a rebalance day (every %d bars, last %s) - holding", self.rank_every, self.state.get("last_rebalance_date"))
             return {**{t: current[t] * self.max_position for t in universe}, **core_w}
-        sig_dim = self.bundle.layout.signal_dim
-        scores = rank_scores(self.bundle.layout, {t: obs_by[t][:sig_dim] for t in universe}, self.rank_inputs)
         held = [t for t in universe if abs(current[t]) > 0.05]
-        chosen = select_top(scores, held, self.rank_top_k, self.rank_hysteresis)
+        sectors = None
+        if self.max_per_sector > 0:
+            if self._sectors is None:
+                try:
+                    from ..data.sectors import load_sectors
+
+                    self._sectors = load_sectors(self.cfg, universe, refresh=not self.offline)
+                except Exception as e:  # noqa: BLE001
+                    log.warning("sectors unavailable (%s) - no sector cap this cycle", e)
+                    self._sectors = {}
+            sectors = self._sectors or None
+        chosen = select_top(scores, held, self.rank_top_k, self.rank_hysteresis, sectors=sectors, max_per_sector=self.max_per_sector)
         ppo_frac = {t: float(np.clip(targets.get(t, 0.0), 0.0, 1.0)) for t in universe}
         slots = slot_weights(chosen, self.rank_top_k, ppo_frac, self.rank_floor, self.rank_veto)
-        weights = {**{t: min(slots.get(t, 0.0) * satellite, self.max_position) for t in universe}, **core_w}
+        scale = 1.0
+        if agent_exposure is not None:                                       # the agent's exposure replaces volatility targeting
+            scale = float(agent_exposure)
+        elif self.vol_target > 0:                                           # volatility targeting on the whole book
+            from .ranking import vol_scale
+
+            scale = vol_scale(self.state.get("book_returns", []), self.vol_target, self.vol_window, self.vol_floor, 1.0)
+            if scale < 0.999:
+                log.info("vol targeting: recent book volatility above %.0f%% - gross exposure scaled to %.0f%%", 100 * self.vol_target, 100 * scale)
+        weights = {**{t: min(slots.get(t, 0.0) * satellite * scale, self.max_position) for t in universe}, **core_w}
+        self.state["last_turnover"] = float(sum(abs(weights.get(t, 0.0) - current[t] * self.max_position) for t in universe))
         self.last_rank = {"scores": scores, "chosen": chosen, "as_of": as_of, "trend_on": True}
         self._rebalanced = True
         dropped = [t for t in held if t not in chosen]
@@ -607,6 +708,11 @@ class TradingRunner:
 
         equity = float(self.broker.equity())
         eq_of = {t: self.equity_for(t) for t in tickers}   # each ticker is sized against its own sleeve
+        last_eq = self.state.get("last_equity")
+        if last_eq and self.state.get("last_equity_date") != as_of and float(last_eq) > 0:
+            book = list(self.state.get("book_returns", []))[-120:] + [equity / float(last_eq) - 1.0]
+            self.state["book_returns"] = book
+        self.state["last_equity"], self.state["last_equity_date"] = equity, as_of
         if not self.state.get("initial_equity"):
             self.state["initial_equity"] = equity
         self.state["peak_equity"] = max(float(self.state.get("peak_equity") or equity), equity)
@@ -635,7 +741,7 @@ class TradingRunner:
         targets, obs_by, avail_by, conv_by = {}, {}, {}, {}
         for t in tickers:
             price = self.price(t)
-            sig = self.bundle.layout.assemble_latest(vectors[t])
+            sig = self.bundle.layout.apply_mask(self.bundle.layout.assemble_latest(vectors[t]), self.block_mask)
             port, _ = self.portfolio_state(t, price, eq_of[t])
             obs = np.concatenate([sig, port]).astype(np.float32)
             obs_by[t] = obs

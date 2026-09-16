@@ -81,8 +81,9 @@ def _archive_old_layout(ckpt: Path, signature: str) -> None:
     log.info("archived the previous policy (layout %s) to %s", old_sig, dest)
 
 
-def cached_dataset(cfg: Config, max_age_days: float = 3.0) -> MarketDataset | None:
-    """Reuse ``models/dataset`` when it was built recently for the same universe, split and signal layout."""
+def cached_dataset(cfg: Config, max_age_days: float = 3.0, masked: bool = True) -> MarketDataset | None:
+    """Reuse ``models/dataset`` when it was built recently for the same universe, split and signal layout; with the pruned
+    blocks masked unless ``masked`` is False (the pruner itself needs the raw blocks)."""
     folder = cfg.path("models_dir", "models") / "dataset"
     meta_file = folder / "meta.json"
     if not (folder / "layout.json").exists() or not meta_file.exists():
@@ -97,6 +98,10 @@ def cached_dataset(cfg: Config, max_age_days: float = 3.0) -> MarketDataset | No
         if same and fresh:
             ds = MarketDataset.load(folder)
             log.info("reusing cached dataset %s (%d tickers, layout %s)", folder, len(ds), layout.signature())
+            if masked:
+                from ..signals.pruning import with_block_mask
+
+                ds = with_block_mask(cfg, ds)
             return ds
     except Exception as e:  # noqa: BLE001
         log.debug("cached dataset not reusable: %s", e)
@@ -202,6 +207,9 @@ def train(cfg: Config, total_timesteps: int | None = None, resume: str | None = 
         dataset = cached_dataset(cfg) if not (refresh or synthetic) else None
     if dataset is None:
         dataset, _providers, _ctx = prepare_dataset(cfg, offline=offline, refresh=refresh, synthetic=synthetic, fit=True)
+        from ..signals.pruning import with_block_mask
+
+        dataset = with_block_mask(cfg, dataset)                       # a freshly built dataset gets the same mask
     n_seeds = int(seeds or tr.get("seeds", 1) or 1)
     if n_seeds > 1:
         return train_ensemble(cfg, dataset, n_seeds, total_timesteps, resume, n_envs, max_minutes=max_minutes)

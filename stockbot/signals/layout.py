@@ -114,5 +114,18 @@ class ObservationLayout:
         arrays = {k: (None if v is None else np.asarray(v, dtype=np.float32).reshape(1, -1)) for k, v in vectors.items()}
         return self.assemble(1, arrays)[0]
 
+    def apply_mask(self, sig: np.ndarray, names) -> np.ndarray:
+        """A copy of ``sig`` (one bar or (T, dim)) with the named blocks absent: flag 0, features 0."""
+        known = set(self.names)
+        names = [n for n in (names or []) if n in known]
+        if not names:
+            return sig
+        out = np.array(sig, copy=True)
+        for n in names:
+            b = self.block(n)
+            out[..., b.offset] = 0.0
+            out[..., b.start:b.end] = 0.0
+        return out
+
     def availability_of(self, signal_vec: np.ndarray) -> dict[str, bool]:
         return {b.name: bool(signal_vec[b.offset] > 0.5) for b in self.blocks}

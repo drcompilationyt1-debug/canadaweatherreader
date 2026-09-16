@@ -5,7 +5,7 @@
 #   OPENAI_API_KEY, ALPACA_API_KEY / ALPACA_SECRET_KEY (Alpaca paper or live account),
 #   FINNHUB_API_KEY (TradingAgents), FINANCIAL_DATASETS_API_KEY (ai-hedge-fund)
 
-universe:                   # 30 liquid US names + 12 TSX names (.TO, CAD) + 8 China / Hong Kong ADRs (US-listed)
+universe:                   # 80 US names + 12 TSX names (.TO, CAD) + 8 China / Hong Kong ADRs (US-listed) = 100
   # --- Canada (TSX; paper-traded on the built-in simulator with moomoo Canada fees, see execution.routes)
   - RY.TO
   - TD.TO
@@ -59,6 +59,59 @@ universe:                   # 30 liquid US names + 12 TSX names (.TO, CAD) + 8 C
   - AMD
   - BAC
   - DIS
+  # --- the 50 largest US names by 2011 dollar volume that were S&P 500 members then and still trade (a point-in-time pick from the
+  # start of the evaluable history, not today's winners); config/universe_membership.json holds each name's first membership
+  # date, and the backtests only let a name be chosen after it (survivorship guard)
+  - C
+  - INTC
+  - CSCO
+  - GE
+  - WFC
+  - IBM
+  - FCX
+  - F
+  - PFE
+  - T
+  - GS
+  - QCOM
+  - CAT
+  - LVS
+  - SLB
+  - HPQ
+  - COP
+  - HAL
+  - VZ
+  - BKNG
+  - MCD
+  - PEP
+  - PM
+  - OXY
+  - MOS
+  - MS
+  - ABT
+  - NEM
+  - CMCSA
+  - DE
+  - MET
+  - AMGN
+  - BA
+  - EBAY
+  - AXP
+  - TGT
+  - BKR
+  - CRM
+  - RTX
+  - APA
+  - CVS
+  - BMY
+  - MMM
+  - MO
+  - TXN
+  - LOW
+  - CF
+  - USB
+  - MA
+  - WYNN
 
 models_dir: models
 
@@ -117,7 +170,8 @@ signals:
   es_agent:      { enabled: true, window_size: 20, layer_size: 64, iterations: 100, train_bars: 1500, holdout_years: 4 }
   dl_forecast:   { enabled: true, window: 30, horizon: 5, hidden: 32, epochs: 3, min_train_years: 3, refit_every: 2 }
   dqn_agent:     { enabled: true, look_back: 15, episodes: 12, train_bars: 1000, hidden: 32, holdout_years: 4 }   # AI-Stock-Trader + stockBot port
-  llm_trader:    { enabled: true }                                                              # nofx-style LLM decision (live, needs an LLM backend)
+  llm_trader:    { enabled: true, top_n: 12, budget_minutes: 12 }   # nofx-style LLM decision (live): about a minute per name, so only the held
+                                                                    # names + the top_n consensus names, within the budget (top_n 0 = every name)
   ta_keras:      { enabled: true, python: null, timeout: 900, latest_bars: 400 }                 # akurgat's Keras models (needs .venv-tf)
   # Added 2026-09-13 - seven more third-party inputs, all CPU-only, cached under models/signals/<name>:
   pandas_ta:     { enabled: true }                                                              # pandas-ta-classic: 12 indicators the native block lacks
@@ -128,7 +182,13 @@ signals:
   kronos:        { enabled: true, model: NeoQuasar/Kronos-small, context: 400, pred_len: 5, batch_size: 16, temperature: 0.8, history_years: 5, stride: 10 }   # K-line foundation model (small: 0.4 s/forecast on a CPU)
   timesfm:       { enabled: true, model: google/timesfm-2.5-200m-pytorch, context: 512, batch_size: 32, history_years: 6, stride: 5 }      # Google TimesFM
   fundamentals:  { enabled: true, lag_days: 60, refresh_days: 7 }                                # value / growth / profitability / leverage / size from Yahoo statements (point-in-time)
+  factors:       { enabled: true }                                                                # 12-1 momentum, reversal, 52-week high, dollar volume, idio vol, beta, sector-relative 3m (percentiles across the universe, daily)
   xs_rank:       { enabled: true, horizon: 20, min_train_years: 3, refit_every: 1, n_estimators: 300 }   # cross-sectional ranking head (LightGBM on all blocks above, walk-forward)
+  # block pruning (weekly, models/block_mask.json): a block whose every feature has |t| < mask_t on its 6-month cross-sectional IC and
+  # that carries < mask_gain of the ranking head's gain is masked (flag 0, features 0 - the layout and the models stay valid) until it
+  # recovers past unmask_t / unmask_gain; the core price blocks, the ranking head and the reliability board are never masked
+  pruning:       { enabled: true, days: 126, mask_t: 1.0, mask_gain: 0.01, unmask_t: 1.5, unmask_gain: 0.02, min_names: 15,
+                   protect: [qlib] }   # protect: blocks that stay in whatever the evidence (qlib runs every day by design)
   reliability:   { enabled: true, horizon: 5, window: 60, min_obs: 10 }                          # trailing hit rate of every input at 5 days (signal-decay monitor), last in the layout
 
 fees:
@@ -333,6 +393,17 @@ execution:
     policy_floor: 0.5
     policy_veto: 0.05
     adaptive: true            # use the weekend-tuned blend (models/rank_weights.json: trailing-IC weights that backtested no worse)
+    # risk controls (2012-2026, phase-averaged, 50 names): volatility targeting at 25% over a 10-day window cost 0.2 pt/yr and cut
+    # the worst yearly drawdown from -33% to -22% (Sharpe 1.61 vs 1.59); the sector cap barely binds on 50 names (-0.2 pt/yr) and is
+    # there for the wider universe, where a return ranking piles into whatever sector is running
+    max_per_sector: 6         # at most this many of the top_k from one Yahoo sector (models/sectors.json, refreshed weekly); 0 = no cap
+    portfolio_rl: { enabled: true }   # the portfolio agent (stockbot portfolio-rl: PPO over rebalance timing + exposure, walk-forward vs this
+                                      # rule) takes over the cadence and the volatility targeting only once its report says accepted
+    vol_target:               # volatility targeting on the whole book (Moreira & Muir 2017): gross exposure is scaled so the book's
+      enabled: true           # recent realised volatility meets `target` (annualised); never above 1x, never below `floor`
+      target: 0.25
+      window: 10
+      floor: 0.4
     trend_filter:             # Faber (2007): the rank slots go to cash while the benchmark closes below its moving average
       enabled: false          # (a band either side avoids whipsaw); on for the small account, off here - see accounts.small
       benchmark: SPY
@@ -452,7 +523,10 @@ accounts:                     # extra accounts traded in the SAME session from t
       max_position: 0.20      # a rank slot = (1 - 0.1 reserve) / 5 = 18% of the book, $1,800 on $10k
       # (the 200-day trend filter is OFF: year by year 2021-2026 it lost 8-11 points in every year it triggered, incl. 2022
       #  where the rule alone lost 4% against SPY's 18% - the ranking sidesteps bad markets by what it selects)
-      rank: { top_k: 5, every_bars: 21, hysteresis: 3, policy_floor: 1.0, trend_filter: { enabled: false } }
+      # a 5-name book: at most 2 from one sector (-1.5 pt/yr on the 2012-2026 record, a real-money concentration limit) and 30%
+      # volatility targeting (-1.4 pt/yr, worst yearly drawdown -30% instead of -40%)
+      rank: { top_k: 5, every_bars: 21, hysteresis: 3, policy_floor: 1.0, trend_filter: { enabled: false }, max_per_sector: 2,
+              vol_target: { enabled: true, target: 0.30, window: 20, floor: 0.4 } }
       min_trade_usd: 800      # never an order the US$1.99 minimum would make expensive
       cadence: daily          # (the rank layer's every_bars sets the cadence)
       cash_reserve: 0.10

@@ -136,6 +136,12 @@ jobs:
           python -m stockbot review --due --account small || true
       - name: backtest the decision rule vs SPY (out-of-sample year and last 3 years, both budgets)
         run: python -m stockbot portfolio --tune --out reports/backtest.json || true
+      - name: block pruning (a block with no value for six months is masked until it recovers)
+        run: python -m stockbot prune || true
+      - name: portfolio agent (rebalance timing + exposure, walk-forward vs the rule for both accounts; adopted only when it wins)
+        run: |
+          timeout 30m python -m stockbot portfolio-rl --max-minutes 20 || true
+          timeout 20m python -m stockbot portfolio-rl --account small --max-minutes 12 || true
       - name: learn from last week / month / year as one unit each (hindsight fine-tune, guarded by the out-of-sample score)
         run: timeout 25m python -m stockbot review --learn --due --max-minutes 20 || true
       - name: forecast scorecard

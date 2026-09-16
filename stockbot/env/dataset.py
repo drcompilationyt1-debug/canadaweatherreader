@@ -129,6 +129,12 @@ class MarketDataset:
     def subset(self, tickers: list[str]) -> "MarketDataset":
         return cls_like(self, {t: self.data[t] for t in tickers if t in self.data})
 
+    def masked(self, names: list[str]) -> "MarketDataset":
+        """A copy with the named signal blocks absent everywhere (block pruning); the arrays are new, the prices shared."""
+        data = {t: TickerData(td.ticker, td.dates, td.open, td.high, td.low, td.close, td.volume,
+                              self.layout.apply_mask(td.signals, names), td.min_start) for t, td in self.data.items()}
+        return MarketDataset(self.layout, data, {**self.meta, "masked_blocks": list(names)})
+
     def date_range(self) -> tuple[pd.Timestamp, pd.Timestamp]:
         lo = min(pd.Timestamp(td.dates[0]) for td in self.data.values())
         hi = max(pd.Timestamp(td.dates[-1]) for td in self.data.values())

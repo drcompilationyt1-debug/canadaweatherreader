@@ -111,7 +111,9 @@ def _load_dataset(cfg, args, fit: bool = False):
     if getattr(args, "rebuild", False) or not (folder / "layout.json").exists():
         ds, _, _ = prepare_dataset(cfg, offline=getattr(args, "offline", False), synthetic=getattr(args, "synthetic", False), fit=fit)
         return ds
-    return MarketDataset.load(folder)
+    from .signals.pruning import with_block_mask
+
+    return with_block_mask(cfg, MarketDataset.load(folder))
 
 
 def cmd_evaluate(cfg, args) -> int:
@@ -554,6 +556,48 @@ def cmd_experience(cfg, args) -> int:
     return 0
 
 
+def cmd_prune(cfg, args) -> int:
+    """Mask the signal blocks that showed no value for six months (models/block_mask.json); they come back when they recover."""
+    from .agent import train as _train  # noqa: F401  (import order: the agent package before the env package)
+    from .env.dataset import MarketDataset
+    from .signals.pruning import format_report, prune_blocks
+
+    folder = cfg.path("models_dir", "models") / "dataset"
+    if not (folder / "layout.json").exists():
+        print("no cached dataset (models/dataset) - run a retrain first")
+        return 1
+    ds = MarketDataset.load(folder)                                     # the raw blocks: a masked block can earn its way back
+    s = cfg.section("signals.pruning")
+    if not bool(s.get("enabled", True)) and not args.force:
+        print("block pruning is disabled (signals.pruning.enabled)")
+        return 0
+    out = None if not args.dry_run else cfg.path("models_dir", "models") / "block_mask_preview.json"
+    rep = prune_blocks(cfg, ds, out_path=out, days=int(args.days or s.get("days", 126)), mask_t=float(s.get("mask_t", 1.0)),
+                       mask_gain=float(s.get("mask_gain", 0.01)), unmask_t=float(s.get("unmask_t", 1.5)), unmask_gain=float(s.get("unmask_gain", 0.02)),
+                       min_names=int(s.get("min_names", 15)), protect=list(s.get("protect", []) or []))
+    print(format_report(rep))
+    if args.dry_run:
+        print(f"(dry run: written to {out}, the live mask is unchanged)")
+    return 0
+
+
+def cmd_portfolio_rl(cfg, args) -> int:
+    """Walk-forward the portfolio agent (when to rebalance, how much to expose) against the fixed-cadence rule; adopted only when it wins."""
+    from .agent.portfolio_rl import format_report, walk_forward
+    from .agent.train import cached_dataset
+
+    ds = cached_dataset(cfg, max_age_days=1e9)
+    if ds is None:
+        print("no cached dataset (models/dataset) - run a retrain first")
+        return 1
+    account = str(cfg.get("account") or "main")
+    out_dir = cfg.path("models_dir", "models") / f"portfolio_policy_{account}"
+    rep = walk_forward(cfg, ds, account, windows=args.windows, timesteps=args.timesteps, out_dir=out_dir, seed=args.seed, max_minutes=args.max_minutes)
+    print(format_report(rep))
+    print(f"report: {out_dir / 'report.json'}" + (f"; agent in force: {rep['policy']}" if rep.get("policy") else ""))
+    return 0
+
+
 def cmd_portfolio(cfg, args) -> int:
     """The rank-core rule as a portfolio vs SPY and equal-weight, at each budget's fees (the yardstick that matters)."""
     from .agent.backtest import format_report, run_backtests
@@ -846,6 +890,19 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--out", help="write the report as JSON")
     p.add_argument("--tune", action="store_true", help="re-weight the rank blend from trailing ICs (kept only if it backtests no worse)")
     p.set_defaults(fn=cmd_portfolio)
+
+    p = sub.add_parser("portfolio-rl", help="portfolio agent (rebalance timing + exposure on top of the ranker): walk-forward vs the rule, adopted only when it wins")
+    p.add_argument("--windows", type=int, default=3, help="one-year test windows, newest last")
+    p.add_argument("--timesteps", type=int, default=200_000, help="PPO steps per window")
+    p.add_argument("--seed", type=int, default=0)
+    p.add_argument("--max-minutes", type=float, help="wall-clock budget for the whole walk-forward")
+    p.set_defaults(fn=cmd_portfolio_rl)
+
+    p = sub.add_parser("prune", help="mask the signal blocks that showed no value for six months (weekly; masked, not removed, until they recover)")
+    p.add_argument("--days", type=int, help="trailing window in bars (default signals.pruning.days = 126)")
+    p.add_argument("--dry-run", action="store_true", help="report only; write the preview next to the live mask")
+    p.add_argument("--force", action="store_true", help="run even when signals.pruning.enabled is false")
+    p.set_defaults(fn=cmd_prune)
 
     p = sub.add_parser("account", help="the broker's own record (Alpaca): equity per day (ups and downs), positions, every fill")
     p.add_argument("--period", default="1M", help="1D | 1W | 1M | 3M | 1A | all")

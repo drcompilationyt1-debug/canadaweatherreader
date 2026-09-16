@@ -406,6 +406,10 @@ def learn(cfg: Config, period: str = "day", end: date | None = None, force: bool
     paths = bundle.model.paths if isinstance(bundle.model, EnsemblePolicy) else [str(ckpt / "latest.zip")]
     env_cfg = env_settings(cfg)
     ds = dataset if dataset is not None else cached_dataset(cfg, max_age_days=1e9)
+    if dataset is not None:
+        from ..signals.pruning import with_block_mask
+
+        ds = with_block_mask(cfg, ds)
     guard = bool(s["guard"])
     ds_train = ds_test = None
     if ds is not None:
