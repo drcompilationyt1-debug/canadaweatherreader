@@ -69,15 +69,19 @@ def test_routed_cycle_uses_sleeve_equity_and_fees(cfg, tmp_path):
     assert isinstance(runner.broker, RoutedBroker) and set(runner.broker.sleeves) == {"us", "ca"}
     ca, us = runner.broker.sleeves["ca"], runner.broker.sleeves["us"]
     assert isinstance(ca, PaperBroker) and ca.fees.preset == "moomoo_ca" and us.fees.preset == "moomoo"
-    assert abs(runner.equity_for("BBB.TO") - 50_000) < 1e-6 and abs(runner.equity_for("AAA") - 100_000) < 1e-6
+    # one book: the simulated Canadian sleeve is funded from the same cash (its 50k seed is not counted), so every name is sized
+    # against the whole book
+    assert abs(runner.equity_for("BBB.TO") - 100_000) < 1e-6 and abs(runner.equity_for("AAA") - 100_000) < 1e-6
+    assert abs(runner.broker.equity() - 100_000) < 1e-6 and runner.broker.summary()["sleeves"]["ca"]["seed"] == 50_000
     assert runner.min_trade_for("BBB.TO") < runner.min_trade_for("AAA")       # C$1.49 vs US$1.99 minimums
     decisions = runner.cycle(dry_run=False, refresh=False)
     assert {d.ticker for d in decisions} == set(tickers) and all(d.action == "BUY" for d in decisions)
-    # the Canadian name was filled in the Canadian sleeve, sized against its 50k, and paid moomoo Canada fees
+    # the Canadian name was filled in the Canadian sleeve, sized against the book, and paid moomoo Canada fees
     pos = ca.position("BBB.TO")
     assert pos.shares > 0 and us.position("BBB.TO").shares == 0
     px = frames["BBB.TO"]["close"].iloc[-1]
-    assert abs(pos.shares * px - 0.10 * 50_000) / (0.10 * 50_000) < 0.05
+    assert abs(pos.shares * px - 0.10 * 100_000) / 10_000 < 0.05
+    assert runner.broker.cash() < 100_000 - 0.19 * 100_000                   # both purchases came out of the one book's cash
     assert abs(us.position("AAA").shares * frames["AAA"]["close"].iloc[-1] - 0.10 * 100_000) / 10_000 < 0.05
     assert ca.fills[-1]["cost"] >= 1.49 and us.fills[-1]["cost"] >= 1.99
     summary = runner.broker.summary()
