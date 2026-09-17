@@ -422,7 +422,8 @@ execution:
   # Markets that the main broker cannot trade go to their own sleeve: Alpaca is US-only, so the
   # Canadian names (.TO) paper-trade on the built-in simulator (moomoo Canada fees, CAD) until the
   # moomoo OpenD gateway is set up.  Each sleeve has its own equity; exposure caps apply per sleeve.
-  routes: { ca: paper }
+  routes: { ca: paper }       # paper phase only: Alpaca cannot trade the TSX (see alpaca.proxies); live on moomoo Canada one account
+                              # trades both markets (moomoo.market: ALL) and no sleeve is used
   sleeves:
     ca: { state_file: data/paper/state_ca.json, initial_cash: 100000 }
   max_gross_exposure: 1.0     # sum of |weights| per sleeve
@@ -496,7 +497,7 @@ execution:
     host: 127.0.0.1           # OpenD gateway
     port: 11111
     security_firm: FUTUCA     # FUTUCA (moomoo Canada) | FUTUINC (moomoo US) | FUTUSECURITIES (HK) | FUTUSG | FUTUAU | FUTUJP | FUTUMY
-    market: US
+    market: ALL               # ALL = every market the account may trade (US + CA on moomoo Canada: US.AAPL, CA.RY); or one of US / CA
     allow_short: false
 
 feedback:

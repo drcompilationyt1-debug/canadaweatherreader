@@ -212,6 +212,8 @@ class TradingRunner:
         from .routed import RoutedBroker
 
         main = self._single_broker(self.mode, "us")
+        if self.mode == "moomoo" and str(self.ex.get_path("moomoo.market", "ALL")).upper() == "ALL":
+            return main                               # one moomoo Canada account trades both markets: no simulated sleeve
         routes = {str(m): str(b) for m, b in (self.ex.get("routes") or {}).items()}
         markets = group_by_market(self.cfg.get("universe", []))
         sleeves = {}
@@ -249,8 +251,8 @@ class TradingRunner:
 
             mm = self.ex.section("moomoo")
             return MoomooBroker(env=str(mm.get("env", "simulate")), host=str(mm.get("host", "127.0.0.1")), port=int(mm.get("port", 11111)),
-                                security_firm=str(mm.get("security_firm", "FUTUCA")), market=str(mm.get("market", "US")),
-                                allow_short=bool(mm.get("allow_short", False)), fees=fees)
+                                security_firm=str(mm.get("security_firm", "FUTUCA")), market=str(mm.get("market", "ALL")),
+                                allow_short=bool(mm.get("allow_short", False)), fees=fees, fee_book=self.fee_book)
         if market != "us":   # a sleeve keeps its own paper account (own currency, own file)
             sleeve = self.ex.section("sleeves").section(market)
             state_file = self.cfg.path(f"execution.sleeves.{market}.state_file", f"data/paper/state_{market}.json")

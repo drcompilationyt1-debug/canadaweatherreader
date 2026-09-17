@@ -9,7 +9,9 @@ Setup
    password needed.  Real money: ``env: real`` plus the trade password in ``MOOMOO_TRADE_PASSWORD``
    and ``--i-understand-real-money`` on the command line.
 
-Symbols are moomoo style (``US.AAPL``, ``US.BRK.B``); orders are whole-share market orders.
+Symbols are moomoo style: ``US.AAPL``, ``US.BRK.B`` for US listings and ``CA.RY`` for a TSX name the universe spells
+``RY.TO`` - one moomoo Canada account trades both markets (``market: ALL``), each fill booked at its own market's fee
+schedule; orders are whole-share market orders.
 """
 from __future__ import annotations
 
@@ -34,11 +36,12 @@ class MoomooBroker(Broker):
     name = "moomoo"
 
     def __init__(self, env: str = "simulate", host: str = "127.0.0.1", port: int = 11111, security_firm: str = "FUTUINC",
-                 market: str = "US", allow_short: bool = False, trd_ctx: Any = None, quote_ctx: Any = None, fees=None):
+                 market: str = "ALL", allow_short: bool = False, trd_ctx: Any = None, quote_ctx: Any = None, fees=None, fee_book=None):
         self.env_name = str(env).lower()
-        self.market = market.upper()
+        self.market = market.upper()              # ALL = every market the account is authorised for (US + CA on moomoo Canada)
         self.supports_short = bool(allow_short)
         self.fees = fees  # estimated moomoo fees per fill (the account statement has the exact figure)
+        self.fee_book = fee_book                  # per-market schedules (moomoo US vs moomoo Canada)
         self.name = "moomoo-paper" if self.env_name == "simulate" else "moomoo-REAL"
         self._unlocked = False
         if trd_ctx is not None and quote_ctx is not None:  # injected fakes (tests)
@@ -51,7 +54,7 @@ class MoomooBroker(Broker):
         self.sdk = sdk
         self.trd_env = sdk.TrdEnv.SIMULATE if self.env_name == "simulate" else sdk.TrdEnv.REAL
         firm = getattr(sdk.SecurityFirm, security_firm, sdk.SecurityFirm.FUTUINC)
-        mkt = getattr(sdk.TrdMarket, self.market, sdk.TrdMarket.US)
+        mkt = getattr(sdk.TrdMarket, "NONE" if self.market == "ALL" else self.market, sdk.TrdMarket.US)   # NONE = no market filter
         self.trd = sdk.OpenSecTradeContext(filter_trdmarket=mkt, host=host, port=port, security_firm=firm)
         self.quote = sdk.OpenQuoteContext(host=host, port=port)
         self.acc_id = self._pick_account()
@@ -72,14 +75,29 @@ class MoomooBroker(Broker):
             raise RuntimeError(f"no moomoo {want} account found in OpenD (accounts: {accs['trd_env'].tolist() if len(accs) else []})")
         return int(rows.iloc[0]["acc_id"])
 
+    MARKET_CODES = {"us": "US", "ca": "CA"}         # our market keys -> moomoo market prefixes
+    SUFFIX_OF = {"CA": ".TO"}                        # moomoo market prefix -> the universe's ticker suffix
+
     def _code(self, ticker: str) -> str:
-        return f"{self.market}.{ticker.replace('-', '.')}"
+        """``RY.TO`` -> ``CA.RY``, ``BRK-B`` -> ``US.BRK.B``; a fixed single market (``market: US``) prefixes everything with it."""
+        from .markets import market_of
+
+        m = self.MARKET_CODES.get(market_of(ticker), "US") if self.market == "ALL" else self.market
+        base = ticker
+        for suf in (".TO", ".V", ".NE", ".CN"):
+            if m == "CA" and base.upper().endswith(suf):
+                base = base[: -len(suf)]
+                break
+        return f"{m}.{base.replace('-', '.')}"
 
     def _ticker(self, code: str) -> str:
+        """``CA.RY`` -> ``RY.TO``, ``US.BRK.B`` -> ``BRK-B``."""
         code = str(code)
+        m = None
         if "." in code:
-            code = code.split(".", 1)[1]
-        return code.replace(".", "-")
+            m, code = code.split(".", 1)
+        t = code.replace(".", "-")
+        return t + self.SUFFIX_OF.get(str(m).upper(), "") if m else t
 
     def _unlock(self) -> None:
         if self.env_name != "real" or self._unlocked:
@@ -147,7 +165,8 @@ class MoomooBroker(Broker):
             price = 0.0
         order_id = data.iloc[0].get("order_id", "?") if hasattr(data, "iloc") and len(data) else "?"
         log.info("moomoo %s order %s %.0f %s -> id %s", self.name, order.side, qty, order.ticker, order_id)
-        cost = float(self.fees.cost(qty, price, order.side)) if (self.fees is not None and price > 0) else 0.0
+        sched = (self.fee_book.for_ticker(order.ticker) if self.fee_book is not None else None) or self.fees
+        cost = float(sched.cost(qty, price, order.side)) if (sched is not None and price > 0) else 0.0
         return Fill(order.ticker, order.side, qty, price, cost)
 
     def close(self) -> None:
