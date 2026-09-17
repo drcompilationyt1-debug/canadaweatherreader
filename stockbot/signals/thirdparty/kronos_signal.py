@@ -26,6 +26,7 @@ TOKENIZER_FOR = {"NeoQuasar/Kronos-mini": "NeoQuasar/Kronos-Tokenizer-2k",
 
 class KronosSignal(SignalProvider):
     name = "kronos"
+    parallel_ok = False            # runs its own threads (torch / TensorFlow): one ticker at a time
     feature_names = ["kr_ret_1", "kr_ret_5", "kr_range_5"]
     tier = "B"
 
@@ -104,6 +105,8 @@ class KronosSignal(SignalProvider):
         if self.stride > 1:
             eligible = np.array(sorted(set(eligible[::-self.stride].tolist())), dtype=int)
         missing = self.cache.missing_dates(ticker, idx[eligible])
+        if len(missing) > 1 and self.ctx.extra.get("latest_only"):    # a live cycle: today's window now, the history at the weekly build
+            missing = missing[-1:]
         if len(missing):
             rows = np.array([idx.get_loc(d) for d in missing], dtype=int)
             feats = self._forecast(df, rows)

@@ -28,6 +28,7 @@ ACTION_CODE = {"Buy": 1.0, "Hold": 0.0, "Sell": -1.0}
 
 class TAKerasSignal(SignalProvider):
     name = "ta_keras"
+    parallel_ok = False            # runs its own threads (torch / TensorFlow): one ticker at a time
     feature_names = ["akm_action", "akm_p_buy", "akm_p_sell", "akm_price_chg"]
     tier = "B"
 

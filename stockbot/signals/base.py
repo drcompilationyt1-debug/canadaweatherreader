@@ -47,6 +47,7 @@ class SignalProvider:
     feature_names: list[str] = []
     live_only: bool = False        # provider has no historical values (e.g. LLM agent frameworks)
     needs_universe: bool = False   # provider is cross-sectional: prefers ``compute_history_all``
+    parallel_ok: bool = True       # per-ticker work may run in a thread pool at the live cycle (False: torch / TF models with their own threads)
     tier: str = "A"
 
     def __init__(self, cfg: Config, ctx: SignalContext):

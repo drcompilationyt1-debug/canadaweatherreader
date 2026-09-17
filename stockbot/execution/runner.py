@@ -77,6 +77,7 @@ class TradingRunner:
         self.vol_floor = float(vt.get("floor", 0.4))
         self._sectors: dict[str, str] | None = None
         self._vec_cache: dict[str, np.ndarray] = {}                       # provider|ticker|last bar -> vector (one process, one day)
+        self.compute_workers = int(cfg.get_path("signals.compute_workers", 1) or 1)
         self.portfolio_agent = None
         if self.rank_enabled and bool((rk.get("portfolio_rl") or {}).get("enabled", False)):
             from ..agent.portfolio_rl import PortfolioAgent
@@ -351,33 +352,46 @@ class TradingRunner:
             for t in frames:
                 a = arrs.get(t)
                 vectors[t][p.name] = None if a is None or len(a) == 0 or np.isnan(a[-1]).any() else a[-1]
-        elif p.live_only or custom_latest:
-            for t in frames:
-                vectors[t][p.name] = self._cached(p, t, frames[t], lambda t=t: p.safe_latest(t, frames[t]))
         else:
-            def _last(t):
-                a = p.safe_history(t, frames[t])
-                return None if a is None or len(a) == 0 or np.isnan(a[-1]).any() else a[-1]
+            if p.live_only or custom_latest:
+                def compute(t):
+                    return p.safe_latest(t, frames[t])
+            else:
+                def compute(t):
+                    a = p.safe_history(t, frames[t])
+                    return None if a is None or len(a) == 0 or np.isnan(a[-1]).any() else a[-1]
 
+            todo = []
             for t in frames:
-                vectors[t][p.name] = self._cached(p, t, frames[t], lambda t=t: _last(t))
+                key = self._cache_key(p, t, frames[t])
+                if key is not None and key in self._vec_cache:
+                    vectors[t][p.name] = self._vec_cache[key]
+                else:
+                    todo.append(t)
+            workers = self.compute_workers if (getattr(p, "parallel_ok", True) and p.name not in self.FRESH_EVERY_CYCLE) else 1
+            if workers > 1 and len(todo) > 1:                              # per-ticker work in parallel threads (the runner has 4 cores)
+                from concurrent.futures import ThreadPoolExecutor
+
+                with ThreadPoolExecutor(max_workers=min(workers, len(todo))) as pool:
+                    results = list(pool.map(lambda t: (t, compute(t)), todo))
+            else:
+                results = [(t, compute(t)) for t in todo]
+            for t, v in results:
+                vectors[t][p.name] = v
+                key = self._cache_key(p, t, frames[t])
+                if v is not None and key is not None:                      # a failure is retried next cycle
+                    if len(self._vec_cache) > 50_000:
+                        self._vec_cache.clear()
+                    self._vec_cache[key] = v
 
     FRESH_EVERY_CYCLE = {"news_llm", "sentiment", "finbert", "llm_trader"}        # they read the news, not the bars
 
-    def _cached(self, p: SignalProvider, t: str, df: pd.DataFrame, compute):
+    def _cache_key(self, p: SignalProvider, t: str, df: pd.DataFrame) -> str | None:
         """A ticker's vector is reused within the process while its last bar is unchanged: the pre-open warm-up and every
         cycle of the session see the same daily bars, so the slow per-ticker models run once a day, not once a cycle."""
         if p.name in self.FRESH_EVERY_CYCLE or len(df) == 0:
-            return compute()
-        key = f"{p.name}|{t}|{df.index[-1]}|{len(df)}"
-        if key in self._vec_cache:
-            return self._vec_cache[key]
-        v = compute()
-        if v is not None:                                                  # a failure is retried next cycle
-            if len(self._vec_cache) > 50_000:
-                self._vec_cache.clear()
-            self._vec_cache[key] = v
-        return v
+            return None
+        return f"{p.name}|{t}|{df.index[-1]}|{len(df)}"
 
     def select_agent_tickers(self, vectors: dict[str, dict], top_n: int) -> list[str]:
         """The ``top_n`` tickers where the other models agree most (largest |consensus|, bullish first on ties)."""
@@ -393,6 +407,7 @@ class TradingRunner:
         only for the top-N consensus tickers (``signals.agents``), within a time budget."""
         frames = self.frames
         self.ctx.extra["frames"] = frames
+        self.ctx.extra["latest_only"] = True         # a live cycle: an uncached name gets today's window, not five years of history
         vectors: dict[str, dict[str, np.ndarray | None]] = {t: {} for t in frames}
         self.ctx.extra["latest_vectors"] = vectors   # filled as providers run: the ranking head reads the other blocks
         self.ctx.extra.pop("per_block", None)
@@ -469,6 +484,7 @@ class TradingRunner:
                             log.warning("agent %s: %d failures in a row - skipped for the rest of this run", p.name, failures[p.name])
                     else:
                         failures[p.name] = 0
+        self.ctx.extra.pop("latest_only", None)
         return vectors, reasons
 
     def prewarm_agents(self, refresh: bool = True, budget_minutes: float | None = None) -> list[str]:

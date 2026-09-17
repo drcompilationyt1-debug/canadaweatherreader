@@ -39,6 +39,7 @@ def _windows(x: np.ndarray, window: int) -> np.ndarray:
 
 class DLForecastSignal(SignalProvider):
     name = "dl_forecast"
+    parallel_ok = False            # runs its own threads (torch / TensorFlow): one ticker at a time
     feature_names = ["dl_pred", "dl_confidence"]
     needs_universe = True
     tier = "B"

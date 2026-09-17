@@ -5,7 +5,7 @@
 #   OPENAI_API_KEY, ALPACA_API_KEY / ALPACA_SECRET_KEY (Alpaca paper or live account),
 #   FINNHUB_API_KEY (TradingAgents), FINANCIAL_DATASETS_API_KEY (ai-hedge-fund)
 
-universe:                   # 80 US names + 12 TSX names (.TO, CAD) + 8 China / Hong Kong ADRs (US-listed) = 100
+universe:                   # 130 US names + 12 TSX names (.TO, CAD) + 8 China / Hong Kong ADRs (US-listed) = 150
   # --- Canada (TSX; paper-traded on the built-in simulator with moomoo Canada fees, see execution.routes)
   - RY.TO
   - TD.TO
@@ -112,6 +112,57 @@ universe:                   # 80 US names + 12 TSX names (.TO, CAD) + 8 China / 
   - USB
   - MA
   - WYNN
+  # --- the next 50 by 2011 dollar volume (breadth: a top-K rule improves with the square root of the names it chooses from)
+  - NOV
+  - MDLZ
+  - GILD
+  - UPS
+  - CLF
+  - MU
+  - NTAP
+  - DD
+  - CMI
+  - FFIV
+  - GLW
+  - UNP
+  - MGM
+  - SBUX
+  - ACN
+  - EMR
+  - VLO
+  - CMG
+  - NKE
+  - PNC
+  - AIG
+  - DVN
+  - EOG
+  - HON
+  - COF
+  - PRU
+  - FDX
+  - WMB
+  - PSKY
+  - CSX
+  - MDT
+  - EXC
+  - TRV
+  - M
+  - CL
+  - AMAT
+  - FSLR
+  - BNY
+  - KSS
+  - BAX
+  - BBY
+  - DUK
+  - ELV
+  - SPG
+  - MRVL
+  - JCI
+  - YUM
+  - CTSH
+  - TPR
+  - SCHW
 
 models_dir: models
 
@@ -152,6 +203,7 @@ signals:
   # `agents.budget_minutes` per cycle; the session pre-computes them before the open so the
   # orders at 09:35 are not delayed.  Results are cached per (ticker, bar date).
   agents: { top_n: 4, budget_minutes: 25, max_failures: 2 }   # a framework failing twice in a row is skipped for the rest of the run
+  compute_workers: 3          # per-ticker blocks computed in this many threads at the live cycle (torch / TF blocks run one at a time)
   # TradingAgents on Gemini (llm_provider google uses the GEMINI_API_KEY pool as GOOGLE_API_KEY).  One run is
   # ~30 LLM calls with long prompts plus Reddit look-ups that back off on 429s: 5-10 minutes per ticker.
   # Groq's free tier (8K tokens/min on gpt-oss-120b) throttled it past the timeout; an OpenAI-compatible
@@ -390,13 +442,14 @@ execution:
     every_bars: 10            # 1 daily, 5 weekly, 10 every two weeks, 21 monthly - the fee per round trip decides
     hysteresis: 3
     inputs: { xs_rank.xs_score: 1.0, timesfm.tfm_ret_20: 0.5 }
-    policy_floor: 0.5
+    policy_floor: 1.0         # slots always full: the reflection's regret is dominated by under-sized positions and the per-name
+                              # policy's own out-of-sample record is below buy-and-hold, so it keeps only its veto (policy_veto)
     policy_veto: 0.05
     adaptive: true            # use the weekend-tuned blend (models/rank_weights.json: trailing-IC weights that backtested no worse)
-    # risk controls (2012-2026, phase-averaged, 50 names): volatility targeting at 25% over a 10-day window cost 0.2 pt/yr and cut
-    # the worst yearly drawdown from -33% to -22% (Sharpe 1.61 vs 1.59); the sector cap barely binds on 50 names (-0.2 pt/yr) and is
-    # there for the wider universe, where a return ranking piles into whatever sector is running
-    max_per_sector: 6         # at most this many of the top_k from one Yahoo sector (models/sectors.json, refreshed weekly); 0 = no cap
+    # risk controls, measured on the 100-name point-in-time data (2012-2026, phase-averaged, top-25): the sector cap cost 0.6 pt/yr of
+    # compounded growth and reduced no drawdown -> off; volatility targeting cost 0.5 pt/yr (19.0% -> 18.5% a year) and cut the worst
+    # drawdown from -39% to -25% -> kept as cheap insurance for a book meant to compound for decades (set enabled: false to run it plain)
+    max_per_sector: 0         # at most this many of the top_k from one Yahoo sector (models/sectors.json, refreshed weekly); 0 = no cap
     # the opportunistic layer between rebalance days: a name whose score reaches the enter_pct percentile comes in (a free slot,
     # else replacing the weakest holding), a holding under exit_pct leaves, at most max_swaps changes a day.  Off: 2012-2026 it
     # added +0.2 pt/yr to the main book (9/15 years, a coin flip) and cost the small book 2-25 pt/yr in turnover; the weekend
@@ -532,10 +585,10 @@ accounts:                     # extra accounts traded in the SAME session from t
       max_position: 0.20      # a rank slot = (1 - 0.1 reserve) / 5 = 18% of the book, $1,800 on $10k
       # (the 200-day trend filter is OFF: year by year 2021-2026 it lost 8-11 points in every year it triggered, incl. 2022
       #  where the rule alone lost 4% against SPY's 18% - the ranking sidesteps bad markets by what it selects)
-      # a 5-name book: at most 2 from one sector (-1.5 pt/yr on the 2012-2026 record, a real-money concentration limit) and 30%
-      # volatility targeting (-1.4 pt/yr, worst yearly drawdown -30% instead of -40%)
-      rank: { top_k: 5, every_bars: 21, hysteresis: 3, policy_floor: 1.0, trend_filter: { enabled: false }, max_per_sector: 2,
-              vol_target: { enabled: true, target: 0.30, window: 20, floor: 0.4 } }
+      # the aggressive book, run plain by the owner's choice: on the 100-name record the sector cap cost 2.4 pt/yr of compounded growth
+      # for no drawdown benefit and volatility targeting 1.7 pt/yr (28.5% -> 26.8% a year) for a worst drawdown of -30% instead of -41%
+      rank: { top_k: 5, every_bars: 21, hysteresis: 3, policy_floor: 1.0, trend_filter: { enabled: false }, max_per_sector: 0,
+              vol_target: { enabled: false, target: 0.30, window: 20, floor: 0.4 } }
       min_trade_usd: 800      # never an order the US$1.99 minimum would make expensive
       cadence: daily          # (the rank layer's every_bars sets the cadence)
       cash_reserve: 0.10

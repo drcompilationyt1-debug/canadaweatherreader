@@ -23,6 +23,7 @@ QUANTILES = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 
 class ChronosSignal(SignalProvider):
     name = "chronos"
+    parallel_ok = False            # runs its own threads (torch / TensorFlow): one ticker at a time
     feature_names = ["chr_ret_5", "chr_ret_20", "chr_up_5", "chr_spread_5"]
     tier = "B"
 
@@ -85,6 +86,8 @@ class ChronosSignal(SignalProvider):
             keep = set(eligible[::-self.stride].tolist())          # always includes the newest bar
             eligible = np.array(sorted(keep), dtype=int)
         missing = self.cache.missing_dates(ticker, idx[eligible])
+        if len(missing) > 1 and self.ctx.extra.get("latest_only"):    # a live cycle: today's window now, the history at the weekly build
+            missing = missing[-1:]
         if len(missing):
             rows = np.array([idx.get_loc(d) for d in missing], dtype=int)
             windows = np.stack([logc[r - self.context:r + 1][-self.context:] for r in rows])

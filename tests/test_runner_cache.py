@@ -80,3 +80,16 @@ def test_llm_trader_runs_only_on_held_and_top_consensus_names(cfg, frames):
     fake.calls.clear()
     r.latest_vectors()
     assert sorted(fake.calls) == sorted(frames)
+
+
+def test_parallel_computation_matches_serial_and_flags_the_live_cycle(cfg, frames):
+    r = _runner(cfg, frames)
+    serial, _ = r.latest_vectors()
+    assert "latest_only" not in r.ctx.extra                                          # set for the cycle, cleared after it
+    r2 = _runner(cfg, frames)
+    r2.compute_workers = 3
+    parallel, _ = r2.latest_vectors()
+    for t in frames:
+        for block in ("technical", "trend"):
+            assert np.allclose(serial[t][block], parallel[t][block])
+
