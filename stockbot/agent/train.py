@@ -193,11 +193,32 @@ class OOSEvalCallback(BaseCallback):
 
 
 # ---------------------------------------------------------------------- training
+def minutes_until(deadline_at: str | None, max_minutes: float | None) -> float | None:
+    """The smaller of ``max_minutes`` and the minutes left until ``deadline_at`` (ISO 8601, any timezone); None = no limit."""
+    if not deadline_at:
+        return max_minutes
+    from datetime import datetime, timezone
+
+    try:
+        dl = datetime.fromisoformat(str(deadline_at).replace("Z", "+00:00"))
+        if dl.tzinfo is None:
+            dl = dl.replace(tzinfo=timezone.utc)
+        left = max(0.5, (dl - datetime.now(timezone.utc)).total_seconds() / 60.0)
+    except ValueError:
+        log.warning("deadline %r unreadable - ignored", deadline_at)
+        return max_minutes
+    budget = left if max_minutes is None else min(float(max_minutes), left)
+    log.info("training budget: %.0f min (%s)", budget, f"deadline {deadline_at}" if budget == left else f"max_minutes {max_minutes}")
+    return budget
+
+
 def train(cfg: Config, total_timesteps: int | None = None, resume: str | None = None, dataset: MarketDataset | None = None,
           offline: bool = False, refresh: bool = False, synthetic: bool = False, n_envs: int | None = None,
-          seeds: int | None = None, max_minutes: float | None = None) -> Path:
-    """``max_minutes`` (optional) stops the PPO updates after that much wall-clock time; whatever was
-    learned is saved as usual and ``best.zip`` still only changes when the out-of-sample score improves."""
+          seeds: int | None = None, max_minutes: float | None = None, deadline_at: str | None = None) -> Path:
+    """``max_minutes`` (optional) stops the PPO updates after that much wall-clock time; ``deadline_at`` (ISO time, optional)
+    caps that budget at the time left until then, measured after the dataset is ready - so a job-level deadline binds
+    whatever the build took; whatever was learned is saved as usual and ``best.zip`` still only changes when the
+    out-of-sample score improves."""
     tr = cfg.section("train")
     env_cfg = env_settings(cfg)
     ckpt = cfg.path("train.checkpoint_dir", "models/policy")
@@ -210,6 +231,7 @@ def train(cfg: Config, total_timesteps: int | None = None, resume: str | None = 
         from ..signals.pruning import with_block_mask
 
         dataset = with_block_mask(cfg, dataset)                       # a freshly built dataset gets the same mask
+    max_minutes = minutes_until(deadline_at, max_minutes)
     n_seeds = int(seeds or tr.get("seeds", 1) or 1)
     if n_seeds > 1:
         return train_ensemble(cfg, dataset, n_seeds, total_timesteps, resume, n_envs, max_minutes=max_minutes)
@@ -382,7 +404,7 @@ def register_ensemble(cfg: Config, min_score: float | None = None) -> Path:
 
 def retrain(cfg: Config, total_timesteps: int | None = None, n_envs: int | None = None, offline: bool = False,
             synthetic: bool = False, from_scratch: bool = False, seeds: int | None = None, max_minutes: float | None = None,
-            reuse_dataset_days: float = 0.0) -> Path:
+            reuse_dataset_days: float = 0.0, deadline_at: str | None = None) -> Path:
     """Feedback loop: refresh data, refit every sub-model, continue training with recent windows weighted up.
 
     ``reuse_dataset_days > 0`` skips the (slow) refit when ``models/dataset`` was built within that many
@@ -396,7 +418,8 @@ def retrain(cfg: Config, total_timesteps: int | None = None, n_envs: int | None 
     ckpt = cfg.path("train.checkpoint_dir", "models/policy")
     has_policy = (ckpt / "latest.zip").exists() or (ckpt / "ensemble.json").exists()
     resume = str(ckpt / "latest.zip") if has_policy and not from_scratch else None
-    return train(cfg, total_timesteps=total_timesteps, resume=resume, dataset=ds, n_envs=n_envs, seeds=seeds, max_minutes=max_minutes)
+    return train(cfg, total_timesteps=total_timesteps, resume=resume, dataset=ds, n_envs=n_envs, seeds=seeds, max_minutes=max_minutes,
+                 deadline_at=deadline_at)
 
 
 from ..config import rolling_train_end  # noqa: E402,F401 - re-exported: `data.train_end: rolling:N` is resolved by load_config

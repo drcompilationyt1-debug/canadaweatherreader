@@ -18,9 +18,14 @@ log = get_logger(__name__)
 class RoutedBroker(Broker):
     name = "routed"
 
-    def __init__(self, sleeves: dict[str, Broker], default: str = "us"):
+    def __init__(self, sleeves: dict[str, Broker], default: str = "us", seeds: dict[str, float] | None = None):
         self.sleeves = dict(sleeves)
         self.default = default if default in self.sleeves else next(iter(self.sleeves))
+        # a simulated sleeve (a paper book for the names the real broker cannot trade) is funded from the same cash as
+        # the real one - one moomoo account trades both markets - so its seed money is not counted a second time: it
+        # contributes its profit and loss, its purchases consume the book's cash, and every name is sized against the
+        # whole book.  ``seeds`` = {market: the simulated sleeve's starting cash}.
+        self.seeds = {m: float(v) for m, v in (seeds or {}).items() if m in self.sleeves}
         self.name = "routed(" + ", ".join(f"{m}={b.name}" for m, b in self.sleeves.items()) + ")"
         self.supports_short = all(b.supports_short for b in self.sleeves.values())
 
@@ -32,18 +37,31 @@ class RoutedBroker(Broker):
         return m if m in self.sleeves else self.default
 
     # ------------------------------------------------------------------ aggregate view
+    def _in_book(self, market: str) -> bool:
+        """The real default sleeve and the simulated sleeves form one book; other real sleeves are their own accounts."""
+        return bool(self.seeds) and (market == self.default or market in self.seeds)
+
     def equity(self) -> float:
-        """Sum of the sleeves' equities (each in its own currency - a rough total, fine for logging)."""
-        return float(sum(b.equity() for b in self.sleeves.values()))
+        """The sleeves' equities (each in its own currency - a rough total); a simulated sleeve counts only its P&L."""
+        return float(sum(b.equity() - self.seeds.get(m, 0.0) for m, b in self.sleeves.items()))
 
     def cash(self) -> float:
-        return float(sum(b.cash() for b in self.sleeves.values()))
+        """Cash still spendable: the real cash less what the simulated sleeves have invested."""
+        return float(sum(b.cash() - self.seeds.get(m, 0.0) for m, b in self.sleeves.items()))
+
+    def book_equity(self) -> float:
+        return float(sum(b.equity() - self.seeds.get(m, 0.0) for m, b in self.sleeves.items() if self._in_book(m)))
+
+    def book_cash(self) -> float:
+        return float(sum(b.cash() - self.seeds.get(m, 0.0) for m, b in self.sleeves.items() if self._in_book(m)))
 
     def equity_for(self, ticker: str) -> float:
-        return float(self.sleeve_for(ticker).equity())
+        m = self.market_for(ticker)
+        return self.book_equity() if self._in_book(m) else float(self.sleeves[m].equity())
 
     def cash_for(self, ticker: str) -> float:
-        return float(self.sleeve_for(ticker).cash())
+        m = self.market_for(ticker)
+        return self.book_cash() if self._in_book(m) else float(self.sleeves[m].cash())
 
     def positions(self) -> dict[str, Position]:
         out: dict[str, Position] = {}
@@ -70,5 +88,8 @@ class RoutedBroker(Broker):
             s = b.summary()
             out["sleeves"][m] = {"broker": b.name, "currency": MARKETS.get(m, {}).get("currency", "?"), "equity": s["equity"], "cash": s["cash"],
                                  "positions": len(s["positions"])}
+            if m in self.seeds:
+                out["sleeves"][m].update({"seed": self.seeds[m], "pnl": float(s["equity"]) - self.seeds[m],
+                                          "note": "simulated: funded from the book's cash, counts only its P&L"})
             out["positions"].update(s["positions"])
         return out

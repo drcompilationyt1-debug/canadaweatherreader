@@ -98,7 +98,8 @@ def cmd_train(cfg, args) -> int:
     from .agent.train import train
 
     path = train(cfg, total_timesteps=args.timesteps, resume=args.resume, offline=args.offline,
-                 synthetic=args.synthetic, n_envs=args.n_envs, refresh=args.refresh, seeds=args.seeds, max_minutes=args.max_minutes)
+                 synthetic=args.synthetic, n_envs=args.n_envs, refresh=args.refresh, seeds=args.seeds, max_minutes=args.max_minutes,
+                 deadline_at=args.deadline_at)
     print(f"policy saved: {path}")
     return 0
 
@@ -655,6 +656,13 @@ def cmd_account(cfg, args) -> int:
 
         b = AlpacaBroker(paper=h.paper, fractional=bool(cfg.get_path("execution.alpaca.fractional", True)), keys_env=h.keys_env)
         print("Alpaca account configured like a moomoo cash account:", json.dumps(b.configure_like_moomoo(), indent=1, default=str))
+    if getattr(args, "close_dust", None) is not None:
+        from .execution.alpaca import AlpacaBroker
+
+        b = AlpacaBroker(paper=h.paper, fractional=bool(cfg.get_path("execution.alpaca.fractional", True)), keys_env=h.keys_env)
+        closed = b.close_dust(float(args.close_dust))
+        print(f"dust positions (fractional remnants under ${float(args.close_dust):.0f}): "
+              + (", ".join(f"{c['ticker']} {c['qty']:.3f}sh {'closed' if c.get('closed') else 'NOT closed'}" for c in closed) if closed else "none"))
     from .execution.alpaca import VirtualLedger
 
     ledger = VirtualLedger(cfg.path("execution.state_file", "data/paper/state.json").with_name("alpaca_ledger.json"))
@@ -700,7 +708,7 @@ def cmd_retrain(cfg, args) -> int:
     print("experience so far:", json.dumps(ExperienceStore(cfg.path("feedback.experience_file")).summary(), default=str))
     path = retrain(cfg, total_timesteps=args.timesteps, n_envs=args.n_envs, offline=args.offline,
                    synthetic=args.synthetic, from_scratch=args.from_scratch, seeds=args.seeds, max_minutes=args.max_minutes,
-                   reuse_dataset_days=args.reuse_dataset_days or 0.0)
+                   reuse_dataset_days=args.reuse_dataset_days or 0.0, deadline_at=args.deadline_at)
     print(f"policy updated: {path}")
     return 0
 
@@ -752,6 +760,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--n-envs", type=int)
     p.add_argument("--seeds", type=int, help="train N seeds and trade their averaged action (default train.seeds)")
     p.add_argument("--max-minutes", type=float, help="stop the PPO updates after this much wall-clock time")
+    p.add_argument("--deadline-at", help="ISO time; the PPO updates stop by then whatever the dataset build took (a job deadline)")
     p.add_argument("--offline", action="store_true")
     p.add_argument("--refresh", action="store_true")
     p.add_argument("--synthetic", action="store_true")
@@ -911,6 +920,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--sync", action="store_true", help="cache the history and every fill under data/paper/alpaca (saved with the state)")
     p.add_argument("--configure-like-moomoo", action="store_true",
                    help="set the Alpaca account itself to no margin, no shorting and (unless execution.alpaca.fractional) whole shares")
+    p.add_argument("--close-dust", type=float, metavar="USD", help="liquidate fractional remnants under one share and under this value")
     p.set_defaults(fn=cmd_account)
 
     p = sub.add_parser("intraday-fit", help="fit the intraday exit model on the broker's 15-minute bars: when should a held name have been sold?")
@@ -924,6 +934,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--n-envs", type=int)
     p.add_argument("--seeds", type=int)
     p.add_argument("--max-minutes", type=float, help="stop the PPO updates after this much wall-clock time")
+    p.add_argument("--deadline-at", help="ISO time; the PPO updates stop by then whatever the dataset build took (a job deadline)")
     p.add_argument("--reuse-dataset-days", type=float, help="reuse models/dataset when younger than this (skip the sub-model refit)")
     p.add_argument("--from-scratch", action="store_true")
     p.add_argument("--offline", action="store_true")

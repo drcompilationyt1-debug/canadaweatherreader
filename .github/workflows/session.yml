@@ -39,7 +39,7 @@ concurrency:
 jobs:
   session:
     runs-on: ubuntu-latest
-    timeout-minutes: 355         # GitHub kills the job at 360: JOB_DEADLINE (minute 325) ends the session; review + save follow
+    timeout-minutes: 355         # GitHub kills the job at 360: JOB_DEADLINE (minute 340) ends the session; review + save follow
     permissions:
       contents: write
     env:
@@ -75,11 +75,11 @@ jobs:
           print(f"now={now:%a %Y-%m-%d %H:%M %Z}")
           EOF
           cat "$GITHUB_OUTPUT"
-      - name: job clock (everything below plans around this deadline, 325 min after the job started)
+      - name: job clock (everything below plans around this deadline, 340 min after the job started)
         if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
         run: |
-          echo "JOB_DEADLINE=$(date -u -d '+325 minutes' +%Y-%m-%dT%H:%M:%S+00:00)" >> "$GITHUB_ENV"
-          echo "job started $(date -u +%H:%M) UTC, deadline $(date -u -d '+325 minutes' +%H:%M) UTC"
+          echo "JOB_DEADLINE=$(date -u -d '+340 minutes' +%Y-%m-%dT%H:%M:%S+00:00)" >> "$GITHUB_ENV"
+          echo "job started $(date -u +%H:%M) UTC, deadline $(date -u -d '+340 minutes' +%H:%M) UTC"
       - uses: actions/checkout@v4
         if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
         with:
@@ -160,7 +160,11 @@ jobs:
       - name: qlib every morning (fresh bundle from the latest bars -> Alpha158 -> LightGBM -> scores for today's decision; ~2 min)
         if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
         run: |
-          git submodule update --init --depth 1 third_party/qlib \n            && pip install pyqlib lightgbm \n            && timeout 8m python scripts/qlib_build_bundle.py --refresh \n            && timeout 8m python scripts/qlib_train.py \n            || echo "qlib refresh failed - the block keeps its last scores (signals.qlib.max_age_bars)"
+          git submodule update --init --depth 1 third_party/qlib \
+            && pip install pyqlib lightgbm \
+            && timeout 8m python scripts/qlib_build_bundle.py --refresh \
+            && timeout 8m python scripts/qlib_train.py \
+            || echo "qlib refresh failed - the block keeps its last scores (signals.qlib.max_age_bars)"
       - name: intraday exit model (from the broker's 15-min bars - when should a held name have been sold?)
         if: ${{ !(inputs.dry_run == true) && (steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true') }}
         run: timeout 8m python -m stockbot intraday-fit --days 40 || true
@@ -169,7 +173,7 @@ jobs:
       - name: session
         if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
         run: >
-          timeout 320m python -m stockbot session --mode ${{ inputs.mode || 'alpaca' }} --deadline-minutes 300 --deadline-at "$JOB_DEADLINE"
+          timeout 338m python -m stockbot session --mode ${{ inputs.mode || 'alpaca' }} --deadline-minutes 330 --deadline-at "$JOB_DEADLINE"
           --hours ${{ inputs.hours || '4' }}
           ${{ (github.event_name == 'schedule' || inputs.gate == true) && '--gate-minutes 90' || '' }}
           ${{ inputs.dry_run == true && '--dry-run' || '' }}
@@ -185,8 +189,8 @@ jobs:
       - name: account (the broker's equity per day and every fill, cached with the state)
         if: ${{ always() && (steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true') }}
         run: |
-          python -m stockbot account --sync --period 1M --days 25 --fills 25 || true
-          python -m stockbot account --account small --sync --period 1M --days 25 --fills 25 || true
+          python -m stockbot account --sync --close-dust 500 --period 1M --days 25 --fills 25 || true
+          python -m stockbot account --account small --sync --close-dust 500 --period 1M --days 25 --fills 25 || true
       - name: forecast scorecard
         if: ${{ always() && (steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true') }}
         run: python -m stockbot forecast --no-refresh || true

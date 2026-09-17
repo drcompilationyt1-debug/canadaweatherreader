@@ -13,8 +13,8 @@ on:
   workflow_dispatch:
     inputs:
       timesteps:
-        description: "PPO steps per ensemble member (about 100k steps per 1.5 minutes on a runner)"
-        default: "4000000"
+        description: "PPO steps per ensemble member per run (high by default so the clock is the only limit; about 100k steps a minute on a runner)"
+        default: "40000000"
       seeds:
         description: "ensemble members"
         default: "3"
@@ -27,8 +27,8 @@ on:
         type: boolean
         default: false
       max_minutes:
-        description: "wall-clock budget for the PPO updates (the dataset build comes on top; the job has 350 minutes in all)"
-        default: "220"
+        description: "wall-clock budget for the PPO updates; the job deadline (305 min after the start, whatever the dataset build took) caps it"
+        default: "300"
       chain_minutes:
         description: "after this run saves, start another run that continues training for this many minutes on the cached dataset (0 = none)"
         default: "0"
@@ -60,6 +60,10 @@ jobs:
       PYTHONUNBUFFERED: "1"
       OMP_NUM_THREADS: "4"
     steps:
+      - name: job clock (the PPO updates stop 305 min after the job started; evaluation, reviews, tuners and the state save follow)
+        run: |
+          echo "JOB_DEADLINE=$(date -u -d '+305 minutes' +%Y-%m-%dT%H:%M:%S+00:00)" >> "$GITHUB_ENV"
+          echo "job started $(date -u +%H:%M) UTC, training deadline $(date -u -d '+305 minutes' +%H:%M) UTC"
       - name: which day
         id: day
         run: |
@@ -128,10 +132,11 @@ jobs:
       - name: retrain
         run: >
           python -m stockbot retrain
-          --timesteps ${{ inputs.timesteps || '4000000' }}
+          --timesteps ${{ inputs.timesteps || '40000000' }}
           --seeds ${{ inputs.seeds || '3' }}
           --n-envs 4
-          --max-minutes ${{ inputs.max_minutes || '220' }}
+          --max-minutes ${{ inputs.max_minutes || '300' }}
+          --deadline-at "$JOB_DEADLINE"
           ${{ steps.day.outputs.refit == 'true' && '' || '--reuse-dataset-days 3' }}
           ${{ inputs.from_scratch == true && '--from-scratch' || '' }}
       - name: evaluate
@@ -164,7 +169,7 @@ jobs:
           gh workflow run retrain.yml --ref ${{ github.ref_name }}
           -f refit=false -f from_scratch=false
           -f seeds=${{ inputs.seeds || '3' }} -f timesteps=${{ inputs.timesteps || '4000000' }}
-          -f max_minutes=${{ inputs.chain_minutes }} -f chain_minutes=0
+          -f max_minutes=${{ inputs.chain_minutes }} -f timesteps=${{ inputs.timesteps || '40000000' }} -f chain_minutes=0
       - uses: actions/upload-artifact@v4
         if: always()
         with:

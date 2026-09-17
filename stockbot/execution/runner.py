@@ -217,9 +217,14 @@ class TradingRunner:
             if self.mode == "paper" and len(markets) > 1:   # one simulator per market so each pays its own fees
                 sleeves = {m: self._single_broker("paper", m) for m in markets if m != "us"}
                 if sleeves:
-                    return RoutedBroker({"us": main, **sleeves}, default="us")
+                    return RoutedBroker({"us": main, **sleeves}, default="us", seeds=self._sleeve_seeds(sleeves))
             return main
-        return RoutedBroker({"us": main, **sleeves}, default="us")
+        return RoutedBroker({"us": main, **sleeves}, default="us", seeds=self._sleeve_seeds(sleeves))
+
+    @staticmethod
+    def _sleeve_seeds(sleeves: dict[str, Broker]) -> dict[str, float]:
+        """The simulated sleeves' starting cash: they are funded from the same book as the real broker, not on top of it."""
+        return {m: float(b.initial_cash) for m, b in sleeves.items() if hasattr(b, "initial_cash")}
 
     def _single_broker(self, mode: str, market: str) -> Broker:
         fees = self.fee_book.for_market(market)
@@ -707,7 +712,12 @@ class TradingRunner:
             dry_run = True
 
         equity = float(self.broker.equity())
-        eq_of = {t: self.equity_for(t) for t in tickers}   # each ticker is sized against its own sleeve
+        eq_of = {t: self.equity_for(t) for t in tickers}   # each ticker is sized against its book (a real sleeve of its own, else the whole book)
+        if getattr(self.broker, "seeds", None) and self.state.get("equity_basis") != "book":
+            log.info("equity basis is now the whole book (simulated sleeves count only their P&L): baseline %s -> %.2f",
+                     self.state.get("initial_equity"), equity)
+            self.state.update({"initial_equity": equity, "peak_equity": equity, "equity_basis": "book", "book_returns": []})
+            self.state.pop("last_equity", None)
         last_eq = self.state.get("last_equity")
         if last_eq and self.state.get("last_equity_date") != as_of and float(last_eq) > 0:
             book = list(self.state.get("book_returns", []))[-120:] + [equity / float(last_eq) - 1.0]
@@ -726,6 +736,9 @@ class TradingRunner:
                 peaks.pop(t, None)
                 continue
             price = self.price(t)
+            if abs(pos.shares) < 1.0 and abs(pos.shares * price) < self.min_trade_for(t):   # a fractional remnant, not a position
+                peaks.pop(t, None)
+                continue
             pnl = (price / pos.avg_price - 1.0) * 100.0 * (1.0 if pos.shares > 0 else -1.0)
             peaks[t] = max(float(peaks.get(t, pnl)), pnl)
             positions[t] = {"exposure": float(np.clip(pos.shares * price / max(eq_of[t] * self.max_position, 1e-9), -1, 1)),

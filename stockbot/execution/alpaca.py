@@ -121,6 +121,25 @@ class AlpacaBroker(Broker):
         log.info("alpaca account configured like moomoo: %s", d)
         return d
 
+    def close_dust(self, max_value: float = 500.0) -> list[dict]:
+        """Liquidate the fractional remnants (under one share and under ``max_value``) the whole-share rule leaves behind
+        after the earlier fractional days; Alpaca closes a fractional position in full even with fractional trading off."""
+        out = []
+        for p in self.client.get_all_positions():
+            qty, value = abs(float(p.qty)), abs(float(getattr(p, "market_value", 0.0) or 0.0))
+            if qty >= 1.0 or value >= max_value:
+                continue
+            rec = {"ticker": self._ticker(p.symbol), "qty": qty, "value": value}
+            try:
+                self.client.close_position(p.symbol)
+                rec["closed"] = True
+                log.info("closed dust %s: %.4f shares (%.2f)", p.symbol, qty, value)
+            except Exception as e:  # noqa: BLE001
+                rec.update({"closed": False, "error": str(e)})
+                log.warning("could not close dust %s (%.4f shares): %s", p.symbol, qty, e)
+            out.append(rec)
+        return out
+
     def positions(self) -> dict[str, Position]:
         """Held positions plus the unfilled part of open orders (so a re-run never doubles an order)."""
         out: dict[str, Position] = {}
