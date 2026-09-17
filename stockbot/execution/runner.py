@@ -69,6 +69,8 @@ class TradingRunner:
         self.rank_floor = float(rk.get("policy_floor", 0.5))
         self.rank_veto = float(rk.get("policy_veto", 0.05))
         self.max_per_sector = int(rk.get("max_per_sector", 0) or 0)
+        dl = dict(rk.get("deals", {}) or {})                                # the opportunistic layer between rebalances (off unless the evidence says so)
+        self.rank_deals = {k: dl[k] for k in ("enter_pct", "exit_pct", "max_swaps", "min_gap") if k in dl} if bool(dl.get("enabled", False)) else None
         vt = dict(rk.get("vol_target", {}) or {})
         self.vol_target = float(vt.get("target", 0.0) or 0.0) if bool(vt.get("enabled", False)) else 0.0
         self.vol_window = int(vt.get("window", 20))
@@ -112,6 +114,8 @@ class TradingRunner:
                 self.rank_top_k = int(prof.get("top_k", self.rank_top_k))
                 self.rank_every = every_bars_of(prof.get("every_bars", self.rank_every))
                 self.rank_hysteresis = int(prof.get("hysteresis", self.rank_hysteresis))
+                if "deals" in prof:
+                    self.rank_deals = dict(prof["deals"]) if prof["deals"] else None
                 share = float(prof.get("core_share", self.core_share))
                 if share > 0:
                     self.core_ticker = str(prof.get("core_ticker") or core.get("ticker") or "SPY")
@@ -659,22 +663,31 @@ class TradingRunner:
                 log.warning("portfolio agent failed (%s) - the cadence rule decides", e)
                 agent_exposure = None
         if was_on and not due:
+            kept = {t: current[t] * self.max_position for t in universe}
+            if self.rank_deals:                                               # the opportunistic layer, when the evidence switched it on
+                from ..agent.backtest import apply_deals
+
+                held_now = [t for t in universe if abs(current[t]) > 0.05]
+                new_held = apply_deals(scores, held_now, self.rank_top_k, self.rank_deals, sectors=self._sector_map(universe),
+                                       max_per_sector=self.max_per_sector)
+                entered, left = [t for t in new_held if t not in held_now], [t for t in held_now if t not in new_held]
+                if entered or left:
+                    ppo_frac = {t: float(np.clip(targets.get(t, 0.0), 0.0, 1.0)) for t in universe}
+                    slots = slot_weights(entered, self.rank_top_k, ppo_frac, self.rank_floor, self.rank_veto)
+                    for t in left:
+                        kept[t] = 0.0
+                    for t in entered:
+                        kept[t] = min(slots.get(t, 0.0) * satellite, self.max_position)
+                    note = "opportunistic: " + ", ".join(([f"in {', '.join(entered)}"] if entered else []) + ([f"out {', '.join(left)}"] if left else []))
+                    self.last_cycle_note = (self.last_cycle_note + "; " if self.last_cycle_note else "") + note
+                    log.info("rank core: %s (between rebalances)", note)
+                    return {**kept, **core_w}
             self.last_cycle_note = (self.last_cycle_note + "; " if self.last_cycle_note else "") + \
                 f"rank core: next rebalance {self.rank_every} bars after {self.state.get('last_rebalance_date')} - positions kept"
             log.info("rank core: not a rebalance day (every %d bars, last %s) - holding", self.rank_every, self.state.get("last_rebalance_date"))
-            return {**{t: current[t] * self.max_position for t in universe}, **core_w}
+            return {**kept, **core_w}
         held = [t for t in universe if abs(current[t]) > 0.05]
-        sectors = None
-        if self.max_per_sector > 0:
-            if self._sectors is None:
-                try:
-                    from ..data.sectors import load_sectors
-
-                    self._sectors = load_sectors(self.cfg, universe, refresh=not self.offline)
-                except Exception as e:  # noqa: BLE001
-                    log.warning("sectors unavailable (%s) - no sector cap this cycle", e)
-                    self._sectors = {}
-            sectors = self._sectors or None
+        sectors = self._sector_map(universe)
         chosen = select_top(scores, held, self.rank_top_k, self.rank_hysteresis, sectors=sectors, max_per_sector=self.max_per_sector)
         ppo_frac = {t: float(np.clip(targets.get(t, 0.0), 0.0, 1.0)) for t in universe}
         slots = slot_weights(chosen, self.rank_top_k, ppo_frac, self.rank_floor, self.rank_veto)
@@ -695,6 +708,20 @@ class TradingRunner:
         log.info("rank core: top-%d by %s -> %s%s", self.rank_top_k, "+".join(self.rank_inputs), ", ".join(chosen),
                  f"; leaving {', '.join(dropped)}" if dropped else "")
         return weights
+
+    def _sector_map(self, universe: list[str]) -> dict[str, str] | None:
+        """Yahoo sectors for the sector cap (fetched once per process, cached weekly on disk); None without a cap."""
+        if self.max_per_sector <= 0:
+            return None
+        if self._sectors is None:
+            try:
+                from ..data.sectors import load_sectors
+
+                self._sectors = load_sectors(self.cfg, universe, refresh=not self.offline)
+            except Exception as e:  # noqa: BLE001
+                log.warning("sectors unavailable (%s) - no sector cap this cycle", e)
+                self._sectors = {}
+        return self._sectors or None
 
     # ------------------------------------------------------------------ one trading cycle
     def cycle(self, dry_run: bool = False, refresh: bool = True) -> list[Decision]:

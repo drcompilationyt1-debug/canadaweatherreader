@@ -397,6 +397,11 @@ execution:
     # the worst yearly drawdown from -33% to -22% (Sharpe 1.61 vs 1.59); the sector cap barely binds on 50 names (-0.2 pt/yr) and is
     # there for the wider universe, where a return ranking piles into whatever sector is running
     max_per_sector: 6         # at most this many of the top_k from one Yahoo sector (models/sectors.json, refreshed weekly); 0 = no cap
+    # the opportunistic layer between rebalance days: a name whose score reaches the enter_pct percentile comes in (a free slot,
+    # else replacing the weakest holding), a holding under exit_pct leaves, at most max_swaps changes a day.  Off: 2012-2026 it
+    # added +0.2 pt/yr to the main book (9/15 years, a coin flip) and cost the small book 2-25 pt/yr in turnover; the weekend
+    # structure tuner keeps testing it and switches it on only after two consecutive winning weeks
+    deals: { enabled: false, enter_pct: 0.98, exit_pct: 0.0, max_swaps: 1, min_gap: 0.0 }
     portfolio_rl: { enabled: true }   # the portfolio agent (stockbot portfolio-rl: PPO over rebalance timing + exposure, walk-forward vs this
                                       # rule) takes over the cadence and the volatility targeting only once its report says accepted
     vol_target:               # volatility targeting on the whole book (Moreira & Muir 2017): gross exposure is scaled so the book's

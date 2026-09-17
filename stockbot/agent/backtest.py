@@ -44,6 +44,53 @@ def blended_scores(ds, inputs: dict[str, float] | None = None) -> pd.DataFrame:
     return num / den.replace(0.0, np.nan)
 
 
+def apply_deals(scores: dict[str, float], held: list[str], k: int, deals: dict, sectors: dict[str, str] | None = None,
+                max_per_sector: int = 0) -> list[str]:
+    """The opportunistic layer for one day between rebalances (see ``simulate``): returns the new held list."""
+    import numpy as np
+
+    enter, exit_, max_swaps = float(deals.get("enter_pct", 0.95)), float(deals.get("exit_pct", 0.0)), int(deals.get("max_swaps", 1))
+    gap = float(deals.get("min_gap", 0.0))
+    names = [t for t, v in scores.items() if np.isfinite(v)]
+    if len(names) < 10 or max_swaps <= 0:
+        return held
+    order = sorted(names, key=lambda t: scores[t])
+    pct = {t: (i + 0.5) / len(order) for i, t in enumerate(order)}          # percentile of each name's score today
+    held = list(held)
+    changes = 0
+    if exit_ > 0:                                                            # a holding that collapsed leaves
+        for t in sorted([t for t in held if t in pct], key=lambda t: pct[t]):
+            if pct[t] < exit_ and changes < max_swaps:
+                held.remove(t)
+                changes += 1
+    counts: dict[str, int] = {}
+    for t in held:
+        sec = (sectors or {}).get(t)
+        if sec and sec not in ("Unknown", "Index"):
+            counts[sec] = counts.get(sec, 0) + 1
+    for t in sorted([t for t in names if t not in held and pct[t] >= enter], key=lambda t: -pct[t]):
+        if changes >= max_swaps:
+            break
+        sec = (sectors or {}).get(t)
+        if max_per_sector and sec and sec not in ("Unknown", "Index") and counts.get(sec, 0) >= max_per_sector:
+            continue
+        if len(held) < k:
+            held.append(t)
+        else:
+            weakest = min([h for h in held if h in pct], key=lambda h: pct[h], default=None)
+            if weakest is None or pct[t] - pct[weakest] < gap:
+                continue
+            held.remove(weakest)
+            wsec = (sectors or {}).get(weakest)
+            if wsec and wsec in counts:
+                counts[wsec] -= 1
+            held.append(t)
+        if sec and sec not in ("Unknown", "Index"):
+            counts[sec] = counts.get(sec, 0) + 1
+        changes += 1
+    return held
+
+
 def eligibility(cfg, px: pd.DataFrame) -> pd.DataFrame | None:
     """(dates x tickers) True where a name may be chosen: from its first S&P 500 membership date (``config/universe_membership.json``),
     so a backtest never picks a name because it later grew into the index; names without a record are always eligible."""
@@ -92,10 +139,13 @@ def trend_state(px: pd.DataFrame, benchmark: str = "SPY", sma: int = 200, band: 
 def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, every: int = 10, hysteresis: int = 3,
              fee_bps: float = 8.0, end=None, core: dict | None = None, trend: dict | None = None, reserve: float = 0.0,
              sectors: dict[str, str] | None = None, max_per_sector: int = 0, vol_target: float = 0.0, vol_window: int = 20,
-             vol_floor: float = 0.4, eligible: pd.DataFrame | None = None) -> dict:
+             vol_floor: float = 0.4, eligible: pd.DataFrame | None = None, deals: dict | None = None) -> dict:
     """Daily portfolio returns of the rank-core rule (``score`` None = equal-weight everything), fees on turnover.
     ``core`` = {ticker, share}: a buy-and-hold slice bought once and never sold; ``trend`` = {benchmark, sma, band}: the
-    rank slots go to cash while the benchmark is below its moving average; ``reserve`` = cash never invested."""
+    rank slots go to cash while the benchmark is below its moving average; ``reserve`` = cash never invested;
+    ``deals`` = {enter_pct, exit_pct, max_swaps, min_gap}: between rebalance days a name whose score percentile reaches
+    ``enter_pct`` may enter (a free slot, else replacing the weakest holding when it beats it by ``min_gap`` percentiles) and a
+    holding whose percentile falls below ``exit_pct`` leaves, at most ``max_swaps`` changes a day."""
     idx = px.index[(px.index >= pd.Timestamp(start)) & ((px.index <= pd.Timestamp(end)) if end is not None else True)]
     rets = px.pct_change(fill_method=None).reindex(idx).fillna(0.0)
     wts = pd.DataFrame(0.0, index=idx, columns=px.columns)
@@ -131,6 +181,14 @@ def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, e
             if el is not None and len(s):
                 s = s[[t for t in s.index if el.at[d, t]]]                # not yet in the index that day: not choosable
             held = select_top(s.to_dict(), held, k, hysteresis, sectors=sectors, max_per_sector=max_per_sector) if len(s) else held
+        elif deals:
+            s = score.loc[d].dropna() if d in score.index else pd.Series(dtype=float)
+            if core_t is not None:
+                s = s.drop(core_t, errors="ignore")
+            if el is not None and len(s):
+                s = s[[t for t in s.index if el.at[d, t]]]
+            if len(s) >= 10:
+                held = apply_deals(s.to_dict(), held, k, deals, sectors=sectors, max_per_sector=max_per_sector)
         scale = vol_scale(book, vol_target, vol_window, vol_floor, 1.0) if vol_target > 0 else 1.0
         if held:
             wts.loc[d, held] = satellite * scale / max(k, 1)              # a slot is full or empty: no trims
@@ -210,7 +268,9 @@ def run_backtests(cfg, ds, budgets: dict[str, dict] | None = None, oos_start=Non
         core = dict(c.get_path("execution.core", {}) or {})
         base = {"top_k": int(rk_.get("top_k", 20)), "every_bars": every_bars_of(rk_.get("every_bars", 10)), "hysteresis": int(rk_.get("hysteresis", 3)),
                 "core_share": float(core.get("share", 0.0) or 0.0)}
+        base["deals"] = deals_of(rk_)
         tuned = load_tuned_profile(c.path("models_dir", "models"), str(c.get("account") or "main"), base) if rk_.get("adaptive", True) else None
+        deals = tuned.get("deals", base["deals"]) if tuned else base["deals"]
         if tuned:                                                          # what the runner actually uses
             rk_ = {**rk_, "top_k": tuned.get("top_k", rk_.get("top_k", 20)), "every_bars": tuned.get("every_bars", rk_.get("every_bars", 10)),
                    "hysteresis": tuned.get("hysteresis", rk_.get("hysteresis", 3))}
@@ -226,7 +286,7 @@ def run_backtests(cfg, ds, budgets: dict[str, dict] | None = None, oos_start=Non
         vt = dict(rk_.get("vol_target", {}) or {})
         return {"budget": float(budget), "k": int(rk_.get("top_k", 20)), "every": every_bars_of(rk_.get("every_bars", 10)),
                 "hysteresis": int(rk_.get("hysteresis", 3)), "reserve": float(c.get_path("execution.cash_reserve", 0.1) or 0.0),
-                "core": core_spec, "max_per_sector": int(rk_.get("max_per_sector", 0) or 0),
+                "core": core_spec, "max_per_sector": int(rk_.get("max_per_sector", 0) or 0), "deals": deals,
                 "vol_target": float(vt.get("target", 0.0) or 0.0) if vt.get("enabled") else 0.0, "vol_window": int(vt.get("window", 20)),
                 "vol_floor": float(vt.get("floor", 0.4)),
                 "trend": {"benchmark": str(tf.get("benchmark", "SPY")), "sma": int(tf.get("sma", 200)), "band": float(tf.get("band", 0.02))} if tf.get("enabled") else None}
@@ -275,7 +335,8 @@ def run_backtests(cfg, ds, budgets: dict[str, dict] | None = None, oos_start=Non
             satellite_budget = bset["budget"] * max(0.0, 1.0 - core_share - bset.get("reserve", 0.0))
             fee = round_trip_bps(cfg, satellite_budget, bset["k"])
             extra_kw = {"sectors": sectors, "max_per_sector": bset.get("max_per_sector", 0), "vol_target": bset.get("vol_target", 0.0),
-                        "vol_window": bset.get("vol_window", 20), "vol_floor": bset.get("vol_floor", 0.4), "eligible": elig}
+                        "vol_window": bset.get("vol_window", 20), "vol_floor": bset.get("vol_floor", 0.4), "eligible": elig,
+                        "deals": bset.get("deals")}
             r = simulate(px, score, start, k=bset["k"], every=bset["every"], hysteresis=bset.get("hysteresis", hyst), fee_bps=fee,
                          core=bset.get("core"), trend=bset.get("trend"), reserve=bset.get("reserve", 0.0), **extra_kw)
             # the same rule started 2..20 bars later: a concentrated book's result depends on the rebalance phase, so the
@@ -409,8 +470,17 @@ def tune_rank_weights(cfg, ds, out_path=None, days: int = 250, min_t: float = 2.
 
 
 # SPY is a regular candidate like every other name (the user's call): no index sleeve is tuned, only slots / cadence / hysteresis
-PROFILE_GRID = {"small": {"top_k": (5, 10), "every_bars": (21, 42), "hysteresis": (3, 5), "core_share": (0.0,)},
-                "main": {"top_k": (15, 20, 25), "every_bars": (5, 10, 21), "hysteresis": (3, 5), "core_share": (0.0,)}}
+# the opportunistic layer (deals) is in the grid so the evidence decides: 2012-2026 it added nothing for the main book (+0.2 pt/yr,
+# a coin flip) and cost the small book 2-25 pt/yr in turnover, so it is off until a two-week pass says otherwise
+DEALS_OPTION = {"enter_pct": 0.98, "exit_pct": 0.0, "max_swaps": 1, "min_gap": 0.0}
+PROFILE_GRID = {"small": {"top_k": (5, 10), "every_bars": (21, 42), "hysteresis": (3, 5), "core_share": (0.0,), "deals": (None, DEALS_OPTION)},
+                "main": {"top_k": (15, 20, 25), "every_bars": (5, 10, 21), "hysteresis": (3, 5), "core_share": (0.0,), "deals": (None, DEALS_OPTION)}}
+
+
+def deals_of(rk: dict) -> dict | None:
+    """The configured opportunistic layer (``execution.rank.deals``) when enabled, else None."""
+    dl = dict(rk.get("deals", {}) or {})
+    return {k: dl[k] for k in ("enter_pct", "exit_pct", "max_swaps", "min_gap") if k in dl} if bool(dl.get("enabled", False)) else None
 
 
 def tune_profile(cfg, ds, account: str = "main", out_path=None, years: int = 3, min_gain: float = 0.05) -> dict:
@@ -434,11 +504,11 @@ def tune_profile(cfg, ds, account: str = "main", out_path=None, years: int = 3, 
 
         inputs = load_tuned_inputs(c.path("models_dir", "models"), inputs)
     current = {"top_k": int(rk.get("top_k", 20)), "every_bars": every_bars_of(rk.get("every_bars", 10)), "hysteresis": int(rk.get("hysteresis", 3)),
-               "core_share": float(core_cfg.get("share", 0.0) or 0.0), "core_ticker": core_t}
-    config_base = {k: current[k] for k in ("top_k", "every_bars", "hysteresis", "core_share")}
+               "core_share": float(core_cfg.get("share", 0.0) or 0.0), "core_ticker": core_t, "deals": deals_of(rk)}
+    config_base = {k: current[k] for k in ("top_k", "every_bars", "hysteresis", "core_share", "deals")}
     prev = load_tuned_profile(c.path("models_dir", "models"), account, config_base)
     if prev:
-        current = {**current, **{k: prev[k] for k in ("top_k", "every_bars", "hysteresis", "core_share") if k in prev}}
+        current = {**current, **{k: prev[k] for k in ("top_k", "every_bars", "hysteresis", "core_share", "deals") if k in prev}}
     grid = PROFILE_GRID.get("small" if budget < 30_000 else "main", PROFILE_GRID["main"])
     px = closes(ds)
     score = blended_scores(ds, inputs)
@@ -472,29 +542,30 @@ def tune_profile(cfg, ds, account: str = "main", out_path=None, years: int = 3, 
         fee = round_trip_bps(cfg, budget * max(0.0, 1.0 - cs - reserve), int(p["top_k"]))
         r = simulate(px, score, start, k=int(p["top_k"]), every=int(p["every_bars"]), hysteresis=int(p["hysteresis"]), fee_bps=fee,
                      core=core, trend=trend, reserve=reserve, sectors=sectors, max_per_sector=max_per_sector, vol_target=vol_target,
-                     vol_window=vol_window, vol_floor=vol_floor, eligible=elig)
+                     vol_window=vol_window, vol_floor=vol_floor, eligible=elig, deals=p.get("deals"))
         return {k: v for k, v in r.items() if k != "daily"}
 
-    cands = [{"top_k": k, "every_bars": e, "hysteresis": h, "core_share": cs, "core_ticker": core_t}
-             for k in grid["top_k"] for e in grid["every_bars"] for h in grid["hysteresis"] for cs in grid["core_share"]]
-    if not any(all(cd[k] == current[k] for k in ("top_k", "every_bars", "hysteresis", "core_share")) for cd in cands):
+    cands = [{"top_k": k, "every_bars": e, "hysteresis": h, "core_share": cs, "core_ticker": core_t, "deals": dl}
+             for k in grid["top_k"] for e in grid["every_bars"] for h in grid["hysteresis"] for cs in grid["core_share"]
+             for dl in grid.get("deals", (None,))]
+    if not any(all(cd[k] == current[k] for k in ("top_k", "every_bars", "hysteresis", "core_share", "deals")) for cd in cands):
         cands.append(dict(current))
     results = []
     for cd in cands:
         r1, r3 = run(cd, "1y"), run(cd, f"{years}y")
         results.append({**cd, "1y": r1, f"{years}y": r3})
-    cur = next(r for r in results if all(r[k] == current[k] for k in ("top_k", "every_bars", "hysteresis", "core_share")))
+    cur = next(r for r in results if all(r[k] == current[k] for k in ("top_k", "every_bars", "hysteresis", "core_share", "deals")))
     best = max(results, key=lambda r: r["1y"]["sharpe"])
     long = f"{years}y"
     ok = (best is not cur and best["1y"]["sharpe"] >= cur["1y"]["sharpe"] + min_gain
           and best[long]["sharpe"] >= cur[long]["sharpe"] - 0.02 and best[long]["total"] >= cur[long]["total"] - 0.01)
-    keys = ("top_k", "every_bars", "hysteresis", "core_share")
+    keys = ("top_k", "every_bars", "hysteresis", "core_share", "deals")
     today = str(date.today())
     proposal = {k: best[k] for k in keys} if ok else None
     accepted, streak = _confirmed(_previous_report(out_path), proposal, ok, today)     # two consecutive weekly passes
     chosen = best if accepted else cur
     rep = {"account": account, "tuned_at": today, "guard_passed": bool(ok), "proposal": proposal, "streak": streak, "accepted": bool(accepted),
-           "profile": {k: chosen[k] for k in ("top_k", "every_bars", "hysteresis", "core_share", "core_ticker")},   # in force from now on
+           "profile": {k: chosen[k] for k in ("top_k", "every_bars", "hysteresis", "core_share", "core_ticker", "deals")},   # in force from now on
            "config_base": config_base,                                        # the config this was tuned from: an edit there resets it
            "current": {k: cur[k] for k in keys},
            "current_result": {"1y": cur["1y"], long: cur[long]}, "best_result": {"1y": best["1y"], long: best[long]},
@@ -502,7 +573,7 @@ def tune_profile(cfg, ds, account: str = "main", out_path=None, years: int = 3, 
            "reason": ("a better structure over both windows, two weeks running - in force" if accepted else
                       ("a better structure this week - in force if it wins again next week" if ok else
                        "the current structure is as good or the best one fails the long-window guard - kept")),
-           "candidates": [{k: r[k] for k in ("top_k", "every_bars", "hysteresis", "core_share")} | {"1y_sharpe": r["1y"]["sharpe"], "1y_total": r["1y"]["total"],
+           "candidates": [{k: r[k] for k in ("top_k", "every_bars", "hysteresis", "core_share", "deals")} | {"1y_sharpe": r["1y"]["sharpe"], "1y_total": r["1y"]["total"],
                            f"{long}_sharpe": r[long]["sharpe"], f"{long}_total": r[long]["total"], "1y_maxdd": r["1y"]["max_drawdown"]} for r in results]}
     if out_path is not None:
         import json

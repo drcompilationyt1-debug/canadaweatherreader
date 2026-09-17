@@ -63,7 +63,7 @@ def load_tuned_profile(models_dir, account: str = "main", config_base: dict | No
             base = d.get("config_base")
             if in_force and config_base is not None and isinstance(base, dict):
                 for k, v in config_base.items():
-                    if k in base and abs(float(base[k]) - float(v)) > 1e-9:
+                    if k in base and (base[k] != v if not isinstance(v, (int, float)) or isinstance(v, bool) else abs(float(base[k]) - float(v)) > 1e-9):
                         log.info("rank profile %s tuned from a different config (%s: %s -> %s) - the config wins until the next tune",
                                  account, k, base[k], v)
                         return None

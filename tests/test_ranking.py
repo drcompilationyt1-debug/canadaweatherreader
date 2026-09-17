@@ -364,3 +364,28 @@ def test_backtest_eligibility_is_point_in_time(cfg, tmp_path):
     e = eligibility(cfg, px)
     assert e is not None and not e.loc[pd.Timestamp("2026-01-15"), "A"] and e.loc[pd.Timestamp("2026-02-02"), "A"] and e["B"].all()
 
+
+def test_opportunistic_layer_between_rebalances():
+    from stockbot.agent.backtest import apply_deals, simulate
+
+    scores = {f"T{i}": float(i) for i in range(20)}                                   # T19 is the best, T0 the worst
+    held = ["T5", "T6", "T7", "T8", "T9"]
+    out = apply_deals(scores, held, 5, {"enter_pct": 0.95, "exit_pct": 0.0, "max_swaps": 1})
+    assert "T19" in out and "T5" not in out and len(out) == 5                         # the exceptional name replaces the weakest holding
+    out = apply_deals(scores, held, 5, {"enter_pct": 0.95, "exit_pct": 0.0, "max_swaps": 1, "min_gap": 0.9})
+    assert out == held                                                                 # not by a wide enough margin: nothing happens
+    out = apply_deals(scores, ["T1", "T6", "T7"], 5, {"enter_pct": 1.01, "exit_pct": 0.3, "max_swaps": 2})
+    assert out == ["T6", "T7"]                                                         # a collapsed holding leaves, no entries asked for
+    out = apply_deals(scores, ["T5", "T6", "T7", "T8", "T9"], 5, {"enter_pct": 0.9, "exit_pct": 0.0, "max_swaps": 2})
+    assert "T19" in out and "T18" in out and len(out) == 5                             # two swaps a day at most
+    sectors = {"T19": "Tech", "T9": "Tech", "T8": "Tech"}
+    out = apply_deals(scores, ["T5", "T6", "T7", "T8", "T9"], 5, {"enter_pct": 0.95, "max_swaps": 1}, sectors=sectors, max_per_sector=2)
+    assert "T19" not in out                                                            # the sector cap holds between rebalances too
+    idx = pd.date_range("2026-01-01", periods=120, freq="B")
+    rng = np.random.default_rng(9)
+    px = pd.DataFrame({t: 100 * np.cumprod(1 + rng.normal(0.0005, 0.02, 120)) for t in [f"T{i}" for i in range(12)]}, index=idx)
+    sc = pd.DataFrame(rng.normal(size=(120, 12)), index=idx, columns=px.columns)
+    plain = simulate(px, sc, idx[0], k=3, every=21, hysteresis=0, fee_bps=10.0)
+    deals = simulate(px, sc, idx[0], k=3, every=21, hysteresis=0, fee_bps=10.0, deals={"enter_pct": 0.9, "exit_pct": 0.0, "max_swaps": 1})
+    assert deals["turnover_per_year"] > plain["turnover_per_year"] and deals["total"] != plain["total"]
+
