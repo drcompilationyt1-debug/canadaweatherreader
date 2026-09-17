@@ -219,7 +219,10 @@ class TradingRunner:
                 if sleeves:
                     return RoutedBroker({"us": main, **sleeves}, default="us", seeds=self._sleeve_seeds(sleeves))
             return main
-        return RoutedBroker({"us": main, **sleeves}, default="us", seeds=self._sleeve_seeds(sleeves))
+        proxied = set()
+        if self.mode in ("alpaca", "live"):          # Canadian names with a US listing trade on Alpaca itself (execution.alpaca.proxies)
+            proxied = {t for t in (self.ex.get_path("alpaca.proxies", {}) or {}) if t in set(self.cfg.get("universe", []))}
+        return RoutedBroker({"us": main, **sleeves}, default="us", seeds=self._sleeve_seeds(sleeves), proxied=proxied)
 
     @staticmethod
     def _sleeve_seeds(sleeves: dict[str, Broker]) -> dict[str, float]:
@@ -229,11 +232,13 @@ class TradingRunner:
     def _single_broker(self, mode: str, market: str) -> Broker:
         fees = self.fee_book.for_market(market)
         if mode in ("alpaca", "live"):
-            from .alpaca import AlpacaBroker
+            from .alpaca import AlpacaBroker, set_proxies
 
+            set_proxies(self.ex.get_path("alpaca.proxies", {}) or {})
             return AlpacaBroker(paper=bool(self.ex.get_path("alpaca.paper", True)), fractional=bool(self.ex.get_path("alpaca.fractional", True)),
                                 fees=fees, keys_env=str(self.ex.get_path("alpaca.keys_env", "ALPACA") or "ALPACA"),
-                                ledger_file=self.cfg.path("execution.state_file", "data/paper/state.json").with_name("alpaca_ledger.json"))
+                                ledger_file=self.cfg.path("execution.state_file", "data/paper/state.json").with_name("alpaca_ledger.json"),
+                                fee_book=self.fee_book)
         if mode == "moomoo":
             from .moomoo import MoomooBroker
 
@@ -696,6 +701,13 @@ class TradingRunner:
         self.frames = self.frames_loader(refresh)
         tickers = [t for t in self.cfg.get("universe", []) if t in self.frames]
         as_of = max(str(df.index[-1].date()) for df in self.frames.values())
+        if getattr(self.broker, "proxied", None) and not self.state.get("proxies_migrated"):
+            from .routed import migrate_proxied
+
+            moved = migrate_proxied(self.broker)
+            self.state["proxies_migrated"] = True
+            if moved:
+                log.info("simulated positions closed - these names now trade through their US listings on Alpaca: %s", ", ".join(moved))
         log.info("=== %s cycle as of %s (%d tickers, broker=%s, account=%s) ===", self.mode, as_of, len(tickers), self.broker.name, self.account)
 
         for t in tickers:  # settle yesterday's decisions (and direction votes) with today's prices

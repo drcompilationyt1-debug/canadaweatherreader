@@ -429,6 +429,10 @@ execution:
     paper: true               # true = Alpaca's free paper-trading account (web dashboard included)
     fractional: false         # moomoo Canada trades whole shares only: both paper accounts follow that (whole-share orders)
     keys_env: ALPACA          # <keys_env>_API_KEY / <keys_env>_SECRET_KEY hold the keys (another account: ALPACA_10K)
+    # Alpaca cannot trade the TSX, so the Canadian names are paper-traded through the same companies' US listings (real fills,
+    # one real account) while the universe, the data and the live moomoo line keep the .TO ticker; a name without a US
+    # listing (ATD.TO) stays on the built-in simulator.  moomoo Canada's fee schedule is still what gets booked for them.
+    proxies: { RY.TO: RY, TD.TO: TD, SHOP.TO: SHOP, ENB.TO: ENB, CNQ.TO: CNQ, CP.TO: CP, CNR.TO: CNI, BMO.TO: BMO, BNS.TO: BNS, SU.TO: SU, MFC.TO: MFC }
   moomoo:
     env: simulate             # simulate (paper account) | real (needs MOOMOO_TRADE_PASSWORD + --i-understand-real-money)
     host: 127.0.0.1           # OpenD gateway

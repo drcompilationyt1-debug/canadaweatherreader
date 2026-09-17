@@ -18,9 +18,10 @@ log = get_logger(__name__)
 class RoutedBroker(Broker):
     name = "routed"
 
-    def __init__(self, sleeves: dict[str, Broker], default: str = "us", seeds: dict[str, float] | None = None):
+    def __init__(self, sleeves: dict[str, Broker], default: str = "us", seeds: dict[str, float] | None = None, proxied=None):
         self.sleeves = dict(sleeves)
         self.default = default if default in self.sleeves else next(iter(self.sleeves))
+        self.proxied = set(proxied or [])        # names of another market that the default broker trades through a US listing
         # a simulated sleeve (a paper book for the names the real broker cannot trade) is funded from the same cash as
         # the real one - one moomoo account trades both markets - so its seed money is not counted a second time: it
         # contributes its profit and loss, its purchases consume the book's cash, and every name is sized against the
@@ -30,9 +31,11 @@ class RoutedBroker(Broker):
         self.supports_short = all(b.supports_short for b in self.sleeves.values())
 
     def sleeve_for(self, ticker: str) -> Broker:
-        return self.sleeves.get(market_of(ticker), self.sleeves[self.default])
+        return self.sleeves[self.market_for(ticker)]
 
     def market_for(self, ticker: str) -> str:
+        if ticker in self.proxied:
+            return self.default
         m = market_of(ticker)
         return m if m in self.sleeves else self.default
 
@@ -93,3 +96,24 @@ class RoutedBroker(Broker):
                                           "note": "simulated: funded from the book's cash, counts only its P&L"})
             out["positions"].update(s["positions"])
         return out
+
+
+def migrate_proxied(broker: RoutedBroker) -> list[str]:
+    """Once a name trades through its US listing, its simulated position (from the days it was only simulated) is closed
+    in the simulator at the last price so the book does not carry it twice.  Returns the names closed."""
+    from .base import Order
+
+    moved = []
+    for m, b in broker.sleeves.items():
+        if m == broker.default:
+            continue
+        held = b.positions()
+        for t in sorted(broker.proxied):
+            pos = held.get(t)
+            if pos is None or abs(pos.shares) < 1e-9:
+                continue
+            b.submit(Order(t, "sell" if pos.shares > 0 else "buy", abs(pos.shares), note="moved to the US listing on Alpaca"))
+            moved.append(t)
+        b.save()
+    return moved
+

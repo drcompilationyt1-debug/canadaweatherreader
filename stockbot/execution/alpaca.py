@@ -63,11 +63,26 @@ class VirtualLedger:
         return {"fees": self.fees, "n_fills": self.n_fills, "file": str(self.path) if self.path else None}
 
 
+PROXIES: dict[str, str] = {}      # ticker -> the US listing Alpaca trades for it (RY.TO -> RY); set from execution.alpaca.proxies
+_REVERSE: dict[str, str] = {}
+
+
+def set_proxies(mapping: dict | None) -> None:
+    """Names Alpaca cannot trade (TSX lines) are paper-traded through the same company's US listing; the universe, the
+    data and the live moomoo line keep the original ticker."""
+    PROXIES.clear()
+    _REVERSE.clear()
+    for t, sym in (mapping or {}).items():
+        PROXIES[str(t)] = str(sym)
+        _REVERSE[str(sym)] = str(t)
+
+
 class AlpacaBroker(Broker):
     name = "alpaca"
     supports_short = True
 
-    def __init__(self, paper: bool = True, fractional: bool = True, fees=None, keys_env: str = "ALPACA", ledger_file: str | Path | None = None):
+    def __init__(self, paper: bool = True, fractional: bool = True, fees=None, keys_env: str = "ALPACA", ledger_file: str | Path | None = None,
+                 fee_book=None):
         self.keys_env = (keys_env or "ALPACA").rstrip("_")
         key, secret = alpaca_keys(self.keys_env)
         if not key or not secret:
@@ -78,6 +93,7 @@ class AlpacaBroker(Broker):
         self.paper = bool(paper)
         self.fractional = bool(fractional)
         self.fees = fees  # Alpaca charges nothing; the moomoo schedule is booked virtually in every Fill.cost
+        self.fee_book = fee_book   # per-market schedules: a Canadian name traded through its US listing still pays moomoo Canada's fees
         self.ledger = VirtualLedger(ledger_file)   # ... and deducted from the equity / cash the strategy sees
         self.client = TradingClient(key, secret, paper=self.paper)
         self.data = StockHistoricalDataClient(key, secret)
@@ -85,11 +101,12 @@ class AlpacaBroker(Broker):
 
     @staticmethod
     def _symbol(ticker: str) -> str:
-        return ticker.replace("-", ".")  # BRK-B -> BRK.B
+        return PROXIES.get(ticker) or ticker.replace("-", ".")   # RY.TO -> RY (proxy), BRK-B -> BRK.B
 
     @staticmethod
     def _ticker(symbol: str) -> str:
-        return str(symbol).replace(".", "-")
+        s = str(symbol)
+        return _REVERSE.get(s) or s.replace(".", "-")
 
     @property
     def virtual_fees(self) -> float:
@@ -190,7 +207,8 @@ class AlpacaBroker(Broker):
                                  side=OrderSide.BUY if order.side == "buy" else OrderSide.SELL, time_in_force=TimeInForce.DAY)
         resp = self.client.submit_order(req)
         price = self.price(order.ticker)
-        cost = float(self.fees.cost(qty, price, order.side)) if self.fees is not None else 0.0
+        sched = (self.fee_book.for_ticker(order.ticker) if self.fee_book is not None else None) or self.fees
+        cost = float(sched.cost(qty, price, order.side)) if sched is not None else 0.0
         self.ledger.add(cost)
         self.ledger.save()
         log.info("alpaca order %s %s %.3f %s -> id %s (fees %.2f, booked virtually)", self.name, order.side, qty, order.ticker,

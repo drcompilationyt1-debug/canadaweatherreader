@@ -45,6 +45,10 @@ class AlpacaHistory:
             cache_dir = cfg.path("execution.alpaca.history_dir", "data/paper/alpaca") if cfg is not None else Path("data/paper/alpaca")
         self.cache_dir = Path(cache_dir)
         self._session = session
+        if cfg is not None:
+            from .alpaca import set_proxies
+
+            set_proxies(cfg.get_path("execution.alpaca.proxies", {}) or {})
 
     @staticmethod
     def available(keys_env: str = "ALPACA") -> bool:
