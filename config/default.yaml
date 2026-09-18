@@ -239,7 +239,7 @@ signals:
   factors:       { enabled: true }                                                                # 12-1 momentum, reversal, 52-week high, dollar volume, idio vol, beta, sector-relative 3m (percentiles across the universe, daily)
   xs_rank:       { enabled: true, horizon: 20, min_train_years: 3, refit_every: 1, n_estimators: 300 }   # cross-sectional ranking head (LightGBM on all blocks above, walk-forward)
   xs_nn:         { enabled: true, horizon: 20, min_train_years: 3, refit_every: 1, hidden: [64, 32], max_iter: 60, max_train_rows: 150000 }   # the same ranking by a 2-layer network (Gu-Kelly-Xiu): a second opinion the blend tuner can weight
-  xs_tabpfn:     { enabled: true, horizon: 20, min_train_years: 3, refit_every: 1, max_train_rows: 8000, chunk: 4000, years_back: 4 }   # TabPFN ranker (masked until TABPFN_TOKEN is set: accept the licence at ux.priorlabs.ai)
+  xs_tabpfn:     { enabled: true, horizon: 20, min_train_years: 3, refit_every: 1, max_train_rows: 4000, chunk: 2000, years_back: 2, stride: 5 }   # TabPFN ranker: a 4000-row context, the last 2 years, every 5th day (CPU ~50 ms a row); needs TABPFN_TOKEN
   # block pruning (weekly, models/block_mask.json): a block whose every feature has |t| < mask_t on its 6-month cross-sectional IC and
   # that carries < mask_gain of the ranking head's gain is masked (flag 0, features 0 - the layout and the models stay valid) until it
   # recovers past unmask_t / unmask_gain; the core price blocks, the ranking head and the reliability board are never masked
