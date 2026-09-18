@@ -1,0 +1,161 @@
+{
+ "account": "small",
+ "tuned_at": "2026-09-16",
+ "guard_passed": true,
+ "proposal": {
+  "top_k": 5,
+  "every_bars": 42,
+  "hysteresis": 3,
+  "core_share": 0.0
+ },
+ "streak": 1,
+ "accepted": false,
+ "profile": {
+  "top_k": 5,
+  "every_bars": 21,
+  "hysteresis": 3,
+  "core_share": 0.0,
+  "core_ticker": "SPY"
+ },
+ "config_base": {
+  "top_k": 5,
+  "every_bars": 21,
+  "hysteresis": 3,
+  "core_share": 0.0
+ },
+ "current": {
+  "top_k": 5,
+  "every_bars": 21,
+  "hysteresis": 3,
+  "core_share": 0.0
+ },
+ "current_result": {
+  "1y": {
+   "total": 0.3459212866131187,
+   "sharpe": 1.5635472195774067,
+   "max_drawdown": -0.10933127994884217,
+   "turnover_per_year": 15.002334630350196,
+   "days": 257
+  },
+  "3y": {
+   "total": 0.3322446625587685,
+   "sharpe": 0.5883005060817348,
+   "max_drawdown": -0.16657040492098873,
+   "turnover_per_year": 14.662820190949056,
+   "days": 768
+  }
+ },
+ "best_result": {
+  "1y": {
+   "total": 0.38597022589300134,
+   "sharpe": 1.6385111939719528,
+   "max_drawdown": -0.10739019605401068,
+   "turnover_per_year": 7.647346191943203,
+   "days": 257
+  },
+  "3y": {
+   "total": 0.8190264828467297,
+   "sharpe": 1.1011564975525272,
+   "max_drawdown": -0.18442477001883062,
+   "turnover_per_year": 7.434618142350157,
+   "days": 768
+  }
+ },
+ "best": {
+  "top_k": 5,
+  "every_bars": 42,
+  "hysteresis": 3,
+  "core_share": 0.0
+ },
+ "reason": "a better structure this week - in force if it wins again next week",
+ "candidates": [
+  {
+   "top_k": 5,
+   "every_bars": 21,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "1y_sharpe": 1.5635472195774067,
+   "1y_total": 0.3459212866131187,
+   "3y_sharpe": 0.5883005060817348,
+   "3y_total": 0.3322446625587685,
+   "1y_maxdd": -0.10933127994884217
+  },
+  {
+   "top_k": 5,
+   "every_bars": 21,
+   "hysteresis": 5,
+   "core_share": 0.0,
+   "1y_sharpe": 1.5635472195774067,
+   "1y_total": 0.3459212866131187,
+   "3y_sharpe": 0.36340152109395324,
+   "3y_total": 0.1676805086485076,
+   "1y_maxdd": -0.10933127994884217
+  },
+  {
+   "top_k": 5,
+   "every_bars": 42,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "1y_sharpe": 1.6385111939719528,
+   "1y_total": 0.38597022589300134,
+   "3y_sharpe": 1.1011564975525272,
+   "3y_total": 0.8190264828467297,
+   "1y_maxdd": -0.10739019605401068
+  },
+  {
+   "top_k": 5,
+   "every_bars": 42,
+   "hysteresis": 5,
+   "core_share": 0.0,
+   "1y_sharpe": 1.6385111939719528,
+   "1y_total": 0.38597022589300134,
+   "3y_sharpe": 1.0503002207850336,
+   "3y_total": 0.7645216664184178,
+   "1y_maxdd": -0.10739019605401068
+  },
+  {
+   "top_k": 10,
+   "every_bars": 21,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "1y_sharpe": 1.0514622893526968,
+   "1y_total": 0.15801070482283408,
+   "3y_sharpe": 1.0905540501260493,
+   "3y_total": 0.6706302787005085,
+   "1y_maxdd": -0.07895647839318898
+  },
+  {
+   "top_k": 10,
+   "every_bars": 21,
+   "hysteresis": 5,
+   "core_share": 0.0,
+   "1y_sharpe": 1.1849128228442491,
+   "1y_total": 0.18115739947963627,
+   "3y_sharpe": 1.089021310223626,
+   "3y_total": 0.6704017961805591,
+   "1y_maxdd": -0.07864323046830657
+  },
+  {
+   "top_k": 10,
+   "every_bars": 42,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "1y_sharpe": 0.939478134791922,
+   "1y_total": 0.13935818296803282,
+   "3y_sharpe": 1.337853757911191,
+   "3y_total": 0.8809191314929692,
+   "1y_maxdd": -0.06033563595174807
+  },
+  {
+   "top_k": 10,
+   "every_bars": 42,
+   "hysteresis": 5,
+   "core_share": 0.0,
+   "1y_sharpe": 0.9973873527453839,
+   "1y_total": 0.1482256564827109,
+   "3y_sharpe": 1.3406199071169316,
+   "3y_total": 0.8815622585373029,
+   "1y_maxdd": -0.06033563595174807
+  }
+ ]
+}

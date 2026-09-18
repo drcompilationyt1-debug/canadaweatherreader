@@ -1,0 +1,87 @@
+{
+ "learned": {
+  "day": "2026-09-16"
+ },
+ "signature": "648da999bc75",
+ "last": {
+  "period": "day",
+  "ran_at": "2026-09-17T17:24:15.498146+00:00",
+  "checkpoint": "/home/runner/work/canadaweatherreader/canadaweatherreader/models/policy",
+  "budget_minutes": 7.99998212258021,
+  "samples": 100,
+  "start": "2026-09-16",
+  "end": "2026-09-16",
+  "signature": "648da999bc75",
+  "yardstick": {
+   "tickers": 8,
+   "bars": 500,
+   "epochs": 8
+  },
+  "seconds": 14.4,
+  "members": {
+   "seed0/best.zip": {
+    "path": "/home/runner/work/canadaweatherreader/canadaweatherreader/models/policy/ensemble/seed0/best.zip",
+    "loss_before": 0.7692511677742004,
+    "loss_after": 0.7634053826332092,
+    "anchor_drift": 0.00023476037313230336,
+    "samples": 100,
+    "epochs": 8,
+    "score_before": 0.5981789835205991,
+    "score_after": 0.5928611903961987,
+    "accepted": true,
+    "seconds": 2.8
+   },
+   "seed1/best.zip": {
+    "path": "/home/runner/work/canadaweatherreader/canadaweatherreader/models/policy/ensemble/seed1/best.zip",
+    "loss_before": 1.8315168619155884,
+    "loss_after": 1.7850520610809326,
+    "anchor_drift": 0.0009817529935389757,
+    "samples": 100,
+    "epochs": 8,
+    "score_before": 0.9860241940144583,
+    "score_after": 0.9531542946981859,
+    "accepted": false,
+    "seconds": 2.8
+   },
+   "seed2/best.zip": {
+    "path": "/home/runner/work/canadaweatherreader/canadaweatherreader/models/policy/ensemble/seed2/best.zip",
+    "loss_before": 0.7679205536842346,
+    "loss_after": 0.7679205536842346,
+    "anchor_drift": 0.0,
+    "samples": 100,
+    "epochs": 8,
+    "score_before": 0.4852309092537593,
+    "score_after": 0.4852309092537593,
+    "accepted": true,
+    "seconds": 2.7
+   }
+  },
+  "accepted": 2,
+  "mean_target": -0.2199999988079071,
+  "mean_level_best": 0.39,
+  "mean_level_ours": 0.042212511395272455
+ },
+ "history": [
+  {
+   "ran_at": "2026-09-15T17:27:15.403218+00:00",
+   "period": "day",
+   "end": "2026-09-14",
+   "samples": 50,
+   "accepted": 3
+  },
+  {
+   "ran_at": "2026-09-16T17:25:51.327261+00:00",
+   "period": "day",
+   "end": "2026-09-15",
+   "samples": 100,
+   "accepted": 2
+  },
+  {
+   "ran_at": "2026-09-17T17:24:15.498146+00:00",
+   "period": "day",
+   "end": "2026-09-16",
+   "samples": 100,
+   "accepted": 2
+  }
+ ]
+}

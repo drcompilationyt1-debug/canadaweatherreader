@@ -1,0 +1,266 @@
+{
+ "account": "main",
+ "tuned_at": "2026-09-16",
+ "guard_passed": false,
+ "proposal": null,
+ "streak": 0,
+ "accepted": false,
+ "profile": {
+  "top_k": 25,
+  "every_bars": 10,
+  "hysteresis": 3,
+  "core_share": 0.0,
+  "core_ticker": "SPY"
+ },
+ "config_base": {
+  "top_k": 20,
+  "every_bars": 10,
+  "hysteresis": 3,
+  "core_share": 0.0
+ },
+ "current": {
+  "top_k": 25,
+  "every_bars": 10,
+  "hysteresis": 3,
+  "core_share": 0.0
+ },
+ "current_result": {
+  "1y": {
+   "total": 0.16926359108333933,
+   "sharpe": 1.3418103374249286,
+   "max_drawdown": -0.07509130735308256,
+   "turnover_per_year": 18.108700389105064,
+   "days": 257
+  },
+  "3y": {
+   "total": 0.8388872753186909,
+   "sharpe": 1.5123142243340417,
+   "max_drawdown": -0.1638323429081161,
+   "turnover_per_year": 17.352181598373914,
+   "days": 768
+  }
+ },
+ "best_result": {
+  "1y": {
+   "total": 0.289189537466807,
+   "sharpe": 2.024403560198059,
+   "max_drawdown": -0.07508334143018658,
+   "turnover_per_year": 20.541800701182726,
+   "days": 257
+  },
+  "3y": {
+   "total": 0.859600996861019,
+   "sharpe": 1.472766377302503,
+   "max_drawdown": -0.17231339916535737,
+   "turnover_per_year": 19.005619776985398,
+   "days": 768
+  }
+ },
+ "best": {
+  "top_k": 20,
+  "every_bars": 10,
+  "hysteresis": 3,
+  "core_share": 0.0
+ },
+ "reason": "the current structure is as good or the best one fails the long-window guard - kept",
+ "candidates": [
+  {
+   "top_k": 15,
+   "every_bars": 5,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "1y_sharpe": 1.226177833110717,
+   "1y_total": 0.17299391763819294,
+   "3y_sharpe": 1.3814357399520918,
+   "3y_total": 0.8225370542680528,
+   "1y_maxdd": -0.0958388089048896
+  },
+  {
+   "top_k": 15,
+   "every_bars": 5,
+   "hysteresis": 5,
+   "core_share": 0.0,
+   "1y_sharpe": 1.361967336271335,
+   "1y_total": 0.1988279068169747,
+   "3y_sharpe": 1.3122982469101987,
+   "3y_total": 0.7744192433171715,
+   "1y_maxdd": -0.09375706471019685
+  },
+  {
+   "top_k": 15,
+   "every_bars": 10,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "1y_sharpe": 1.4354440543982896,
+   "1y_total": 0.20904085488381763,
+   "3y_sharpe": 1.5194276906626105,
+   "3y_total": 0.9762047187259812,
+   "1y_maxdd": -0.08867989193947523
+  },
+  {
+   "top_k": 15,
+   "every_bars": 10,
+   "hysteresis": 5,
+   "core_share": 0.0,
+   "1y_sharpe": 1.2541745714540005,
+   "1y_total": 0.17968237172378254,
+   "3y_sharpe": 1.6371893802262452,
+   "3y_total": 1.0894071431618104,
+   "1y_maxdd": -0.1023821347085283
+  },
+  {
+   "top_k": 15,
+   "every_bars": 21,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "1y_sharpe": 1.499804509733945,
+   "1y_total": 0.21344996062980193,
+   "3y_sharpe": 1.4007254283632202,
+   "3y_total": 0.8456439246207763,
+   "1y_maxdd": -0.08643582545932071
+  },
+  {
+   "top_k": 15,
+   "every_bars": 21,
+   "hysteresis": 5,
+   "core_share": 0.0,
+   "1y_sharpe": 1.628957942503895,
+   "1y_total": 0.23279314063599998,
+   "3y_sharpe": 1.4177022658873388,
+   "3y_total": 0.8563343381893749,
+   "1y_maxdd": -0.08011774194941412
+  },
+  {
+   "top_k": 20,
+   "every_bars": 5,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "1y_sharpe": 1.5163779802665551,
+   "1y_total": 0.20160142660645985,
+   "3y_sharpe": 1.2802929726859593,
+   "3y_total": 0.6916549112223807,
+   "1y_maxdd": -0.07978801656072565
+  },
+  {
+   "top_k": 20,
+   "every_bars": 5,
+   "hysteresis": 5,
+   "core_share": 0.0,
+   "1y_sharpe": 1.5796158664117272,
+   "1y_total": 0.21281621725162725,
+   "3y_sharpe": 1.3132254451663883,
+   "3y_total": 0.71536233239385,
+   "1y_maxdd": -0.08656020594098335
+  },
+  {
+   "top_k": 20,
+   "every_bars": 10,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "1y_sharpe": 2.024403560198059,
+   "1y_total": 0.289189537466807,
+   "3y_sharpe": 1.472766377302503,
+   "3y_total": 0.859600996861019,
+   "1y_maxdd": -0.07508334143018658
+  },
+  {
+   "top_k": 20,
+   "every_bars": 10,
+   "hysteresis": 5,
+   "core_share": 0.0,
+   "1y_sharpe": 1.9676803811606078,
+   "1y_total": 0.28350507890417,
+   "3y_sharpe": 1.5495015597792148,
+   "3y_total": 0.9310021693821728,
+   "1y_maxdd": -0.0742993705113566
+  },
+  {
+   "top_k": 20,
+   "every_bars": 21,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "1y_sharpe": 1.891984800738177,
+   "1y_total": 0.2638383986738768,
+   "3y_sharpe": 1.5516122187285635,
+   "3y_total": 0.9011961761978975,
+   "1y_maxdd": -0.07190796353235607
+  },
+  {
+   "top_k": 20,
+   "every_bars": 21,
+   "hysteresis": 5,
+   "core_share": 0.0,
+   "1y_sharpe": 1.9325165739122003,
+   "1y_total": 0.2712799150730629,
+   "3y_sharpe": 1.5692106621498072,
+   "3y_total": 0.9091040796781593,
+   "1y_maxdd": -0.07138393725217795
+  },
+  {
+   "top_k": 25,
+   "every_bars": 5,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "1y_sharpe": 1.050836228495562,
+   "1y_total": 0.1272665520556362,
+   "3y_sharpe": 1.3665492423316847,
+   "3y_total": 0.7127452720422516,
+   "1y_maxdd": -0.0856180010001456
+  },
+  {
+   "top_k": 25,
+   "every_bars": 5,
+   "hysteresis": 5,
+   "core_share": 0.0,
+   "1y_sharpe": 1.1598383668573296,
+   "1y_total": 0.14081863732583977,
+   "3y_sharpe": 1.3866726721450606,
+   "3y_total": 0.7384755805698024,
+   "1y_maxdd": -0.08048684306131182
+  },
+  {
+   "top_k": 25,
+   "every_bars": 10,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "1y_sharpe": 1.3418103374249286,
+   "1y_total": 0.16926359108333933,
+   "3y_sharpe": 1.5123142243340417,
+   "3y_total": 0.8388872753186909,
+   "1y_maxdd": -0.07509130735308256
+  },
+  {
+   "top_k": 25,
+   "every_bars": 10,
+   "hysteresis": 5,
+   "core_share": 0.0,
+   "1y_sharpe": 1.3574791429009887,
+   "1y_total": 0.17018309162988055,
+   "3y_sharpe": 1.462841970582426,
+   "3y_total": 0.8087641499109746,
+   "1y_maxdd": -0.07095042492595016
+  },
+  {
+   "top_k": 25,
+   "every_bars": 21,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "1y_sharpe": 1.6183267144046056,
+   "1y_total": 0.2146094037156725,
+   "3y_sharpe": 1.5167622763179005,
+   "3y_total": 0.8236443285999082,
+   "1y_maxdd": -0.0629559697354819
+  },
+  {
+   "top_k": 25,
+   "every_bars": 21,
+   "hysteresis": 5,
+   "core_share": 0.0,
+   "1y_sharpe": 1.6442174393165625,
+   "1y_total": 0.21539148464274427,
+   "3y_sharpe": 1.4613522749137293,
+   "3y_total": 0.7861562797081221,
+   "1y_maxdd": -0.06348084649891217
+  }
+ ]
+}

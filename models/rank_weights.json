@@ -1,0 +1,115 @@
+{
+ "tuned_at": "2026-09-16",
+ "inputs": {
+  "xs_rank.xs_score": 1.0,
+  "timesfm.tfm_ret_20": 0.5
+ },
+ "tuned": {
+  "xs_rank.xs_score": 1.0,
+  "kronos.kr_ret_5": 0.4497,
+  "fundamentals.f_ey": 0.3083,
+  "dqn_agent.dqn_buy_pref": 0.2421
+ },
+ "static": {
+  "xs_rank.xs_score": 1.0,
+  "timesfm.tfm_ret_20": 0.5
+ },
+ "ic": {
+  "xs_rank.xs_score": {
+   "ic": 0.04164133219792339,
+   "t": 4.561024344262598,
+   "days": 240
+  },
+  "timesfm.tfm_ret_20": {
+   "ic": 0.015110575267135384,
+   "t": 1.607973585635435,
+   "days": 240
+  },
+  "es_agent.es_action": {
+   "ic": -0.008128576827150845,
+   "t": -1.1503813511828154,
+   "days": 240
+  },
+  "qlib.qlib_score": {
+   "ic": -0.023001918546819537,
+   "t": -2.8438949759976344,
+   "days": 240
+  },
+  "kronos.kr_ret_5": {
+   "ic": 0.05151467028063396,
+   "t": 4.390739090873012,
+   "days": 240
+  },
+  "chronos.chr_ret_20": {
+   "ic": -0.013382329902885678,
+   "t": -1.5917676265096898,
+   "days": 240
+  },
+  "alpha_factors.af_pred": {
+   "ic": 0.008380579175701374,
+   "t": 0.8447415577016999,
+   "days": 240
+  },
+  "technical.ret_20": {
+   "ic": 0.006528434788461409,
+   "t": 0.5763142686243227,
+   "days": 240
+  },
+  "fundamentals.f_ey": {
+   "ic": 0.03531640358675906,
+   "t": 2.8025373638145994,
+   "days": 230
+  },
+  "dqn_agent.dqn_buy_pref": {
+   "ic": 0.02773086653157244,
+   "t": 4.003727434494654,
+   "days": 240
+  },
+  "trend.slope_30": {
+   "ic": 0.0099071123598218,
+   "t": 0.8283770983544886,
+   "days": 240
+  },
+  "factors.mom_12_1": {
+   "ic": -0.015577406442697731,
+   "t": -1.2244252669959832,
+   "days": 240
+  },
+  "factors.hi_52w": {
+   "ic": 0.003497682448706818,
+   "t": 0.27133311277448796,
+   "days": 240
+  },
+  "factors.sec_rel_3m": {
+   "ic": -0.03597030504096515,
+   "t": -2.8808367780310777,
+   "days": 240
+  }
+ },
+ "backtest_last_year": {
+  "static": {
+   "total": 0.28838474181484997,
+   "sharpe": 1.779786836661388,
+   "max_drawdown": -0.10204023283067665,
+   "turnover_per_year": 21.571984435797667,
+   "days": 257
+  },
+  "tuned": {
+   "total": 0.4480570481970869,
+   "sharpe": 2.8448122748443985,
+   "max_drawdown": -0.05195268068366232,
+   "turnover_per_year": 22.062256809338525,
+   "days": 257
+  }
+ },
+ "guard_passed": true,
+ "proposal": [
+  "dqn_agent.dqn_buy_pref",
+  "fundamentals.f_ey",
+  "kronos.kr_ret_5",
+  "xs_rank.xs_score"
+ ],
+ "streak": 1,
+ "accepted": false,
+ "reason": "tuned blend passed this week - in use if it passes again next week"
+}

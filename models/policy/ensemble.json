@@ -1,0 +1,14 @@
+{
+ "members": [
+  "ensemble/seed0/best.zip",
+  "ensemble/seed1/best.zip",
+  "ensemble/seed2/best.zip"
+ ],
+ "scores": {
+  "ensemble/seed0/best.zip": 0.44692001028120426,
+  "ensemble/seed1/best.zip": 0.5632973883266296,
+  "ensemble/seed2/best.zip": 0.28278048760185565
+ },
+ "signature": "648da999bc75",
+ "seeds": 3
+}
