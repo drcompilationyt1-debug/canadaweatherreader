@@ -33,7 +33,8 @@ log = get_logger(__name__)
 
 EXPOSURES = (0.5, 0.75, 1.0)
 MARKET_FEATURES = ["spy_ret_20", "spy_ret_60", "spy_ret_120", "spy_vol_20", "spy_trend_200", "breadth_50", "xs_disp_20", "score_disp",
-                   "scored_frac", "book_ret_60"]
+                   "scored_frac", "book_ret_60", "kmz_ret_20"]
+BASE_FEATURES = MARKET_FEATURES[:10]        # the timer's inputs; kmz_ret_20 is its walk-forward forecast of the next 20-day index return
 BOOK_FEATURES = ["exposure", "since_rebalance", "book_vol_20", "drawdown", "last_turnover", "slots"]
 FEATURES = MARKET_FEATURES + BOOK_FEATURES
 RISK_PENALTY = 2.0                 # reward = log(1 + r) - RISK_PENALTY * r^2: log utility plus extra curvature
@@ -43,7 +44,7 @@ POLICY_DIR = "portfolio_policy"
 
 # ---------------------------------------------------------------------------------------------------------------- features
 def market_features(px: pd.DataFrame, score: pd.DataFrame | None, eligible: pd.DataFrame | None, benchmark: str = "SPY",
-                    book_daily: pd.Series | None = None) -> pd.DataFrame:
+                    book_daily: pd.Series | None = None, timer=None, walk_forward: bool = False) -> pd.DataFrame:
     """(dates x MARKET_FEATURES) from closes, rank scores and eligibility; every value is a trailing-window statistic of the
     bar's own past, scaled to about [-1, 1] and NaN-free (0 where there is no history yet)."""
     bench = px[benchmark].ffill() if benchmark in px.columns else px.ffill().mean(axis=1)
@@ -68,7 +69,19 @@ def market_features(px: pd.DataFrame, score: pd.DataFrame | None, eligible: pd.D
         out["score_disp"], out["scored_frac"] = -1.0, -1.0
     bd = book_daily.reindex(px.index).fillna(0.0) if book_daily is not None else pd.Series(0.0, index=px.index)
     out["book_ret_60"] = bd.rolling(60, min_periods=1).sum() * 2.0
-    return out.replace([np.inf, -np.inf], np.nan).fillna(0.0).clip(-3.0, 3.0).astype(np.float32)
+    out = out.replace([np.inf, -np.inf], np.nan).fillna(0.0).clip(-3.0, 3.0)
+    # the complexity timer (Kelly-Malamud-Zhou): its forecast of the next 20-day index return, walk-forward while training and
+    # the saved fit live; 0 without a timer (the agent then learns without it)
+    kmz = np.zeros(len(out), dtype=np.float32)
+    if walk_forward and timer is not None and len(out) > 600:
+        from .timing import HORIZON
+
+        fwd = (bench.shift(-HORIZON) / bench - 1.0).to_numpy(np.float64)
+        kmz = np.nan_to_num(timer.walk_forward(out[BASE_FEATURES].to_numpy(np.float32), fwd), nan=0.0)
+    elif timer is not None and getattr(timer, "alpha", None) is not None:
+        kmz = timer.predict(out[BASE_FEATURES].to_numpy(np.float32))
+    out["kmz_ret_20"] = np.clip(np.asarray(kmz, dtype=np.float32) * 10.0, -3.0, 3.0)
+    return out.astype(np.float32)
 
 
 def book_features(exposure: float, since: int | None, every: int, book: list[float] | np.ndarray, drawdown: float, last_turnover: float,
@@ -98,6 +111,7 @@ class Panel:
     cash_range: tuple[float, float]
     fee_of: object                   # budget -> round-trip bps
     first_valid: int                 # first row with a score
+    timer: object = None             # the complexity timer fitted on the whole panel (saved with an adopted agent)
 
     @property
     def satellite(self) -> float:
@@ -136,13 +150,21 @@ def build_panel(cfg, ds, account: str = "main") -> Panel:
     first_valid = int(np.argmax(score.notna().sum(axis=1).to_numpy() >= 5)) if score.notna().any().any() else len(px) - 1
     rule = simulate(px, score, px.index[first_valid], k=k, every=every, hysteresis=hyst, fee_bps=round_trip_bps(c, 90_000, k),
                     reserve=reserve, sectors=sectors, max_per_sector=max_sec, eligible=elig)
-    market = market_features(px, score, elig, book_daily=rule["daily"])
+    from .timing import ComplexityTimer
+
+    timer = ComplexityTimer()
+    market = market_features(px, score, elig, book_daily=rule["daily"], timer=timer, walk_forward=True)
+    bench = px["SPY"].ffill() if "SPY" in px.columns else px.ffill().mean(axis=1)
+    fwd = (bench.shift(-20) / bench - 1.0).to_numpy(np.float64)
+    ok = np.flatnonzero(np.isfinite(fwd))[-3000:]
+    if len(ok) >= 200:
+        timer.fit(market[BASE_FEATURES].to_numpy(np.float32)[ok], fwd[ok])            # the fit an adopted agent takes live
     cr = c.get_path("env.cash_range") or [c.get_path("env.initial_cash", 100_000)] * 2
     el_np = (elig.reindex(index=px.index, columns=px.columns).fillna(True).astype(bool).to_numpy() if elig is not None
              else np.ones(px.shape, dtype=bool))
     return Panel(px.index, list(px.columns), rets.to_numpy(np.float64), score.reindex(index=px.index, columns=px.columns).to_numpy(np.float64),
                  el_np, market.to_numpy(np.float32), k, every, hyst, sectors, max_sec, reserve, (float(cr[0]), float(cr[-1])),
-                 lambda budget: round_trip_bps(c, budget, k), first_valid)
+                 lambda budget: round_trip_bps(c, budget, k), first_valid, timer)
 
 
 # ---------------------------------------------------------------------------------------------------------------- environment
@@ -347,6 +369,8 @@ def walk_forward(cfg, ds, account: str = "main", windows: int = 3, timesteps: in
                                 max_minutes=None if max_minutes is None else max(1.0, (max_minutes * 60 - (time.time() - t_start)) / 60))
             final.save(out / "policy.zip")
             rep["policy"] = str(out / "policy.zip")
+            if getattr(panel, "timer", None) is not None and getattr(panel.timer, "alpha", None) is not None:
+                (out / "timer.json").write_text(json.dumps(panel.timer.to_dict()), encoding="utf-8")
         (out / "report.json").write_text(json.dumps(rep, indent=1, default=str), encoding="utf-8")
     log.info("portfolio agent (%s): %s (%d/%d windows)", account, rep["reason"], wins, len(rows))
     return rep
@@ -372,6 +396,7 @@ class PortfolioAgent:
 
     def __init__(self, model, meta: dict):
         self.model, self.meta = model, meta
+        self.timer = None
 
     @classmethod
     def load(cls, models_dir, account: str = "main") -> "PortfolioAgent | None":
@@ -385,7 +410,13 @@ class PortfolioAgent:
                 return None
             from stable_baselines3 import PPO
 
-            return cls(PPO.load(pol, device="cpu"), rep)
+            agent = cls(PPO.load(pol, device="cpu"), rep)
+            tf = d / "timer.json"
+            if tf.exists():
+                from .timing import ComplexityTimer
+
+                agent.timer = ComplexityTimer.from_dict(json.loads(tf.read_text(encoding="utf-8")))
+            return agent
         except Exception as e:  # noqa: BLE001
             log.warning("portfolio agent unavailable: %s", e)
             return None
@@ -400,7 +431,7 @@ class PortfolioAgent:
                 if t not in eligible:
                     el[t] = False
         bd = pd.Series(list(book)[-60:], index=px.index[-len(list(book)[-60:]):]) if book else None
-        m = market_features(px, sc, el, benchmark=benchmark, book_daily=bd).iloc[-1].to_numpy(np.float32)
+        m = market_features(px, sc, el, benchmark=benchmark, book_daily=bd, timer=self.timer).iloc[-1].to_numpy(np.float32)
         obs = np.concatenate([m, book_features(exposure, since, every, book, drawdown, last_turnover, k)]).astype(np.float32)
         action, _ = self.model.predict(obs, deterministic=True)
         return float(EXPOSURES[int(action[0])]), bool(int(action[1]))

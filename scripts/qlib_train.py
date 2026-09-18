@@ -34,8 +34,14 @@ def main() -> int:
     ap.add_argument("--train-end", default=None, help="defaults to config data.train_end")
     ap.add_argument("--end", default=None)
     ap.add_argument("--instruments", nargs="*", help="defaults to the config universe")
-    ap.add_argument("--out", default="models/qlib/pred.parquet")
+    ap.add_argument("--out", default=None, help="prediction table (default models/qlib/pred.parquet, pred_tra.parquet for --model tra)")
+    ap.add_argument("--model", choices=["lgb", "tra"], default="lgb", help="lgb = LightGBM (daily); tra = qlib's Temporal Routing Adaptor (weekend)")
+    ap.add_argument("--epochs", type=int, default=8, help="TRA: training epochs (early stop 3)")
+    ap.add_argument("--seq-len", type=int, default=30, help="TRA: sequence length in bars")
+    ap.add_argument("--hidden", type=int, default=64, help="TRA: LSTM hidden size")
     args = ap.parse_args()
+    if args.out is None:
+        args.out = "models/qlib/pred_tra.parquet" if args.model == "tra" else "models/qlib/pred.parquet"
 
     from stockbot.config import load_config
     from stockbot.paths import add_submodule_to_syspath, resolve
@@ -91,16 +97,47 @@ def main() -> int:
           f"valid {valid_start.date()}..{train_end.date()}, test {test_start.date()}..{end.date()}")
 
     instruments = [t.upper() for t in (args.instruments or cfg.get("universe", []))]
-    handler = Alpha158(instruments=instruments, start_time=first.strftime(fmt), end_time=end.strftime(fmt),
-                       fit_start_time=first.strftime(fmt), fit_end_time=fit_end.strftime(fmt))
-    dataset = DatasetH(handler, segments={"train": (first.strftime(fmt), fit_end.strftime(fmt)),
-                                          "valid": (valid_start.strftime(fmt), train_end.strftime(fmt)),
-                                          "test": (test_start.strftime(fmt), end.strftime(fmt))})
-    model = LGBModel(loss="mse", colsample_bytree=0.8879, learning_rate=0.0421, subsample=0.8789, lambda_l1=205.6999,
-                     lambda_l2=580.9768, max_depth=8, num_leaves=210, num_threads=8)
-    model.fit(dataset)
-    preds = [model.predict(dataset, segment=s) for s in ("valid", "test")]
-    pred = pd.concat(preds).sort_index()
+    segments = {"train": (first.strftime(fmt), fit_end.strftime(fmt)), "valid": (valid_start.strftime(fmt), train_end.strftime(fmt)),
+                "test": (test_start.strftime(fmt), end.strftime(fmt))}
+    if args.model == "tra":
+        # qlib's TRA (Lin et al. 2021): Alpha158 with the benchmark's processors, sequences of seq_len bars, a small LSTM with
+        # attention and 3 routed predictors - the official config shrunk to what a CPU runner trains in a weekend hour
+        from qlib.contrib.data.dataset import MTSDatasetH
+        from qlib.contrib.model.pytorch_tra import TRAModel
+
+        handler = Alpha158(instruments=instruments, start_time=first.strftime(fmt), end_time=end.strftime(fmt),
+                           fit_start_time=first.strftime(fmt), fit_end_time=fit_end.strftime(fmt),
+                           infer_processors=[{"class": "RobustZScoreNorm", "kwargs": {"fields_group": "feature", "clip_outlier": True}},
+                                             {"class": "Fillna", "kwargs": {"fields_group": "feature"}}],
+                           learn_processors=[{"class": "CSRankNorm", "kwargs": {"fields_group": "label"}}],
+                           label=["Ref($close, -2) / Ref($close, -1) - 1"])
+        dataset = MTSDatasetH(handler, segments=segments, seq_len=int(args.seq_len), num_states=3, memory_mode="sample", batch_size=1024,
+                              drop_last=True, input_size=158)
+        out = resolve(args.out)
+        model = TRAModel(model_config={"input_size": 158, "hidden_size": int(args.hidden), "num_layers": 1, "rnn_arch": "LSTM", "use_attn": True,
+                                       "dropout": 0.1},
+                         tra_config={"num_states": 3, "rnn_arch": "LSTM", "hidden_size": 16, "num_layers": 1, "dropout": 0.0, "tau": 1.0,
+                                     "src_info": "LR_TPE"},
+                         model_type="RNN", lr=1e-3, n_epochs=int(args.epochs), early_stop=3, lamb=1.0, rho=0.99, alpha=0.5, seed=0,
+                         transport_method="router", memory_mode="sample", eval_train=False, eval_test=False, pretrain=True,
+                         logdir=str(out.parent / "tra_logs"))
+        model.fit(dataset)
+        preds = []
+        for s in ("valid", "test"):
+            p = model.predict(dataset, segment=s)
+            if hasattr(p, "columns"):
+                p = p["score"] if "score" in p.columns else p.iloc[:, 0]
+            preds.append(p)
+        pred = pd.concat(preds).sort_index()
+    else:
+        handler = Alpha158(instruments=instruments, start_time=first.strftime(fmt), end_time=end.strftime(fmt),
+                           fit_start_time=first.strftime(fmt), fit_end_time=fit_end.strftime(fmt))
+        dataset = DatasetH(handler, segments=segments)
+        model = LGBModel(loss="mse", colsample_bytree=0.8879, learning_rate=0.0421, subsample=0.8789, lambda_l1=205.6999,
+                         lambda_l2=580.9768, max_depth=8, num_leaves=210, num_threads=8)
+        model.fit(dataset)
+        preds = [model.predict(dataset, segment=s) for s in ("valid", "test")]
+        pred = pd.concat(preds).sort_index()
     df = pred.to_frame("score").reset_index()
     df.columns = ["datetime", "instrument", "score"]
     df["instrument"] = df["instrument"].str.upper()

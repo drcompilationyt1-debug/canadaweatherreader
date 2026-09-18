@@ -24,7 +24,7 @@ from .base import SignalProvider
 
 log = get_logger(__name__)
 
-EXCLUDE = {"xs_rank", "xs_nn", "trading_agents", "ai_hedge_fund", "llm_trader"}   # the ranking heads themselves and the live-only blocks
+EXCLUDE = {"xs_rank", "xs_nn", "xs_tabpfn", "trading_agents", "ai_hedge_fund", "llm_trader"}   # the ranking heads themselves and the live-only blocks
 
 
 class XSRankSignal(SignalProvider):
@@ -42,6 +42,7 @@ class XSRankSignal(SignalProvider):
         self.refit_every = int(self.cfg.get("refit_every", 1))
         self.n_estimators = int(self.cfg.get("n_estimators", 300))
         self.max_train_rows = int(self.cfg.get("max_train_rows", 400_000))
+        self.years_back = int(self.cfg.get("years_back", 0) or 0)         # >0: only the last N yearly refits (slow heads)
         self.spec: list[tuple[str, int]] = []      # (block, size) in feature order
         self.model = None
         self.preds: pd.DataFrame | None = None
@@ -109,6 +110,8 @@ class XSRankSignal(SignalProvider):
         uniq = sorted(set(years.tolist()))
         pred = np.full(len(panel), np.nan)
         fit_years = [yr for i, yr in enumerate(uniq[self.min_train_years:]) if i % self.refit_every == 0]
+        if self.years_back > 0:
+            fit_years = fit_years[-self.years_back:]
         y = panel["y"].to_numpy(float)
         rng = np.random.default_rng(0)
         for k, yr in enumerate(fit_years):

@@ -37,6 +37,7 @@ PROVIDER_CLASSES: list[type[SignalProvider]] = [k for k in [
     _optional(".thirdparty.trendet_signal", "TrendetSignal"),
     SentimentSignal, LLMNewsSignal,
     _optional(".thirdparty.qlib_signal", "QlibSignal"),
+    _optional(".thirdparty.qlib_tra_signal", "QlibTRASignal"),   # qlib's TRA on the same Alpha158 features (weekend training)
     _optional(".thirdparty.freqtrade_signal", "FreqtradeSignal"),
     _optional(".thirdparty.trading_agents_signal", "TradingAgentsSignal"),
     _optional(".thirdparty.ai_hedge_fund_signal", "AIHedgeFundSignal"),
@@ -52,12 +53,14 @@ PROVIDER_CLASSES: list[type[SignalProvider]] = [k for k in [
     _optional(".thirdparty.alpha101_signal", "Alpha101Signal"),
     _optional(".thirdparty.finbert_signal", "FinBERTSignal"),
     _optional(".thirdparty.chronos_signal", "ChronosSignal"),
+    _optional(".thirdparty.chronos2_signal", "Chronos2Signal"),   # Chronos-2 with volume + index covariates
     _optional(".thirdparty.kronos_signal", "KronosSignal"),
     _optional(".thirdparty.timesfm_signal", "TimesFMSignal"),
     _optional(".factors", "FactorSignal"),               # momentum / reversal / 52-week high / liquidity / beta / sector-relative, ranked daily
     _optional(".fundamentals", "FundamentalsSignal"),   # statements-based value / growth / quality / size
     _optional(".xs_rank", "XSRankSignal"),               # ranks the universe from all the blocks above
     _optional(".xs_nn", "XSNNSignal"),                   # the same ranking by a small neural network (a second opinion)
+    _optional(".xs_tabpfn", "XSTabPFNSignal"),           # ... and by TabPFN, the tabular foundation model (needs TABPFN_TOKEN)
     _optional(".reliability", "ReliabilitySignal"),      # LAST: trailing hit rate of every input (the review's lesson, as an input)
 ] if k is not None]
 

@@ -25,7 +25,7 @@ def _panel(n=900, names=("A", "B", "C", "D", "E", "SPY"), seed=0):
 def test_market_features_are_causal_bounded_and_the_same_live():
     panel, px, score, elig = _panel()
     full = market_features(px, score, elig)
-    assert list(full.columns) == FEATURES[:10] and np.isfinite(full.to_numpy()).all() and (full.abs() <= 3).all().all()
+    assert list(full.columns) == FEATURES[:11] and np.isfinite(full.to_numpy()).all() and (full.abs() <= 3).all().all()
     t = 700
     trunc = market_features(px.iloc[t - 299:t + 1], score.iloc[t - 299:t + 1], elig.iloc[t - 299:t + 1])
     assert np.allclose(full.iloc[t].to_numpy(), trunc.iloc[-1].to_numpy(), atol=1e-5)      # a 300-bar live window reproduces the row

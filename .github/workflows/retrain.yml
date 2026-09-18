@@ -56,6 +56,7 @@ jobs:
       FINANCIAL_DATASETS_API_KEY: ${{ secrets.FINANCIAL_DATASETS_API_KEY }}
       FINANCIAL_DATASETS_API_KEYS: ${{ secrets.FINANCIAL_DATASETS_API_KEYS }}
       FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+      TABPFN_TOKEN: ${{ secrets.TABPFN_TOKEN }}
       MPLBACKEND: Agg
       PYTHONUNBUFFERED: "1"
       OMP_NUM_THREADS: "4"
@@ -94,7 +95,7 @@ jobs:
           pip install technical || echo "technical (freqtrade qtpylib) unavailable - that block stays masked"
       - name: foundation models + extra indicator libraries (Chronos, TimesFM, FinBERT, pandas-ta, PyPortfolioOpt, Kronos deps)
         run: |
-          pip install chronos-forecasting pandas-ta-classic PyPortfolioOpt transformers einops safetensors huggingface_hub quantstats pyfolio-reloaded || echo "some model libraries failed - those blocks stay masked"
+          pip install chronos-forecasting pandas-ta-classic PyPortfolioOpt transformers einops safetensors huggingface_hub quantstats pyfolio-reloaded tabpfn || echo "some model libraries failed - those blocks stay masked"
           pip install "timesfm[torch]" || echo "timesfm unavailable - block stays masked"
       - uses: actions/cache@v4
         with:
@@ -128,6 +129,7 @@ jobs:
             && pip install pyqlib lightgbm \
             && timeout 20m python scripts/qlib_build_bundle.py --refresh \
             && timeout 30m python scripts/qlib_train.py \
+            && (timeout 50m python scripts/qlib_train.py --model tra --epochs 8 || echo "qlib TRA skipped this week") \
             || echo "qlib unavailable this week - the qlib block keeps last week's predictions or stays masked"
       - name: retrain
         run: >

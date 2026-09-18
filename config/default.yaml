@@ -196,6 +196,7 @@ signals:
   # rag_grading: retrieve -> grade relevance -> generate (stocks-insights-ai-agent's news graph), one extra call
   news_llm:      { enabled: true, lookback_days: 3, max_items: 25, score_history: false, max_history_calls: 200, history_granularity: week, rag_grading: false }
   qlib:          { enabled: true, predictions: models/qlib/pred.parquet, max_age_bars: 5 }   # rebuilt every morning before the session (session.yml); the last score is kept up to 5 bars if that fails
+  qlib_tra:      { enabled: true, predictions: models/qlib/pred_tra.parquet, max_age_bars: 7 }   # qlib's TRA (Lin et al. 2021), trained on the weekend by scripts/qlib_train.py --model tra
   freqtrade:     { enabled: true }
   # Tier C - LLM multi-agent frameworks (a dozen LLM calls per ticker).  They run in their own
   # virtualenvs (python scripts/setup_agent_envs.py; python: null = auto-detect) and only on the
@@ -231,12 +232,14 @@ signals:
   alpha101:      { enabled: true }                                                              # WorldQuant 101 alphas (12 of them, cross-sectional ranks)
   finbert:       { enabled: true, model: ProsusAI/finbert, lookback_days: 3, max_texts: 1200 } # FinBERT headline sentiment; ~36 headlines/s on a CPU, newest scored first, cache grows weekly
   chronos:       { enabled: true, model: amazon/chronos-bolt-small, context: 256, batch_size: 64, history_years: 0, stride: 1 }   # zero-shot foundation forecaster
+  chronos2:      { enabled: true, model: amazon/chronos-2, context: 256, batch_size: 16, history_years: 6, stride: 5, benchmark: SPY }   # Chronos-2 with volume + index covariates (every 5th bar of the last 6 years; own cache)
   kronos:        { enabled: true, model: NeoQuasar/Kronos-small, context: 400, pred_len: 5, batch_size: 16, temperature: 0.8, history_years: 5, stride: 10 }   # K-line foundation model (small: 0.4 s/forecast on a CPU)
   timesfm:       { enabled: true, model: google/timesfm-2.5-200m-pytorch, context: 512, batch_size: 32, history_years: 6, stride: 5 }      # Google TimesFM
   fundamentals:  { enabled: true, lag_days: 60, refresh_days: 7 }                                # value / growth / profitability / leverage / size from Yahoo statements (point-in-time)
   factors:       { enabled: true }                                                                # 12-1 momentum, reversal, 52-week high, dollar volume, idio vol, beta, sector-relative 3m (percentiles across the universe, daily)
   xs_rank:       { enabled: true, horizon: 20, min_train_years: 3, refit_every: 1, n_estimators: 300 }   # cross-sectional ranking head (LightGBM on all blocks above, walk-forward)
   xs_nn:         { enabled: true, horizon: 20, min_train_years: 3, refit_every: 1, hidden: [64, 32], max_iter: 60, max_train_rows: 150000 }   # the same ranking by a 2-layer network (Gu-Kelly-Xiu): a second opinion the blend tuner can weight
+  xs_tabpfn:     { enabled: true, horizon: 20, min_train_years: 3, refit_every: 1, max_train_rows: 8000, chunk: 4000, years_back: 4 }   # TabPFN ranker (masked until TABPFN_TOKEN is set: accept the licence at ux.priorlabs.ai)
   # block pruning (weekly, models/block_mask.json): a block whose every feature has |t| < mask_t on its 6-month cross-sectional IC and
   # that carries < mask_gain of the ranking head's gain is masked (flag 0, features 0 - the layout and the models stay valid) until it
   # recovers past unmask_t / unmask_gain; the core price blocks, the ranking head and the reliability board are never masked
