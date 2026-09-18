@@ -27,7 +27,7 @@ DEFAULT_INPUTS = {"xs_rank.xs_score": 1.0, "timesfm.tfm_ret_20": 0.5}
 # inputs the weekend tuner may add to the blend, weighted by their trailing information coefficient
 CANDIDATE_INPUTS = ["xs_rank.xs_score", "timesfm.tfm_ret_20", "es_agent.es_action", "qlib.qlib_score", "kronos.kr_ret_5",
                     "chronos.chr_ret_20", "dl_forecast.dl_pred", "alpha_factors.af_pred", "technical.ret_20", "fundamentals.f_ey",
-                    "dqn_agent.dqn_buy_pref", "trend.slope_30", "factors.mom_12_1", "factors.hi_52w", "factors.sec_rel_3m"]
+                    "dqn_agent.dqn_buy_pref", "trend.slope_30", "factors.mom_12_1", "factors.hi_52w", "factors.sec_rel_3m", "xs_nn.nn_score"]
 ANCHOR = "xs_rank.xs_score"
 
 

@@ -24,12 +24,14 @@ from .base import SignalProvider
 
 log = get_logger(__name__)
 
-EXCLUDE = {"xs_rank", "trading_agents", "ai_hedge_fund", "llm_trader"}   # itself and the live-only blocks
+EXCLUDE = {"xs_rank", "xs_nn", "trading_agents", "ai_hedge_fund", "llm_trader"}   # the ranking heads themselves and the live-only blocks
 
 
 class XSRankSignal(SignalProvider):
     name = "xs_rank"
     feature_names = ["xs_score", "xs_rank", "xs_top", "xs_bottom"]
+    STATE_FILE = "xs_rank.joblib"
+    PREDS_FILE = "xs_rank_preds.parquet"
     needs_universe = True
     tier = "A"
 
@@ -201,12 +203,12 @@ class XSRankSignal(SignalProvider):
         import joblib
 
         joblib.dump({"model": self.model, "spec": self.spec, "horizon": self.horizon,
-                     "saved_at": datetime.now(timezone.utc).isoformat()}, self.state_path("xs_rank.joblib"))
+                     "saved_at": datetime.now(timezone.utc).isoformat()}, self.state_path(self.STATE_FILE))
         if self.preds is not None:
-            self.preds.to_parquet(self.state_path("xs_rank_preds.parquet"))
+            self.preds.to_parquet(self.state_path(self.PREDS_FILE))
 
     def load_state(self) -> bool:
-        p = self.state_path("xs_rank.joblib")
+        p = self.state_path(self.STATE_FILE)
         if not p.exists():
             return False
         try:
