@@ -69,6 +69,11 @@ class TradingRunner:
         self.rank_floor = float(rk.get("policy_floor", 0.5))
         self.rank_veto = float(rk.get("policy_veto", 0.05))
         self.max_per_sector = int(rk.get("max_per_sector", 0) or 0)
+        tu = dict(rk.get("top_up", {}) or {})       # between rebalances: buy held names back up to their slot while cash sits idle
+        self.top_up = bool(tu.get("enabled", True))
+        self.top_up_min_cash = float(tu.get("min_cash", 0.02))      # only when this much of the book's equity is idle above the reserve
+        self.top_up_band = float(tu.get("band", 0.15))              # only names this far below their slot
+        self.top_up_max_names = int(tu.get("max_names", 5))         # at most this many orders a day (each one pays a fee)
         dl = dict(rk.get("deals", {}) or {})                                # the opportunistic layer between rebalances (off unless the evidence says so)
         self.rank_deals = {k: dl[k] for k in ("enter_pct", "exit_pct", "max_swaps", "min_gap") if k in dl} if bool(dl.get("enabled", False)) else None
         vt = dict(rk.get("vol_target", {}) or {})
@@ -705,9 +710,13 @@ class TradingRunner:
                     self.last_cycle_note = (self.last_cycle_note + "; " if self.last_cycle_note else "") + note
                     log.info("rank core: %s (between rebalances)", note)
                     return {**kept, **core_w}
-            self.last_cycle_note = (self.last_cycle_note + "; " if self.last_cycle_note else "") + \
-                f"rank core: next rebalance {self.rank_every} bars after {self.state.get('last_rebalance_date')} - positions kept"
-            log.info("rank core: not a rebalance day (every %d bars, last %s) - holding", self.rank_every, self.state.get("last_rebalance_date"))
+            topped = self._top_up(kept, current, universe, satellite) if self.top_up else []
+            note = f"rank core: next rebalance {self.rank_every} bars after {self.state.get('last_rebalance_date')} - positions kept"
+            if topped:
+                note += "; idle cash put to work in " + ", ".join(topped)
+            self.last_cycle_note = (self.last_cycle_note + "; " if self.last_cycle_note else "") + note
+            log.info("rank core: not a rebalance day (every %d bars, last %s) - holding%s", self.rank_every, self.state.get("last_rebalance_date"),
+                     f"; topping up {', '.join(topped)}" if topped else "")
             return {**kept, **core_w}
         held = [t for t in universe if abs(current[t]) > 0.05]
         sectors = self._sector_map(universe)
@@ -731,6 +740,34 @@ class TradingRunner:
         log.info("rank core: top-%d by %s -> %s%s", self.rank_top_k, "+".join(self.rank_inputs), ", ".join(chosen),
                  f"; leaving {', '.join(dropped)}" if dropped else "")
         return weights
+
+    def _top_up(self, kept: dict[str, float], current: dict[str, float], universe: list[str], satellite: float) -> list[str]:
+        """Bring held names back up to their slot with the cash sitting above the reserve (the backtested rule holds full slots;
+        a live book drifts below them after conviction-scaled entries and intraday exits).  Buy only - drift is never sold, and
+        at most ``top_up_max_names`` orders a day.  ``kept`` is modified in place; returns the names topped up."""
+        equity = float(self.broker.equity()) if self.top_up else 0.0
+        if equity <= 0:
+            return []
+        idle = float(self.broker.cash()) - self.cash_reserve * equity
+        if idle < self.top_up_min_cash * equity:
+            return []
+        target = min(satellite / max(self.rank_top_k, 1), self.max_position)
+        held = [t for t in universe if abs(current[t]) > 0.05]
+        gaps = sorted(((target - kept[t], t) for t in held if kept[t] < target * (1.0 - self.top_up_band)), reverse=True)
+        out: list[str] = []
+        for gap, t in gaps:
+            if len(out) >= self.top_up_max_names or idle <= 0:
+                break
+            spend = min(gap * equity, idle)
+            if spend < self.min_trade_for(t):
+                continue
+            kept[t] = kept[t] + spend / equity
+            idle -= spend
+            out.append(t)
+        if out:
+            log.info("idle cash %.0f%% of equity above the reserve: topping up %s toward %.2f%% slots", 100 * (float(self.broker.cash()) /
+                     equity - self.cash_reserve), ", ".join(out), 100 * target)
+        return out
 
     def _sector_map(self, universe: list[str]) -> dict[str, str] | None:
         """Yahoo sectors for the sector cap (fetched once per process, cached weekly on disk); None without a cap."""

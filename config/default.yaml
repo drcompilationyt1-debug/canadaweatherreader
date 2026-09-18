@@ -460,6 +460,10 @@ execution:
     # added +0.2 pt/yr to the main book (9/15 years, a coin flip) and cost the small book 2-25 pt/yr in turnover; the weekend
     # structure tuner keeps testing it and switches it on only after two consecutive winning weeks
     deals: { enabled: false, enter_pct: 0.98, exit_pct: 0.0, max_swaps: 1, min_gap: 0.0 }
+    # between rebalance days the backtested rule holds full slots, but a live book drifts below them (a conviction-scaled entry,
+    # an intraday exit, a cut-to-cash order), and that cash then sits idle until the next rebalance.  This buys held names back
+    # up to their slot - never sells on drift - when real money is idle above the reserve
+    top_up: { enabled: true, min_cash: 0.02, band: 0.15, max_names: 5 }
     portfolio_rl: { enabled: true }   # the portfolio agent (stockbot portfolio-rl: PPO over rebalance timing + exposure, walk-forward vs this
                                       # rule) takes over the cadence and the volatility targeting only once its report says accepted
     vol_target:               # volatility targeting on the whole book (Moreira & Muir 2017): gross exposure is scaled so the book's
