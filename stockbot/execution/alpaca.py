@@ -138,6 +138,29 @@ class AlpacaBroker(Broker):
         log.info("alpaca account configured like moomoo: %s", d)
         return d
 
+    def cancel_open(self, ticker: str) -> float:
+        """Cancel the ticker's open orders; returns the quantity still unfilled (0 = everything filled or nothing open).  The
+        moomoo fee of the filled part is booked here, at the order's limit price."""
+        from alpaca.trading.enums import QueryOrderStatus
+        from alpaca.trading.requests import GetOrdersRequest
+
+        sym = self._symbol(ticker)
+        unfilled = 0.0
+        for o in self.client.get_orders(filter=GetOrdersRequest(status=QueryOrderStatus.OPEN, symbols=[sym])):
+            qty, filled = float(o.qty or 0), float(o.filled_qty or 0)
+            unfilled += max(0.0, qty - filled)
+            if filled > 0:
+                price = float(getattr(o, "filled_avg_price", None) or getattr(o, "limit_price", None) or 0.0)
+                sched = (self.fee_book.for_ticker(ticker) if self.fee_book is not None else None) or self.fees
+                if sched is not None and price > 0:
+                    self.ledger.add(float(sched.cost(filled, price, "buy" if str(o.side).lower().endswith("buy") else "sell")))
+            try:
+                self.client.cancel_order_by_id(o.id)
+            except Exception as e:  # noqa: BLE001
+                log.warning("could not cancel order %s for %s: %s", getattr(o, "id", "?"), ticker, e)
+        self.ledger.save()
+        return unfilled
+
     def close_dust(self, max_value: float = 500.0) -> list[dict]:
         """Liquidate the fractional remnants (under one share and under ``max_value``) the whole-share rule leaves behind
         after the earlier fractional days; Alpaca closes a fractional position in full even with fractional trading off."""
@@ -202,6 +225,15 @@ class AlpacaBroker(Broker):
         else:
             qty = float(int(order.qty))
         if qty <= 0:
+            return None
+        if order.limit_price:                                              # rests for the day; fees are booked when we learn what filled
+            from alpaca.trading.requests import LimitOrderRequest
+
+            req = LimitOrderRequest(symbol=self._symbol(order.ticker), qty=qty, side=OrderSide.BUY if order.side == "buy" else OrderSide.SELL,
+                                    time_in_force=TimeInForce.DAY, limit_price=round(float(order.limit_price), 2))
+            resp = self.client.submit_order(req)
+            log.info("alpaca limit order %s %s %.3f %s @ %.2f -> id %s", self.name, order.side, qty, order.ticker, float(order.limit_price),
+                     getattr(resp, "id", "?"))
             return None
         req = MarketOrderRequest(symbol=self._symbol(order.ticker), qty=qty,
                                  side=OrderSide.BUY if order.side == "buy" else OrderSide.SELL, time_in_force=TimeInForce.DAY)

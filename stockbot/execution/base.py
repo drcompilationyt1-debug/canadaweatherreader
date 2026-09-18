@@ -21,6 +21,7 @@ class Order:
     side: str            # "buy" | "sell"
     qty: float           # shares (positive)
     note: str = ""
+    limit_price: float | None = None   # None = market; a limit order rests for the day (brokers that support it) and may not fill
 
 
 @dataclass

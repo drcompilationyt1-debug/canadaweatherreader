@@ -267,6 +267,37 @@ class TradingSession:
                 log.debug("broker save after exits: %s", e)
         return n
 
+    def _buy_time(self, end: datetime) -> datetime | None:
+        """When the deferred buys go: the runner's buy_at today (ET), never later than a few minutes before the window ends."""
+        r = self.runner
+        if r is None or self.dry_run or not getattr(r, "buy_at", ""):
+            return None
+        try:
+            hh, mm = (int(x) for x in r.buy_at.split(":"))
+        except ValueError:
+            log.warning("execution.buy_at %r is not HH:MM - buys go at once", r.buy_at)
+            return None
+        now = self.now()
+        at = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
+        latest = end - timedelta(minutes=3)
+        return min(at, latest)
+
+    def _execute_deferred_buys(self) -> None:
+        info: dict = {}
+        for name, rr in [("main", self.runner)] + list(self.extra.items()):
+            if rr is None or not rr.pending_buys:
+                continue
+            try:
+                fills = rr.execute_pending_buys()
+            except Exception as e:  # noqa: BLE001
+                log.error("deferred buys for %s failed: %s", name, e)
+                info[name] = {"error": str(e)[:200]}
+                continue
+            info[name] = {"at": self.now().isoformat(timespec="seconds"), "fills": len(fills), "tickers": [f["ticker"] for f in fills]}
+            self._append({"type": "deferred_buys", "ts": self.now().isoformat(timespec="seconds"), "fills": fills}, account=None if name == "main" else name)
+            log.info("deferred buys (%s): %d filled", name, len(fills))
+        self.summary["deferred_buys"] = info or {"none": True}
+
     def learn_command(self, minutes: float) -> list[str]:
         cmd = [sys.executable, "-m", "stockbot", "review", "--learn", "--due", "--max-minutes", f"{minutes:.0f}",
                "--before-open-minutes", f"{self.learn_margin_minutes:.0f}"]
@@ -508,11 +539,20 @@ class TradingSession:
             else:
                 log.info("intraday exit model: %s", f"on (holdout auc {m.get('auc', float('nan')):.2f}, p>={self.exit_min_prob:.2f}, gain>={100 * self.exit_min_gain:.1f}%)"
                          if self.exit_model is not None else "none fitted yet (stockbot intraday-fit)")
+        buy_time = self._buy_time(end)
+        if buy_time is not None:
+            log.info("deferred buys go at %s", buy_time.strftime("%H:%M"))
+            if self.now() >= buy_time:
+                self._execute_deferred_buys()
         k = 0
         while self.now() < end:
             nxt = min(self.now() + timedelta(minutes=self.snapshot_minutes), end)
+            if buy_time is not None and self.now() < buy_time <= nxt:
+                nxt = buy_time
             self._sleep_until(nxt)
             k += 1
+            if buy_time is not None and self.now() >= buy_time and not self.summary.get("deferred_buys"):
+                self._execute_deferred_buys()
             snap = None
             try:
                 snap = self.snapshot(f"t+{k * self.snapshot_minutes:.0f}m")
@@ -530,6 +570,8 @@ class TradingSession:
                 self.summary["trainer"]["returncode"] = self.trainer.returncode
                 log.info("trainer finished early with code %s", self.trainer.returncode)
 
+        if buy_time is not None and not self.summary.get("deferred_buys"):
+            self._execute_deferred_buys()                                  # never leave the day's buys unsent
         final = self.snapshot("end")
         self.summary["exits"] = sum(len(v) for v in self.exited.values())
         settled = 0

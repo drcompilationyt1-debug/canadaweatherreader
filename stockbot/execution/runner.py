@@ -146,6 +146,11 @@ class TradingRunner:
         # an order too small for the per-order minimums is not worth sending (per market)
         self.min_trade_usd = float(self.ex.get("min_trade_usd", 50))
         self.cash_reserve = float(self.ex.get("cash_reserve", 0.10))   # share of own cash never spent (no margin, 10% buffer)
+        # execution timing: sells go at the decision cycle, buys wait until buy_at (ET, "HH:MM"; empty = at once).  With a
+        # buy_limit_discount a limit order rests from the cycle on and whatever is unfilled goes market at buy_at
+        self.buy_at = str(self.ex.get("buy_at", "") or "").strip()
+        self.buy_limit_discount = float(self.ex.get("buy_limit_discount", 0.0) or 0.0)
+        self.pending_buys: list[dict] = []
         for market, sched in [("default", self.fees)] + list(self.fee_book.by_market.items()):
             if sched is not None:
                 log.info("fees %s: %s -> orders below %.0f are skipped", market, sched.describe(), max(self.min_trade_usd, sched.min_trade_usd()))
@@ -741,6 +746,53 @@ class TradingRunner:
                 self._sectors = {}
         return self._sectors or None
 
+    def execute_pending_buys(self) -> list[dict]:
+        """Send the buys the cycle deferred: cancel a resting limit order first and buy only what is still unfilled, at market,
+        within the cash the sleeve still has (the reserve floor holds).  Returns the fills."""
+        from .base import Order
+
+        fills: list[dict] = []
+        cash_left: dict[str, float] = {}
+        for item in self.pending_buys:
+            t, shares = item["ticker"], float(item["shares"])
+            cancel = getattr(self.broker, "cancel_open", None)
+            if item.get("limit") and cancel is not None:
+                try:
+                    shares = float(cancel(t))
+                except Exception as e:  # noqa: BLE001
+                    log.warning("%s: could not cancel the resting limit order (%s) - no market order sent", t, e)
+                    continue
+                if shares <= 0:
+                    log.info("%s: the resting limit order filled in full", t)
+                    continue
+            try:
+                price = float(self.price(t))
+            except Exception:  # noqa: BLE001
+                price = float(item["price"])
+            sleeve = self.sleeve_of(t)
+            if sleeve not in cash_left:
+                cash_left[sleeve] = self.cash_for(t)
+            avail = max(0.0, cash_left[sleeve] - self.cash_reserve * self.equity_for(t))
+            if shares * price > avail:
+                shares = float(int(avail / price)) if self.whole_shares else avail / price
+            if shares <= 0 or shares * price < self.min_trade_for(t):
+                log.warning("%s: deferred buy skipped - $%.0f cash left in the %s sleeve", t, avail, sleeve)
+                continue
+            try:
+                fill = self.broker.submit(Order(t, "buy", shares, note=item.get("action", "BUY")))
+            except Exception as e:  # noqa: BLE001
+                log.error("deferred buy for %s failed: %s", t, e)
+                continue
+            if fill is not None:
+                fills.append({**fill.to_dict(), "deferred": True})
+                cash_left[sleeve] -= fill.qty * fill.price + fill.cost
+                self.state["fees_paid"] = float(self.state.get("fees_paid", 0.0)) + float(fill.cost)
+                log.info("%s: deferred buy filled %.3f @ %.2f (fees %.2f)", t, fill.qty, fill.price, fill.cost)
+        self.pending_buys = []
+        if fills:
+            self.broker.save()
+        return fills
+
     # ------------------------------------------------------------------ one trading cycle
     def cycle(self, dry_run: bool = False, refresh: bool = True) -> list[Decision]:
         self.frames = self.frames_loader(refresh)
@@ -889,6 +941,23 @@ class TradingRunner:
                             log.info("%s: buy cut from %.3f to %.3f shares to stay within $%.0f cash", t, dec.shares, cut, avail)
                             dec.shares, dec.amount_usd = cut, cut * price
                             dec.note = f"cut to cash (${avail:,.0f} left)"
+            if dec.action != "HOLD" and dec.shares > 0 and not dry_run and self.buy_at:
+                # a buy waits for buy_at (intraday prices drift down from the morning on average): reserve the cash now,
+                # rest a limit order meanwhile when asked, send the market order later
+                item = {"ticker": t, "shares": float(dec.shares), "price": float(price), "action": dec.action, "limit": None}
+                if self.buy_limit_discount > 0:
+                    item["limit"] = float(price) * (1.0 - self.buy_limit_discount)
+                    try:
+                        self.broker.submit(Order(t, "buy", abs(dec.shares), note=dec.action, limit_price=item["limit"]))
+                    except Exception as e:  # noqa: BLE001
+                        log.error("limit order for %s failed: %s", t, e)
+                        item["limit"] = None
+                self.pending_buys.append(item)
+                cash_left[self.sleeve_of(t)] -= dec.shares * price
+                dec.note = (dec.note + "; " if dec.note else "") + (f"limit {item['limit']:.2f} resting, market at {self.buy_at} if unfilled"
+                                                                    if item["limit"] else f"buy scheduled for {self.buy_at}")
+                results[t] = (dec, [], 0.0, price, current)
+                continue
             if dec.action != "HOLD" and not dry_run:
                 try:
                     fill = self.broker.submit(Order(t, "buy" if dec.shares > 0 else "sell", abs(dec.shares), note=dec.action))

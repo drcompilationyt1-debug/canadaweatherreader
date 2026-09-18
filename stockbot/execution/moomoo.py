@@ -155,6 +155,13 @@ class MoomooBroker(Broker):
         self._unlock()
         sdk = self.sdk
         side = (sdk.TrdSide.BUY if order.side == "buy" else sdk.TrdSide.SELL) if sdk else order.side.upper()
+        if order.limit_price:                                              # a resting limit order: no fill to report yet
+            otype = sdk.OrderType.NORMAL if sdk else "NORMAL"
+            ret, data = self.trd.place_order(price=float(order.limit_price), qty=qty, code=self._code(order.ticker), trd_side=side, order_type=otype,
+                                             trd_env=self.trd_env, acc_id=self.acc_id, remark=order.note[:30] if order.note else None)
+            self._ok(ret, data, "place_order")
+            log.info("moomoo %s limit order %s %.0f %s @ %.2f", self.name, order.side, qty, order.ticker, float(order.limit_price))
+            return None
         otype = sdk.OrderType.MARKET if sdk else "MARKET"
         ret, data = self.trd.place_order(price=0.0, qty=qty, code=self._code(order.ticker), trd_side=side, order_type=otype,
                                          trd_env=self.trd_env, acc_id=self.acc_id, remark=order.note[:30] if order.note else None)
@@ -168,6 +175,25 @@ class MoomooBroker(Broker):
         sched = (self.fee_book.for_ticker(order.ticker) if self.fee_book is not None else None) or self.fees
         cost = float(sched.cost(qty, price, order.side)) if (sched is not None and price > 0) else 0.0
         return Fill(order.ticker, order.side, qty, price, cost)
+
+    def cancel_open(self, ticker: str) -> float:
+        """Cancel the ticker's open orders; returns the unfilled quantity."""
+        sdk = self.sdk
+        code = self._code(ticker)
+        unfilled = 0.0
+        try:
+            ret, data = self.trd.order_list_query(code=code, trd_env=self.trd_env, acc_id=self.acc_id)
+            data = self._ok(ret, data, "order_list_query")
+            for _, o in data.iterrows():
+                status = str(o.get("order_status", "")).upper()
+                if any(s in status for s in ("FILLED_ALL", "CANCELLED", "FAILED", "DELETED", "DISABLED")):
+                    continue
+                unfilled += max(0.0, float(o.get("qty", 0)) - float(o.get("dealt_qty", 0) or 0))
+                op = sdk.ModifyOrderOp.CANCEL if sdk else "CANCEL"
+                self.trd.modify_order(op, o["order_id"], 0, 0, trd_env=self.trd_env, acc_id=self.acc_id)
+        except Exception as e:  # noqa: BLE001
+            log.warning("moomoo cancel_open %s: %s", ticker, e)
+        return unfilled
 
     def close(self) -> None:
         for ctx in (self.trd, self.quote):

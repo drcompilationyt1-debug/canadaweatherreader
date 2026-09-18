@@ -484,6 +484,14 @@ execution:
   # and never spend more than (1 - cash_reserve) of it: a 10% buffer for fees, price moves before the fill and
   # the odd rejected sell.  Sale proceeds are not reused in the same cycle (T+1 settlement in a cash account).
   cash_reserve: 0.10          # buys use own cash only (never margin) and always leave this share of the sleeve's equity in cash
+  # execution timing (60 days of 15-minute bars, 120 names, Sep 2026): from the 10:00 price the average move is -1.9 bps by
+  # 13:30 and -5.2 bps by the close, and returns accrue overnight (Lou, Polk and Skouras 2019) - so sells go at the decision
+  # cycle and buys wait for buy_at (ET), a few minutes before the job's window ends at the latest.  A resting buy limit
+  # 0.3% under the 10:00 price fills on 74% of days but the days it misses cost as much as it saves (mean 0 bps, median
+  # -30): buy_limit_discount stays 0 unless you want that lottery; > 0 places the limit at the cycle and sends whatever is
+  # unfilled at market at buy_at
+  buy_at: "13:15"
+  buy_limit_discount: 0.0
   # Real brokers (alpaca / moomoo / live) only get orders while the exchange is open, so every fill
   # happens at a live price and the move after it can be watched.  `stockbot trade --allow-closed`
   # overrides this once; the built-in paper simulator is not affected.
