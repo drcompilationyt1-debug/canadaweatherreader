@@ -473,8 +473,9 @@ def tune_rank_weights(cfg, ds, out_path=None, days: int = 250, min_t: float = 2.
 # the opportunistic layer (deals) is in the grid so the evidence decides: 2012-2026 it added nothing for the main book (+0.2 pt/yr,
 # a coin flip) and cost the small book 2-25 pt/yr in turnover, so it is off until a two-week pass says otherwise
 DEALS_OPTION = {"enter_pct": 0.98, "exit_pct": 0.0, "max_swaps": 1, "min_gap": 0.0}
-PROFILE_GRID = {"small": {"top_k": (5, 10), "every_bars": (21, 42), "hysteresis": (3, 5), "core_share": (0.0,), "deals": (None, DEALS_OPTION)},
-                "main": {"top_k": (15, 20, 25), "every_bars": (5, 10, 21), "hysteresis": (3, 5), "core_share": (0.0,), "deals": (None, DEALS_OPTION)}}
+PROFILE_GRID = {"small": {"top_k": (5, 8), "every_bars": (21, 42), "hysteresis": (3, 8), "core_share": (0.0,), "deals": (None, DEALS_OPTION)},
+                "main": {"top_k": (12, 15, 20, 25), "every_bars": (10, 15, 21), "hysteresis": (3, 10), "core_share": (0.0,),
+                         "deals": (None, DEALS_OPTION)}}
 
 
 def deals_of(rk: dict) -> dict | None:
@@ -483,11 +484,14 @@ def deals_of(rk: dict) -> dict | None:
     return {k: dl[k] for k in ("enter_pct", "exit_pct", "max_swaps", "min_gap") if k in dl} if bool(dl.get("enabled", False)) else None
 
 
-def tune_profile(cfg, ds, account: str = "main", out_path=None, years: int = 3, min_gain: float = 0.05) -> dict:
+def tune_profile(cfg, ds, account: str = "main", out_path=None, years: int = 10, min_gain: float = 0.05) -> dict:
     """Choose an account's structure from the trailing evidence: every candidate (slots x cadence x hysteresis x index sleeve,
     the sleeve timed by the policy) is backtested at the account's fees over the last year and the last ``years``; the best
     last-year Sharpe wins only if it beats the current structure by ``min_gain`` there and is no worse over the long window
-    (Sharpe within 0.02, total within 1%).  Otherwise the current structure is kept.  ``rank_profile_<account>.json``."""
+    (Sharpe within 0.02, total within 1%).  Otherwise the current structure is kept.  ``rank_profile_<account>.json``.
+
+    The long window is a decade by default: a structure chosen on one year is a coin flip (the tuner once adopted top-25 on a
+    one-year Sharpe when top-20 was worth 1.4 points a year more over the full record), and the scores reach back to 2011."""
     from ..config import account_config
 
     c = account_config(cfg, None if account == "main" else account)

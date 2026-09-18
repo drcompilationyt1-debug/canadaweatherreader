@@ -443,9 +443,13 @@ execution:
   # (policy_floor .. 1 of 1/top_k) and can veto a name (policy_veto).  Backtest: `stockbot backtest`.
   rank:
     enabled: true
+    # 2012-2026 on the point-in-time universe, phase-averaged, compounded growth a year: rebalancing every 1 bar earns +8.0%,
+    # every 3 +15.1%, every 5 +16.4%, every 10 +18.2%, every 15 +19.3%, every 21 +19.1%, every 63 +18.9% - so trading faster than
+    # every two weeks destroys return through fees and whipsaw, and past three weeks nothing more is gained.  Hysteresis matters
+    # more than the cadence (+0.8 pt/yr from 3 to 10) and concentration more than either (top-20 +20.5% vs top-25 +19.1%)
     top_k: 20
-    every_bars: 10            # 1 daily, 5 weekly, 10 every two weeks, 21 monthly - the fee per round trip decides
-    hysteresis: 3
+    every_bars: 15            # 1 daily, 5 weekly, 15 every three weeks, 21 monthly - the fee per round trip decides
+    hysteresis: 10            # a held name keeps its slot while it ranks within top_k + 10: fewer round trips on score noise
     inputs: { xs_rank.xs_score: 1.0, timesfm.tfm_ret_20: 0.5 }
     policy_floor: 1.0         # slots always full: the reflection's regret is dominated by under-sized positions and the per-name
                               # policy's own out-of-sample record is below buy-and-hold, so it keeps only its veto (policy_veto)
@@ -604,7 +608,9 @@ accounts:                     # extra accounts traded in the SAME session from t
       #  where the rule alone lost 4% against SPY's 18% - the ranking sidesteps bad markets by what it selects)
       # the aggressive book, run plain by the owner's choice: on the 100-name record the sector cap cost 2.4 pt/yr of compounded growth
       # for no drawdown benefit and volatility targeting 1.7 pt/yr (28.5% -> 26.8% a year) for a worst drawdown of -30% instead of -41%
-      rank: { top_k: 5, every_bars: 21, hysteresis: 3, policy_floor: 1.0, trend_filter: { enabled: false }, max_per_sector: 0,
+      # monthly is clearly right for a 5-name book at $1.99 an order (+28.1% a year vs +23.1% every 10 bars and +18.0% every 5);
+      # hysteresis 8 adds +0.8 pt/yr over 3
+      rank: { top_k: 5, every_bars: 21, hysteresis: 8, policy_floor: 1.0, trend_filter: { enabled: false }, max_per_sector: 0,
               vol_target: { enabled: false, target: 0.30, window: 20, floor: 0.4 } }
       min_trade_usd: 800      # never an order the US$1.99 minimum would make expensive
       cadence: daily          # (the rank layer's every_bars sets the cadence)

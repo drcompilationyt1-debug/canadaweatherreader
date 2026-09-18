@@ -895,7 +895,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("portfolio", help="the rank-core decision rule as a portfolio vs SPY / equal-weight, net of each budget's fees")
     p.add_argument("--start", help="out-of-sample start (default data.train_end)")
-    p.add_argument("--years", type=int, default=3, help="length of the long window")
+    p.add_argument("--years", type=int, default=10, help="length of the long window the tuners must not degrade")
     p.add_argument("--out", help="write the report as JSON")
     p.add_argument("--tune", action="store_true", help="re-weight the rank blend from trailing ICs (kept only if it backtests no worse)")
     p.set_defaults(fn=cmd_portfolio)
