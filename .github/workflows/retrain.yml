@@ -154,10 +154,15 @@ jobs:
         run: python -m stockbot prune || true
       - name: portfolio agent (rebalance timing + exposure, walk-forward vs the rule for both accounts; adopted only when it wins)
         run: |
+          left=$(( ( $(date -u -d "$JOB_DEADLINE" +%s) - $(date -u +%s) ) / 60 ))
+          if [ "$left" -lt 15 ]; then echo "deadline in $left min - the portfolio agent waits for next week so the state gets saved"; exit 0; fi
           timeout 30m python -m stockbot portfolio-rl --max-minutes 20 || true
           timeout 20m python -m stockbot portfolio-rl --account small --max-minutes 12 || true
       - name: learn from last week / month / year as one unit each (hindsight fine-tune, guarded by the out-of-sample score)
-        run: timeout 25m python -m stockbot review --learn --due --max-minutes 20 || true
+        run: |
+          left=$(( ( $(date -u -d "$JOB_DEADLINE" +%s) - $(date -u +%s) ) / 60 ))
+          if [ "$left" -lt 10 ]; then echo "deadline in $left min - the unit learn waits for the next session so the state gets saved"; exit 0; fi
+          timeout 25m python -m stockbot review --learn --due --max-minutes 20 || true
       - name: forecast scorecard
         run: python -m stockbot forecast --no-refresh || true
       - name: save state

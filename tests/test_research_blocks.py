@@ -91,3 +91,40 @@ def test_chronos2_inputs_carry_covariates(cfg, tmp_path):
     assert len(inputs) == 2 and inputs[0]["target"].shape == (p.context,) and set(inputs[0]["past_covariates"]) == {"log_volume", "log_index"}
     assert inputs[1]["past_covariates"]["log_index"].shape == (p.context,)
     assert p.cache.folder.name == "chronos2" and "chronos-2" in p.cache.version
+
+
+class _Heavy(_FakeReg):
+    def __init__(self, **kw):
+        super().__init__()
+        self.blob = np.zeros(2_000_000, dtype=np.float32)         # 8 MB of "weights" that must not reach the state branch
+
+
+def test_tabpfn_wrapper_never_pickles_the_model_and_refits_from_its_context():
+    import pickle
+
+    from stockbot.signals.xs_tabpfn import _TabPFN
+
+    Heavy = _Heavy
+    rng = np.random.default_rng(0)
+    X = rng.normal(size=(5000, 6)).astype(np.float32)
+    y = X[:, 0] * 2 + rng.normal(size=5000).astype(np.float32) * 0.1
+    w = _TabPFN(max_rows=1000, chunk=500, model_cls=Heavy, stride=1).fit(X, y)
+    before = w.predict(X[:20])
+    blob = pickle.dumps(w)
+    assert len(blob) < 200_000 and w.X_ctx.shape == (1000, 6)      # the context travels, the weights do not
+    w2 = pickle.loads(blob)
+    assert w2.model is None
+    assert np.allclose(w2.predict(X[:20]), before, atol=1e-4)      # rebuilt from the context on first use
+
+
+def test_state_save_leaves_out_files_github_would_reject(tmp_path):
+    import sys
+    sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[1] / "scripts"))
+    import ci_state
+
+    small = tmp_path / "small.bin"
+    small.write_bytes(b"x" * 1024)
+    assert not ci_state._oversized(small)
+    assert ci_state._oversized(small, limit_mb=0.0005)
+    assert not ci_state._oversized(tmp_path / "missing.bin")
+

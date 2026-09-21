@@ -27,22 +27,39 @@ class _TabPFN:
         self.max_rows, self.chunk, self.seed, self.model_cls = int(max_rows), int(chunk), int(seed), model_cls
         self.stride = max(1, int(stride))     # CPU inference is slow: score every stride-th row and carry it (rows are per name, in date order)
         self.model = None
+        self.X_ctx = self.y_ctx = None        # the sampled training rows: for TabPFN the fit *is* this context
 
-    def fit(self, X, y):
+    def _make(self):
         cls = self.model_cls
         if cls is None:
             from tabpfn import TabPFNRegressor
 
             cls = TabPFNRegressor
+        code = getattr(cls.__init__, "__code__", None)
+        return cls(device="cpu") if code is not None and "device" in code.co_varnames else cls()
+
+    def fit(self, X, y):
         X, y = np.asarray(X, dtype=np.float32), np.asarray(y, dtype=np.float32)
         if len(X) > self.max_rows:
             keep = np.random.default_rng(self.seed).choice(len(X), self.max_rows, replace=False)
             X, y = X[keep], y[keep]
-        self.model = cls(device="cpu") if cls is not None and "device" in getattr(cls.__init__, "__code__", type("c", (), {"co_varnames": ()})).co_varnames else cls()
+        self.X_ctx, self.y_ctx = X, y
+        self.model = self._make()
         self.model.fit(X, y)
         return self
 
+    def _ensure(self):
+        if self.model is None and self.X_ctx is not None:        # after a load: rebuild the fit from the saved context
+            self.model = self._make()
+            self.model.fit(self.X_ctx, self.y_ctx)
+
+    def __getstate__(self):
+        d = dict(self.__dict__)
+        d["model"] = None                     # the foundation model's weights are 900 MB and downloadable: never in the state
+        return d
+
     def predict(self, X):
+        self._ensure()
         X = np.asarray(X, dtype=np.float32)
         if len(X) == 0:
             return np.empty(0, dtype=np.float32)

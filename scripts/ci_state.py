@@ -57,6 +57,16 @@ def restore(remote: str, branch: str) -> int:
     return 0
 
 
+MAX_FILE_MB = 95            # GitHub rejects a file over 100 MB and with it the whole push: such a file is left out, loudly
+
+
+def _oversized(path: Path, limit_mb: float = MAX_FILE_MB) -> bool:
+    try:
+        return path.is_file() and path.stat().st_size > limit_mb * 1024 * 1024
+    except OSError:
+        return False
+
+
 def save(remote: str, branch: str) -> int:
     present = [p for p in STATE_PATHS if (ROOT / p).exists()]
     if not present:
@@ -68,6 +78,10 @@ def save(remote: str, branch: str) -> int:
         git("add", "-f", "--", *present, env=env)
         listed = git("ls-files", "--cached", env=env).stdout.split("\n")
         drop = [f for f in listed if f and _excluded(f)]
+        big = [f for f in listed if f and f not in drop and _oversized(ROOT / f)]
+        for f in big:
+            print(f"WARNING: {f} is {(ROOT / f).stat().st_size / 2**20:.0f} MB, over GitHub's limit - left out of the state (the day's work is not lost with it)")
+        drop += big
         for i in range(0, len(drop), 200):
             git("rm", "-q", "--cached", "--", *drop[i:i + 200], env=env)
         kept = len(listed) - len(drop)
