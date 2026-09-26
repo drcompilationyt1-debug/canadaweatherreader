@@ -1,0 +1,19 @@
+{
+ "mean_total_return": 0.0807251092332021,
+ "mean_cagr": 0.07671894323567832,
+ "mean_sharpe": 0.4902562925766379,
+ "mean_max_drawdown": 0.13234666507956172,
+ "mean_bh_return": 0.40856862517241277,
+ "mean_bh_sharpe": 1.5866180556618745,
+ "mean_excess_return": -0.32784351593921063,
+ "mean_avg_exposure": 0.6582476088955157,
+ "mean_short_share": 0.0,
+ "mean_turnover": 23.593738384319096,
+ "median_excess_return": -0.3519413372755992,
+ "win_rate_vs_bh": 0.08333333333333333,
+ "n_tickers": 24,
+ "timesteps": 20000,
+ "score": 0.1383149553010387,
+ "signature": "6be046e679e9",
+ "eval_key": "d15be23799bf"
+}

@@ -1,0 +1,131 @@
+{
+ "tuned_at": "2026-09-26",
+ "inputs": {
+  "xs_rank.xs_score": 1.0,
+  "timesfm.tfm_ret_20": 0.5
+ },
+ "tuned": {
+  "xs_rank.xs_score": 1.0,
+  "fundamentals.f_ey": 0.2295,
+  "xs_nn.nn_score": 0.12,
+  "xs_tabpfn.pfn_score": 0.5143,
+  "chronos2.c2_ret_20": 0.1362
+ },
+ "static": {
+  "xs_rank.xs_score": 1.0,
+  "timesfm.tfm_ret_20": 0.5
+ },
+ "ic": {
+  "xs_rank.xs_score": {
+   "ic": 0.05438045663411355,
+   "t": 6.535628426887274,
+   "days": 239
+  },
+  "timesfm.tfm_ret_20": {
+   "ic": 0.011034015466200696,
+   "t": 1.6308665939648896,
+   "days": 239
+  },
+  "es_agent.es_action": {
+   "ic": -0.019804560225557034,
+   "t": -3.099214521781119,
+   "days": 239
+  },
+  "qlib.qlib_score": {
+   "ic": -0.00774396798797473,
+   "t": -0.9612271239759114,
+   "days": 239
+  },
+  "kronos.kr_ret_5": {
+   "ic": 0.011552714063378646,
+   "t": 1.0609493794409917,
+   "days": 239
+  },
+  "chronos.chr_ret_20": {
+   "ic": 0.006804894932635676,
+   "t": 0.9181758095571688,
+   "days": 239
+  },
+  "alpha_factors.af_pred": {
+   "ic": 0.007805154000561322,
+   "t": 0.8959902449237901,
+   "days": 239
+  },
+  "technical.ret_20": {
+   "ic": 0.0008081315373424155,
+   "t": 0.07524243689696773,
+   "days": 239
+  },
+  "fundamentals.f_ey": {
+   "ic": 0.02565705348630479,
+   "t": 2.169970978370179,
+   "days": 239
+  },
+  "dqn_agent.dqn_buy_pref": {
+   "ic": -0.02657205771303492,
+   "t": -3.8977255617910673,
+   "days": 239
+  },
+  "trend.slope_30": {
+   "ic": 0.00568258824509544,
+   "t": 0.5260558508585024,
+   "days": 239
+  },
+  "factors.mom_12_1": {
+   "ic": -0.004748184302392263,
+   "t": -0.4029045049157232,
+   "days": 239
+  },
+  "factors.hi_52w": {
+   "ic": -0.010112214411416593,
+   "t": -0.8128927974797101,
+   "days": 239
+  },
+  "factors.sec_rel_3m": {
+   "ic": -0.021806766570488693,
+   "t": -1.9229824784658998,
+   "days": 239
+  },
+  "xs_nn.nn_score": {
+   "ic": 0.013410921059587287,
+   "t": 2.0872363587240623,
+   "days": 239
+  },
+  "xs_tabpfn.pfn_score": {
+   "ic": 0.05749417201395661,
+   "t": 5.567703409619075,
+   "days": 239
+  },
+  "qlib_tra.tra_score": {
+   "ic": -0.020288237199902172,
+   "t": -2.6125313322621504,
+   "days": 239
+  },
+  "chronos2.c2_ret_20": {
+   "ic": 0.015222136895730478,
+   "t": 2.0423079232484103,
+   "days": 239
+  }
+ },
+ "backtest_last_year": {
+  "static": {
+   "total": 0.3278456062125876,
+   "sharpe": 1.8480368489375993,
+   "max_drawdown": -0.07718916527999387,
+   "turnover_per_year": 15.553125000000001,
+   "days": 256
+  },
+  "tuned": {
+   "total": 0.3090672409638786,
+   "sharpe": 1.858085770543214,
+   "max_drawdown": -0.06861064731896105,
+   "turnover_per_year": 15.946874999999999,
+   "days": 256
+  }
+ },
+ "guard_passed": false,
+ "proposal": null,
+ "streak": 0,
+ "accepted": false,
+ "reason": "tuned blend did worse over the last year - static kept"
+}
