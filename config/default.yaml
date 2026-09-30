@@ -468,6 +468,13 @@ execution:
     # an intraday exit, a cut-to-cash order), and that cash then sits idle until the next rebalance.  This buys held names back
     # up to their slot - never sells on drift - when real money is idle above the reserve
     top_up: { enabled: true, min_cash: 0.02, band: 0.15, max_names: 5 }
+    # the owner's take-profit idea: keep the long hold, but a holding that reaches a peak is re-evaluated with fresh signals - held
+    # while it still ranks well (its reference resets), sold otherwise, optionally bought back on a dip.  The peak itself is tuned
+    # every weekend: a fixed gain (15/25/40%), a move of 2/3/4 times the name's own volatility, or the price beating the models' own
+    # 20-day projection (TimesFM, else Chronos) by 1.5/2.5 volatilities.  "auto" = the weekend replay decides per book (stockbot
+    # portfolio --tune, models/take_profit_<account>.json): ON after one replay that beats holding, OFF only after two
+    # consecutive replays where holding beats it by 1%/yr or its drawdown is 3 points deeper; true = the rule below; false = never
+    take_profit: { enabled: auto, z: 3.0, keep_pct: 0.5, replace: false, rebuy_dip: 0.0 }
     portfolio_rl: { enabled: true }   # the portfolio agent (stockbot portfolio-rl: PPO over rebalance timing + exposure, walk-forward vs this
                                       # rule) takes over the cadence and the volatility targeting only once its report says accepted
     vol_target:               # volatility targeting on the whole book (Moreira & Muir 2017): gross exposure is scaled so the book's

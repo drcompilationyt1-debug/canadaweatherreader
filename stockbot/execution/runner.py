@@ -69,6 +69,17 @@ class TradingRunner:
         self.rank_floor = float(rk.get("policy_floor", 0.5))
         self.rank_veto = float(rk.get("policy_veto", 0.05))
         self.max_per_sector = int(rk.get("max_per_sector", 0) or 0)
+        tpc = dict(rk.get("take_profit", {}) or {})  # the owner's take-profit re-evaluation: config override, else the weekend test's verdict
+        if tpc.get("enabled") is True:
+            self.take_profit = {k: v for k, v in tpc.items() if k != "enabled"}
+        elif tpc.get("enabled") is False or not self.rank_enabled:
+            self.take_profit = None
+        else:
+            from ..agent.backtest import load_tuned_take_profit
+
+            self.take_profit = load_tuned_take_profit(cfg.path("models_dir", "models"), self.account)
+        if self.take_profit:
+            log.info("take-profit re-evaluation in force for %s: %s", self.account, self.take_profit)
         tu = dict(rk.get("top_up", {}) or {})       # between rebalances: buy held names back up to their slot while cash sits idle
         self.top_up = bool(tu.get("enabled", True))
         self.top_up_min_cash = float(tu.get("min_cash", 0.02))      # only when this much of the book's equity is idle above the reserve
@@ -710,8 +721,12 @@ class TradingRunner:
                     self.last_cycle_note = (self.last_cycle_note + "; " if self.last_cycle_note else "") + note
                     log.info("rank core: %s (between rebalances)", note)
                     return {**kept, **core_w}
+            tp_note = (self._take_profit(kept, current, universe, scores, satellite, as_of, self._projections(obs_by, universe))
+                       if self.take_profit else "")
             topped = self._top_up(kept, current, universe, satellite) if self.top_up else []
             note = f"rank core: next rebalance {self.rank_every} bars after {self.state.get('last_rebalance_date')} - positions kept"
+            if tp_note:
+                note += "; " + tp_note
             if topped:
                 note += "; idle cash put to work in " + ", ".join(topped)
             self.last_cycle_note = (self.last_cycle_note + "; " if self.last_cycle_note else "") + note
@@ -721,6 +736,7 @@ class TradingRunner:
         held = [t for t in universe if abs(current[t]) > 0.05]
         sectors = self._sector_map(universe)
         chosen = select_top(scores, held, self.rank_top_k, self.rank_hysteresis, sectors=sectors, max_per_sector=self.max_per_sector)
+        self.state["tp_sold"] = {}                                         # a rebalance re-decides everything: no pending buy-backs
         ppo_frac = {t: float(np.clip(targets.get(t, 0.0), 0.0, 1.0)) for t in universe}
         slots = slot_weights(chosen, self.rank_top_k, ppo_frac, self.rank_floor, self.rank_veto)
         scale = 1.0
@@ -740,6 +756,89 @@ class TradingRunner:
         log.info("rank core: top-%d by %s -> %s%s", self.rank_top_k, "+".join(self.rank_inputs), ", ".join(chosen),
                  f"; leaving {', '.join(dropped)}" if dropped else "")
         return weights
+
+    def _projections(self, obs_by: dict[str, np.ndarray], universe: list[str]) -> dict[str, float]:
+        """The models' 20-day log-return projection per name from the live observations (TimesFM, else Chronos, else Chronos-2)."""
+        from ..agent.backtest import PROJECTION_INPUTS
+
+        lay = self.bundle.layout
+        out: dict[str, float] = {}
+        for key, scale in PROJECTION_INPUTS:
+            block, feat = key.split(".", 1)
+            try:
+                b = lay.block(block)
+                j = b.start + list(b.feature_names).index(feat)
+            except (KeyError, ValueError):
+                continue
+            for t in universe:
+                o = obs_by.get(t)
+                if t not in out and o is not None and len(o) > j and o[b.offset] > 0.5:
+                    out[t] = float(o[j]) / scale
+        return out
+
+    def _take_profit(self, kept: dict[str, float], current: dict[str, float], universe: list[str], scores: dict[str, float], satellite: float,
+                     as_of: str, proj: dict[str, float] | None = None) -> str:
+        """The take-profit re-evaluation in force (the weekend-tested rule) on a hold day: a held name whose gain since its reference
+        price is extreme is kept while it still ranks well (reference reset) and sold otherwise; ``kept`` is modified in place."""
+        from ..agent.backtest import take_profit_step
+
+        pos_ctx = self.ctx.extra.get("positions") or {}
+        held = [t for t in universe if abs(current[t]) > 0.05]
+        idx_of = {}
+        for t in held:
+            f = self.frames.get(t)
+            if f is not None and len(f):
+                idx_of[t] = f.index
+        bar = {t: len(ix) - 1 for t, ix in idx_of.items()}
+        entry_state = self.state.setdefault("tp_entry", {})
+        sold_state = self.state.setdefault("tp_sold", {})
+        for t in list(entry_state):
+            if t not in held:
+                entry_state.pop(t)
+        entry, sold, price, vol = {}, {}, {}, {}
+        for t in held:
+            ix = idx_of.get(t)
+            if ix is None:
+                continue
+            ctx = pos_ctx.get(t) or {}
+            p = float(ctx.get("price") or self.last_close(t))
+            price[t] = p
+            closes_t = self.frames[t]["close"].astype(float)
+            vol[t] = float(closes_t.pct_change(fill_method=None).tail(60).std())
+            rec = entry_state.get(t)
+            if rec is None:                                               # first sight: the buy price, dated by the holding age
+                avg = float(ctx.get("avg_price") or 0.0) or p
+                rec = [avg, str(ix[max(0, len(ix) - 1 - int(ctx.get("days", 0) or 0))].date()), float((proj or {}).get(t, 0.0))]
+                entry_state[t] = rec
+            entry[t] = (float(rec[0]), int(ix.searchsorted(pd.Timestamp(rec[1]))), float(rec[2]) if len(rec) > 2 else 0.0)
+        for t, rec in sold_state.items():
+            f = self.frames.get(t)
+            if f is not None and len(f):
+                sold[t] = (float(rec[0]), int(f.index.searchsorted(pd.Timestamp(rec[1]))))
+                price.setdefault(t, float(self.last_close(t)))
+        s = pd.Series({t: v for t, v in scores.items() if np.isfinite(v)})
+        pct = s.rank(pct=True).to_dict() if len(s) else {}
+        ranked = list(s.sort_values(ascending=False).index) if len(s) else []
+        i = max(bar.values()) if bar else 0
+        new_held, events = take_profit_step(held, price, entry, vol, pct, self.take_profit, i, sold, self.rank_top_k, ranked=ranked, proj=proj or {})
+        target = min(satellite / max(self.rank_top_k, 1), self.max_position)
+        notes = []
+        for kind, t, gain in events:
+            if kind == "sold":
+                kept[t] = 0.0
+                notes.append(f"sold {t} at {100 * gain:+.0f}% (spike, no longer ranks well)")
+            elif kind in ("in", "rebought"):
+                kept[t] = target
+                notes.append(f"{'bought back' if kind == 'rebought' else 'refilled with'} {t}")
+            elif kind == "kept":
+                notes.append(f"kept {t} at {100 * gain:+.0f}% (still ranks well, reference reset)")
+        self.state["tp_entry"] = {t: [e[0], str(self.frames[t].index[min(e[1], len(self.frames[t].index) - 1)].date()),
+                                      float(e[2]) if len(e) > 2 else 0.0] for t, e in entry.items() if t in new_held}
+        self.state["tp_sold"] = {t: [sp, str(self.frames[t].index[min(si, len(self.frames[t].index) - 1)].date())]
+                                 for t, (sp, si) in sold.items() if t in self.frames}
+        if notes:
+            log.info("take-profit: %s", "; ".join(notes))
+        return ("take-profit: " + "; ".join(notes)) if notes else ""
 
     def _top_up(self, kept: dict[str, float], current: dict[str, float], universe: list[str], satellite: float) -> list[str]:
         """Bring held names back up to their slot with the cash sitting above the reserve (the backtested rule holds full slots;
@@ -888,7 +987,8 @@ class TradingRunner:
             pnl = (price / pos.avg_price - 1.0) * 100.0 * (1.0 if pos.shares > 0 else -1.0)
             peaks[t] = max(float(peaks.get(t, pnl)), pnl)
             positions[t] = {"exposure": float(np.clip(pos.shares * price / max(eq_of[t] * self.max_position, 1e-9), -1, 1)),
-                            "pnl_pct": pnl, "peak_pnl_pct": peaks[t], "days": int(self.state.get("pos_age", {}).get(t, 0))}
+                            "pnl_pct": pnl, "peak_pnl_pct": peaks[t], "days": int(self.state.get("pos_age", {}).get(t, 0)),
+                            "avg_price": float(pos.avg_price), "price": float(price)}
         self.ctx.extra["positions"] = positions
 
         if self.shared is not None and self.shared.last_vectors is not None:

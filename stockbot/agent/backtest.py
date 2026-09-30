@@ -44,6 +44,72 @@ def blended_scores(ds, inputs: dict[str, float] | None = None) -> pd.DataFrame:
     return num / den.replace(0.0, np.nan)
 
 
+def take_profit_step(held: list[str], price, entry: dict, vol, pct, tp: dict, i: int, sold: dict, k: int, ranked=None,
+                     stats: dict | None = None, proj=None) -> tuple[list[str], list[tuple]]:
+    """One day of the take-profit re-evaluation (the backtest and the live runner share it).
+
+    ``entry`` {name: (reference price, bar)} and ``sold`` {name: (sale price, bar)} are updated in place; ``price``, ``vol``
+    (daily volatility) and ``pct`` (today's score percentile) are mappings by name; ``ranked`` lists the choosable names best
+    first (for ``replace``).  What counts as a peak is itself tuned: ``pct`` (a fixed gain), ``z`` (a move of z standard
+    deviations of the name's own daily moves, scaled by the square root of the bars held) or ``fz`` (the price beat the
+    model's own projection - ``proj``, the 20-day log-return forecast recorded with the reference - by fz standard
+    deviations).  A triggered name is kept - reference (and projection) reset to today, so only a further extreme move
+    triggers again - while it ranks at least ``keep_pct``, and sold otherwise.  Returns (new held list, events)."""
+    held = list(held)
+    events: list[tuple] = []
+    for t in list(held):
+        ref = entry.get(t)
+        p = price.get(t) if hasattr(price, "get") else None
+        if ref is None or p is None or not np.isfinite(p) or ref[0] <= 0:
+            continue
+        gain, days = float(p) / float(ref[0]) - 1.0, max(1, int(i) - int(ref[1]))
+        v = vol.get(t, np.nan) if hasattr(vol, "get") else np.nan
+        ok_v = v is not None and np.isfinite(v) and v > 0
+        if "fz" in tp:                                                # beyond the projection the model made at the reference
+            mu = float(ref[2]) if len(ref) > 2 and ref[2] is not None and np.isfinite(ref[2]) else 0.0
+            expected = mu * min(days, 20) / 20.0
+            hit = ok_v and np.log1p(gain) > expected + float(tp["fz"]) * float(v) * np.sqrt(days)
+        elif "z" in tp:
+            hit = ok_v and gain > float(tp["z"]) * float(v) * np.sqrt(days)
+        else:
+            hit = gain > float(tp.get("pct", 0.15))
+        if not hit:
+            continue
+        if stats is not None:
+            stats["triggers"] += 1
+        if float(pct.get(t, 0.0) or 0.0) >= float(tp.get("keep_pct", 1.01)):
+            mu_now = proj.get(t, np.nan) if (proj is not None and hasattr(proj, "get")) else np.nan
+            entry[t] = (float(p), int(i), float(mu_now) if mu_now is not None and np.isfinite(mu_now) else 0.0)
+            events.append(("kept", t, gain))
+            if stats is not None:
+                stats["kept"] += 1
+            continue
+        held.remove(t)
+        entry.pop(t, None)
+        sold[t] = (float(p), int(i))
+        events.append(("sold", t, gain))
+        if stats is not None:
+            stats["sold"] += 1
+        if tp.get("replace") and ranked:
+            for c in ranked:
+                if c not in held and c not in sold:
+                    held.append(c)
+                    events.append(("in", c, 0.0))
+                    break
+    dip = float(tp.get("rebuy_dip", 0.0) or 0.0)
+    if dip > 0:                                                       # the flip: buy back on the dip while it still ranks
+        for t, (sp, _si) in list(sold.items()):
+            p = price.get(t) if hasattr(price, "get") else None
+            if (len(held) < k and t not in held and p is not None and np.isfinite(p) and p <= sp * (1.0 - dip)
+                    and float(pct.get(t, 0.0) or 0.0) >= 0.5):
+                held.append(t)
+                sold.pop(t)
+                events.append(("rebought", t, float(p) / sp - 1.0))
+                if stats is not None:
+                    stats["rebought"] += 1
+    return held, events
+
+
 def apply_deals(scores: dict[str, float], held: list[str], k: int, deals: dict, sectors: dict[str, str] | None = None,
                 max_per_sector: int = 0) -> list[str]:
     """The opportunistic layer for one day between rebalances (see ``simulate``): returns the new held list."""
@@ -114,6 +180,35 @@ def eligibility(cfg, px: pd.DataFrame) -> pd.DataFrame | None:
     return el
 
 
+PROJECTION_INPUTS = (("timesfm.tfm_ret_20", 10.0), ("chronos.chr_ret_20", 10.0), ("chronos2.c2_ret_20", 10.0))
+
+
+def feature_frame(ds, key: str, scale: float = 1.0) -> pd.DataFrame | None:
+    """Date x ticker values of one block feature (NaN where the block is absent), divided by ``scale``; None if not in the layout."""
+    block, feat = key.split(".", 1)
+    try:
+        b = ds.layout.block(block)
+        j = b.start + list(b.feature_names).index(feat)
+    except (KeyError, ValueError):
+        return None
+    cols = {}
+    for t, td in ds.data.items():
+        v = td.signals[:, j].astype(float) / scale
+        v[td.signals[:, b.offset] < 0.5] = np.nan
+        cols[t] = pd.Series(v, index=pd.DatetimeIndex(td.dates))
+    return pd.DataFrame(cols).sort_index()
+
+
+def projection_frame(ds) -> pd.DataFrame | None:
+    """The models' 20-day log-return projection per date and name: TimesFM, then Chronos, then Chronos-2 where it is missing."""
+    out = None
+    for key, scale in PROJECTION_INPUTS:
+        f = feature_frame(ds, key, scale)
+        if f is not None:
+            out = f if out is None else out.combine_first(f)
+    return out
+
+
 def closes(ds) -> pd.DataFrame:
     return pd.DataFrame({t: pd.Series(td.close, index=pd.DatetimeIndex(td.dates)) for t, td in ds.data.items()}).sort_index()
 
@@ -140,7 +235,7 @@ def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, e
              fee_bps: float = 8.0, end=None, core: dict | None = None, trend: dict | None = None, reserve: float = 0.0,
              sectors: dict[str, str] | None = None, max_per_sector: int = 0, vol_target: float = 0.0, vol_window: int = 20,
              vol_floor: float = 0.4, eligible: pd.DataFrame | None = None, deals: dict | None = None,
-             take_profit: dict | None = None) -> dict:
+             take_profit: dict | None = None, projection: pd.DataFrame | None = None) -> dict:
     """Daily portfolio returns of the rank-core rule (``score`` None = equal-weight everything), fees on turnover.
     ``core`` = {ticker, share}: a buy-and-hold slice bought once and never sold; ``trend`` = {benchmark, sma, band}: the
     rank slots go to cash while the benchmark is below its moving average; ``reserve`` = cash never invested;
@@ -170,6 +265,7 @@ def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, e
     tp_vol = (px.pct_change(fill_method=None).rolling(int(tp.get("vol_days", 60)), min_periods=20).std().reindex(idx)
               if tp else None)
     tp_stats = {"triggers": 0, "sold": 0, "kept": 0, "rebought": 0}
+    proj = projection.reindex(index=idx, columns=px.columns).ffill(limit=5) if (tp and projection is not None) else None
     for i, d in enumerate(idx):
         if i > 0:
             book.append(float((prev_row * rets.loc[d]).sum()))
@@ -201,43 +297,9 @@ def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, e
             if el is not None and len(s):
                 s = s[[t for t in s.index if el.at[d, t]]]
             if len(s) >= 10:
-                pct = s.rank(pct=True)
-                price = px.loc[d]
-                for t in list(held):
-                    ref = entry.get(t)
-                    p = price.get(t)
-                    if ref is None or p is None or not np.isfinite(p) or ref[0] <= 0:
-                        continue
-                    gain, days = float(p) / ref[0] - 1.0, max(1, i - ref[1])
-                    if "z" in tp:
-                        v = tp_vol.at[d, t] if t in tp_vol.columns else np.nan
-                        hit = np.isfinite(v) and v > 0 and gain > float(tp["z"]) * float(v) * np.sqrt(days)
-                    else:
-                        hit = gain > float(tp.get("pct", 0.15))
-                    if not hit:
-                        continue
-                    tp_stats["triggers"] += 1
-                    if float(pct.get(t, 0.0)) >= float(tp.get("keep_pct", 1.01)):
-                        entry[t] = (float(p), i)                          # still ranks well: hold, the posterior is reset
-                        tp_stats["kept"] += 1
-                        continue
-                    held.remove(t)
-                    entry.pop(t, None)
-                    sold_tp[t] = (float(p), i)
-                    tp_stats["sold"] += 1
-                    if tp.get("replace"):
-                        for c in s.sort_values(ascending=False).index:
-                            if c not in held and c not in sold_tp:
-                                held.append(c)
-                                break
-                dip = float(tp.get("rebuy_dip", 0.0) or 0.0)
-                if dip > 0:                                           # the flip: buy back on the dip while it still ranks
-                    for t, (sp, _si) in list(sold_tp.items()):
-                        p = price.get(t)
-                        if len(held) < k and p is not None and np.isfinite(p) and p <= sp * (1.0 - dip) and float(pct.get(t, 0.0)) >= 0.5:
-                            held.append(t)
-                            sold_tp.pop(t)
-                            tp_stats["rebought"] += 1
+                held, _ = take_profit_step(held, px.loc[d], entry, tp_vol.loc[d], s.rank(pct=True), tp, i, sold_tp, k,
+                                           ranked=list(s.sort_values(ascending=False).index), stats=tp_stats,
+                                           proj=proj.loc[d] if proj is not None and d in proj.index else None)
         elif deals:
             s = score.loc[d].dropna() if d in score.index else pd.Series(dtype=float)
             if core_t is not None:
@@ -252,7 +314,8 @@ def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, e
         if tp:
             for t in held:
                 if t not in entry:
-                    entry[t] = (float(px.at[d, t]), i)
+                    mu = proj.at[d, t] if proj is not None and t in proj.columns else np.nan
+                    entry[t] = (float(px.at[d, t]), i, float(mu) if np.isfinite(mu) else 0.0)
             for t in [t for t in entry if t not in held]:
                 entry.pop(t)
         prev_row = wts.loc[d]
@@ -650,6 +713,152 @@ def tune_profile(cfg, ds, account: str = "main", out_path=None, years: int = 10,
         Path(out_path).parent.mkdir(parents=True, exist_ok=True)
         Path(out_path).write_text(json.dumps(rep, indent=1, default=str), encoding="utf-8")
     log.info("rank profile tuning (%s): %s -> %s (%s)", account, rep["current"], rep["profile"], rep["reason"])
+    return rep
+
+
+# the owner's take-profit idea (2026-09-29): candidates tested every weekend against holding (and against whatever is in force)
+# what counts as a peak is a hyperparameter: a fixed gain, a move of z times the name's own volatility, or the price beating the
+# model's own 20-day projection by fz volatilities - each either re-evaluated (keep while ranking in the top half) or always sold
+PEAKS = [{"pct": 0.15}, {"pct": 0.25}, {"pct": 0.40}, {"z": 2.0}, {"z": 3.0}, {"z": 4.0}, {"fz": 1.5}, {"fz": 2.5}]
+TP_CANDIDATES = ([None] + [{**p, "keep_pct": kp} for p in PEAKS for kp in (0.5, 1.01)]
+                 + [{"fz": 2.5, "keep_pct": 0.5, "rebuy_dip": 0.05}, {"z": 3.0, "keep_pct": 0.5, "replace": True}])
+
+
+def load_tuned_take_profit(models_dir, account: str = "main") -> dict | None:
+    """The take-profit rule in force for an account (``models/take_profit_<account>.json``), or None (plain holding)."""
+    import json
+    from pathlib import Path
+
+    f = Path(models_dir) / f"take_profit_{account}.json"
+    if not f.exists():
+        return None
+    try:
+        d = json.loads(f.read_text(encoding="utf-8"))
+        rule = d.get("in_force")
+        return dict(rule) if isinstance(rule, dict) and rule else None
+    except Exception as e:  # noqa: BLE001
+        log.warning("take-profit file %s unreadable: %s", f, e)
+        return None
+
+
+def _account_book(cfg, account: str) -> dict:
+    """The simulate() settings of an account as the runner trades it (structure in force, risk controls, fees)."""
+    from ..config import account_config
+
+    c = account_config(cfg, None if account == "main" else account)
+    rk = dict(c.get_path("execution.rank", {}) or {})
+    k, every, hyst = int(rk.get("top_k", 20)), every_bars_of(rk.get("every_bars", 10)), int(rk.get("hysteresis", 3))
+    base = {"top_k": k, "every_bars": every, "hysteresis": hyst, "core_share": 0.0, "deals": deals_of(rk)}
+    prof = load_tuned_profile(c.path("models_dir", "models"), account, base) if rk.get("adaptive", True) else None
+    if prof:
+        k, every, hyst = int(prof.get("top_k", k)), every_bars_of(prof.get("every_bars", every)), int(prof.get("hysteresis", hyst))
+    vt = dict(rk.get("vol_target", {}) or {})
+    reserve = float(c.get_path("execution.cash_reserve", 0.1) or 0.0)
+    budget = float(c.get_path("env.initial_cash", 100_000))
+    return {"cfg": c, "rk": rk, "k": k, "every": every, "hysteresis": hyst, "reserve": reserve,
+            "fee": round_trip_bps(c, budget * max(0.0, 1.0 - reserve), k), "max_per_sector": int(rk.get("max_per_sector", 0) or 0),
+            "vol_target": float(vt.get("target", 0.0) or 0.0) if vt.get("enabled") else 0.0, "vol_window": int(vt.get("window", 20)),
+            "vol_floor": float(vt.get("floor", 0.4))}
+
+
+def tune_take_profit(cfg, ds, account: str = "main", out_path=None, years: int = 10, recent_years: int = 3, min_gain: float = 0.002,
+                     offsets=(0, 5, 10), off_loss: float = 0.01, off_dd: float = 0.03, off_weeks: int = 2) -> dict:
+    """Test the take-profit candidates (the peak definition is tuned) against the rule in force at the account's structure and
+    fees, phase-averaged, over the last ``years`` and the last ``recent_years``.  The owner's asymmetric rule (2026-09-29):
+
+    * ON quickly: the best candidate goes in force after ONE weekly replay in which it beats the rule in force by ``min_gain``
+      compounded a year over the long window, is no worse over the recent window, and its drawdown is at most a point deeper
+      (the same bar switches from one take-profit rule to a better one);
+    * OFF only on a very bad, repeated loss: plain holding must beat the rule in force by ``off_loss`` a year over the long
+      window, or the rule's drawdown be ``off_dd`` deeper, on ``off_weeks`` consecutive weekly replays - one bad week never
+      turns it off.
+
+    Writes ``take_profit_<account>.json`` (``in_force`` = the rule the runner applies, None = hold)."""
+    b = _account_book(cfg, account)
+    c = b["cfg"]
+    tp_cfg = dict(b["rk"].get("take_profit", {}) or {})
+    models_dir = c.path("models_dir", "models")
+    prev = _previous_report(out_path)
+    current = prev.get("in_force") if isinstance(prev.get("in_force"), dict) else None
+    if tp_cfg.get("enabled") is True:
+        current = {k: v for k, v in tp_cfg.items() if k != "enabled"}
+    px = closes(ds)
+    inputs = dict(b["rk"].get("inputs") or DEFAULT_INPUTS)
+    if b["rk"].get("adaptive", True):
+        from ..execution.ranking import load_tuned_inputs
+
+        inputs = load_tuned_inputs(models_dir, inputs)
+    score = blended_scores(ds, inputs)
+    elig = eligibility(c, px)
+    proj = projection_frame(ds)
+    sectors = None
+    if b["max_per_sector"] > 0:
+        try:
+            from ..data.sectors import load_sectors
+
+            sectors = load_sectors(c, list(px.columns), refresh=False) or None
+        except Exception as e:  # noqa: BLE001
+            log.debug("sectors unavailable for the take-profit test: %s", e)
+    last = px.index[-1]
+    windows = {"long": (last - pd.DateOffset(years=years), years), "recent": (last - pd.DateOffset(years=recent_years), recent_years)}
+
+    def run(tp) -> dict:
+        out = {}
+        for wname, (start, yrs) in windows.items():
+            idx = px.index[px.index >= start]
+            rs = [simulate(px, score, idx[o], k=b["k"], every=b["every"], hysteresis=b["hysteresis"], fee_bps=b["fee"], reserve=b["reserve"],
+                           sectors=sectors, max_per_sector=b["max_per_sector"], vol_target=b["vol_target"], vol_window=b["vol_window"],
+                           vol_floor=b["vol_floor"], eligible=elig, take_profit=tp, projection=proj) for o in offsets if o < len(idx) - 60]
+            tot = float(np.mean([r["total"] for r in rs]))
+            out[wname] = {"total": tot, "geo": float((1.0 + tot) ** (1.0 / yrs) - 1.0) if tot > -1 else -1.0,
+                          "max_drawdown": float(np.mean([r["max_drawdown"] for r in rs])), "sharpe": float(np.mean([r["sharpe"] for r in rs])),
+                          "turnover": float(np.mean([r["turnover_per_year"] for r in rs])),
+                          "triggers_per_year": float(np.mean([r.get("take_profit", {}).get("triggers", 0) for r in rs])) / yrs}
+        return out
+
+    cands = list(TP_CANDIDATES)
+    if current not in cands:
+        cands.append(current)
+    results = [{"rule": tp, **run(tp)} for tp in cands]
+    cur = next(r for r in results if r["rule"] == current)
+    hold = next(r for r in results if r["rule"] is None)
+    rules = [r for r in results if r["rule"] is not None]
+    best = max(rules, key=lambda r: r["long"]["geo"]) if rules else hold
+    today = str(date.today())
+    same_day = str(prev.get("tuned_at")) == today                     # a rerun the same day never counts as another week
+    better = (best is not cur and best["long"]["geo"] >= cur["long"]["geo"] + min_gain and best["recent"]["geo"] >= cur["recent"]["geo"]
+              and best["long"]["max_drawdown"] >= cur["long"]["max_drawdown"] - 0.01)
+    loss_streak = int(prev.get("loss_streak", 0) or 0)
+    if current is None:                                               # holding: turn on after one winning replay
+        in_force, loss_streak = (best["rule"] if better else None), 0
+        reason = (f"take-profit turned on: {best['rule']} beat holding over both windows" if better else
+                  "plain holding is as good as every take-profit rule - still holding")
+    else:
+        very_bad = (hold["long"]["geo"] >= cur["long"]["geo"] + off_loss or cur["long"]["max_drawdown"] <= hold["long"]["max_drawdown"] - off_dd)
+        if very_bad:
+            loss_streak = loss_streak if same_day else loss_streak + 1
+        else:
+            loss_streak = 0
+        if very_bad and loss_streak >= off_weeks:
+            in_force, reason = None, f"take-profit turned off: plain holding beat it badly {loss_streak} weeks running"
+        elif better:
+            in_force, reason = best["rule"], f"switched to a better take-profit rule: {best['rule']}"
+        else:
+            in_force = current
+            reason = (f"take-profit stays on (a very bad week, {loss_streak} of {off_weeks} needed to turn it off)" if very_bad else
+                      "take-profit stays on")
+    rep = {"account": account, "tuned_at": today, "in_force": in_force, "current": current, "loss_streak": loss_streak,
+           "accepted": in_force is not None and in_force != current, "best": best["rule"], "better": bool(better),
+           "windows": {k: str(v[0].date()) for k, v in windows.items()},
+           "structure": {"top_k": b["k"], "every_bars": b["every"], "hysteresis": b["hysteresis"], "fee_bps": b["fee"]},
+           "results": results, "reason": reason}
+    if out_path is not None:
+        import json
+        from pathlib import Path
+
+        Path(out_path).parent.mkdir(parents=True, exist_ok=True)
+        Path(out_path).write_text(json.dumps(rep, indent=1, default=str), encoding="utf-8")
+    log.info("take-profit test (%s): %s; in force: %s", account, rep["reason"], in_force or "plain holding")
     return rep
 
 

@@ -633,6 +633,18 @@ def cmd_portfolio(cfg, args) -> int:
                       f"{long} sharpe {pr['best_result'][long]['sharpe']:.2f} total {100 * pr['best_result'][long]['total']:+.1f}%")
             except Exception as e:  # noqa: BLE001
                 print(f"structure tuning [{acc}] failed: {e}")
+        from .agent.backtest import tune_take_profit
+
+        for acc in ["main"] + account_names(cfg):
+            try:
+                tp = tune_take_profit(cfg, ds, acc, out_path=cfg.path("models_dir", "models") / f"take_profit_{acc}.json", years=args.years)
+                print(f"\ntake-profit test [{acc}]: {tp['reason']}; in force: {tp['in_force'] or 'plain holding'}"
+                      f"{' (bad-loss streak ' + str(tp['loss_streak']) + ')' if tp.get('loss_streak') else ''}")
+                for r in tp["results"]:
+                    print(f"  {str(r['rule'] or 'hold'):58s} {args.years}y {100 * r['long']['geo']:+5.1f}%/yr dd {100 * r['long']['max_drawdown']:+5.1f}%"
+                          f" | 3y {100 * r['recent']['geo']:+5.1f}%/yr | triggers/yr {r['long']['triggers_per_year']:.1f}")
+            except Exception as e:  # noqa: BLE001
+                print(f"take-profit test [{acc}] failed: {e}")
     if args.out:
         Path(args.out).parent.mkdir(parents=True, exist_ok=True)
         Path(args.out).write_text(json.dumps(rep, indent=1, default=str), encoding="utf-8")
