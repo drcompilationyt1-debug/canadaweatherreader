@@ -139,13 +139,19 @@ def trend_state(px: pd.DataFrame, benchmark: str = "SPY", sma: int = 200, band: 
 def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, every: int = 10, hysteresis: int = 3,
              fee_bps: float = 8.0, end=None, core: dict | None = None, trend: dict | None = None, reserve: float = 0.0,
              sectors: dict[str, str] | None = None, max_per_sector: int = 0, vol_target: float = 0.0, vol_window: int = 20,
-             vol_floor: float = 0.4, eligible: pd.DataFrame | None = None, deals: dict | None = None) -> dict:
+             vol_floor: float = 0.4, eligible: pd.DataFrame | None = None, deals: dict | None = None,
+             take_profit: dict | None = None) -> dict:
     """Daily portfolio returns of the rank-core rule (``score`` None = equal-weight everything), fees on turnover.
     ``core`` = {ticker, share}: a buy-and-hold slice bought once and never sold; ``trend`` = {benchmark, sma, band}: the
     rank slots go to cash while the benchmark is below its moving average; ``reserve`` = cash never invested;
     ``deals`` = {enter_pct, exit_pct, max_swaps, min_gap}: between rebalance days a name whose score percentile reaches
     ``enter_pct`` may enter (a free slot, else replacing the weakest holding when it beats it by ``min_gap`` percentiles) and a
-    holding whose percentile falls below ``exit_pct`` leaves, at most ``max_swaps`` changes a day."""
+    holding whose percentile falls below ``exit_pct`` leaves, at most ``max_swaps`` changes a day;
+    ``take_profit`` = {z | pct, keep_pct, replace, rebuy_dip, vol_days}: between rebalance days a held name whose gain since
+    entry exceeds ``z`` standard deviations of its own daily moves (scaled by the square root of the days held) or ``pct`` is
+    re-evaluated: kept while its score percentile is at least ``keep_pct`` (its reference price resets, so the next trigger
+    needs another extreme move), sold otherwise.  ``replace`` refills the slot with the best-ranked name not held;
+    ``rebuy_dip`` buys a name sold on a spike back when it falls that far below the sale price and still ranks in the top half."""
     idx = px.index[(px.index >= pd.Timestamp(start)) & ((px.index <= pd.Timestamp(end)) if end is not None else True)]
     rets = px.pct_change(fill_method=None).reindex(idx).fillna(0.0)
     wts = pd.DataFrame(0.0, index=idx, columns=px.columns)
@@ -158,6 +164,12 @@ def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, e
     held: list[str] = []
     book: list[float] = []                                            # the book's own daily returns so far (vol targeting)
     prev_row = pd.Series(0.0, index=px.columns)
+    tp = dict(take_profit or {})
+    entry: dict[str, tuple[float, int]] = {}                          # name -> (reference price, bar index) for the take-profit test
+    sold_tp: dict[str, tuple[float, int]] = {}                        # name -> (sale price, bar index) of a take-profit sale
+    tp_vol = (px.pct_change(fill_method=None).rolling(int(tp.get("vol_days", 60)), min_periods=20).std().reindex(idx)
+              if tp else None)
+    tp_stats = {"triggers": 0, "sold": 0, "kept": 0, "rebought": 0}
     for i, d in enumerate(idx):
         if i > 0:
             book.append(float((prev_row * rets.loc[d]).sum()))
@@ -181,6 +193,51 @@ def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, e
             if el is not None and len(s):
                 s = s[[t for t in s.index if el.at[d, t]]]                # not yet in the index that day: not choosable
             held = select_top(s.to_dict(), held, k, hysteresis, sectors=sectors, max_per_sector=max_per_sector) if len(s) else held
+            sold_tp.clear()
+        elif tp and held:
+            s = score.loc[d].dropna() if d in score.index else pd.Series(dtype=float)
+            if core_t is not None:
+                s = s.drop(core_t, errors="ignore")
+            if el is not None and len(s):
+                s = s[[t for t in s.index if el.at[d, t]]]
+            if len(s) >= 10:
+                pct = s.rank(pct=True)
+                price = px.loc[d]
+                for t in list(held):
+                    ref = entry.get(t)
+                    p = price.get(t)
+                    if ref is None or p is None or not np.isfinite(p) or ref[0] <= 0:
+                        continue
+                    gain, days = float(p) / ref[0] - 1.0, max(1, i - ref[1])
+                    if "z" in tp:
+                        v = tp_vol.at[d, t] if t in tp_vol.columns else np.nan
+                        hit = np.isfinite(v) and v > 0 and gain > float(tp["z"]) * float(v) * np.sqrt(days)
+                    else:
+                        hit = gain > float(tp.get("pct", 0.15))
+                    if not hit:
+                        continue
+                    tp_stats["triggers"] += 1
+                    if float(pct.get(t, 0.0)) >= float(tp.get("keep_pct", 1.01)):
+                        entry[t] = (float(p), i)                          # still ranks well: hold, the posterior is reset
+                        tp_stats["kept"] += 1
+                        continue
+                    held.remove(t)
+                    entry.pop(t, None)
+                    sold_tp[t] = (float(p), i)
+                    tp_stats["sold"] += 1
+                    if tp.get("replace"):
+                        for c in s.sort_values(ascending=False).index:
+                            if c not in held and c not in sold_tp:
+                                held.append(c)
+                                break
+                dip = float(tp.get("rebuy_dip", 0.0) or 0.0)
+                if dip > 0:                                           # the flip: buy back on the dip while it still ranks
+                    for t, (sp, _si) in list(sold_tp.items()):
+                        p = price.get(t)
+                        if len(held) < k and p is not None and np.isfinite(p) and p <= sp * (1.0 - dip) and float(pct.get(t, 0.0)) >= 0.5:
+                            held.append(t)
+                            sold_tp.pop(t)
+                            tp_stats["rebought"] += 1
         elif deals:
             s = score.loc[d].dropna() if d in score.index else pd.Series(dtype=float)
             if core_t is not None:
@@ -192,6 +249,12 @@ def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, e
         scale = vol_scale(book, vol_target, vol_window, vol_floor, 1.0) if vol_target > 0 else 1.0
         if held:
             wts.loc[d, held] = satellite * scale / max(k, 1)              # a slot is full or empty: no trims
+        if tp:
+            for t in held:
+                if t not in entry:
+                    entry[t] = (float(px.at[d, t]), i)
+            for t in [t for t in entry if t not in held]:
+                entry.pop(t)
         prev_row = wts.loc[d]
     prev = wts.shift(1).fillna(0.0)
     turnover = (wts - prev).abs().sum(axis=1)
@@ -200,7 +263,8 @@ def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, e
     return {"daily": daily, "total": float(eq.iloc[-1] - 1.0) if len(eq) else 0.0,
             "sharpe": float(daily.mean() / daily.std() * np.sqrt(252)) if len(daily) > 1 and daily.std() > 0 else 0.0,
             "max_drawdown": float((eq / eq.cummax() - 1.0).min()) if len(eq) else 0.0,
-            "turnover_per_year": float(turnover.sum() / max(len(idx), 1) * 252), "days": int(len(idx))}
+            "turnover_per_year": float(turnover.sum() / max(len(idx), 1) * 252), "days": int(len(idx)),
+            **({"take_profit": tp_stats} if tp else {})}
 
 
 def core_series_from_policy(cfg, ds, ticker: str, start, min_share: float, max_share: float, every: int = 21, band: float = 0.05,
