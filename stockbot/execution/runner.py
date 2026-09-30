@@ -814,28 +814,41 @@ class TradingRunner:
         for t, rec in sold_state.items():
             f = self.frames.get(t)
             if f is not None and len(f):
-                sold[t] = (float(rec[0]), int(f.index.searchsorted(pd.Timestamp(rec[1]))))
+                sold[t] = (float(rec[0]), int(f.index.searchsorted(pd.Timestamp(rec[1]))), 1.0)
                 price.setdefault(t, float(self.last_close(t)))
         s = pd.Series({t: v for t, v in scores.items() if np.isfinite(v)})
         pct = s.rank(pct=True).to_dict() if len(s) else {}
         ranked = list(s.sort_values(ascending=False).index) if len(s) else []
         i = max(bar.values()) if bar else 0
-        new_held, events = take_profit_step(held, price, entry, vol, pct, self.take_profit, i, sold, self.rank_top_k, ranked=ranked, proj=proj or {})
+        equity = float(self.broker.equity()) or 1.0
         target = min(satellite / max(self.rank_top_k, 1), self.max_position)
+        peak = {t: float(v) for t, v in self.state.setdefault("tp_peak", {}).items() if t in held}
+        mult = {t: max(kept.get(t, 0.0), 1e-9) / target for t in held}         # live slot multipliers from the actual weights
+        dollars = {t: float(rec[2]) if len(rec) > 2 else 0.0 for t, rec in sold_state.items()}
+        new_held, events = take_profit_step(held, price, entry, vol, pct, self.take_profit, i, sold, self.rank_top_k, ranked=ranked,
+                                            proj=proj or {}, mult=mult, peak=peak)
         notes = []
-        for kind, t, gain in events:
-            if kind == "sold":
-                kept[t] = 0.0
-                notes.append(f"sold {t} at {100 * gain:+.0f}% (spike, no longer ranks well)")
-            elif kind in ("in", "rebought"):
+        for kind, t, gain, frac in events:
+            if kind in ("sold", "stopped", "trailed"):
+                sale = kept.get(t, 0.0) * frac
+                dollars[t] = dollars.get(t, 0.0) + sale * equity            # remembered in dollars: a buy-back spends all of it
+                kept[t] = kept.get(t, 0.0) - sale
+                what = {"sold": "took profit on", "stopped": "stop-loss on", "trailed": "trailing stop on"}[kind]
+                notes.append(f"{what} {t} at {100 * gain:+.0f}%" + (f" ({100 * frac:.0f}% of it)" if frac < 1.0 - 1e-9 else ""))
+            elif kind == "rebought":
+                spend = dollars.pop(t, 0.0)
+                kept[t] = min(kept.get(t, 0.0) + spend / equity, self.max_position)
+                notes.append(f"bought {t} back {100 * abs(gain):.0f}% under the sale with all ${spend:,.0f} of it")
+            elif kind == "in":
                 kept[t] = target
-                notes.append(f"{'bought back' if kind == 'rebought' else 'refilled with'} {t}")
+                notes.append(f"refilled with {t}")
             elif kind == "kept":
                 notes.append(f"kept {t} at {100 * gain:+.0f}% (still ranks well, reference reset)")
         self.state["tp_entry"] = {t: [e[0], str(self.frames[t].index[min(e[1], len(self.frames[t].index) - 1)].date()),
                                       float(e[2]) if len(e) > 2 else 0.0] for t, e in entry.items() if t in new_held}
-        self.state["tp_sold"] = {t: [sp, str(self.frames[t].index[min(si, len(self.frames[t].index) - 1)].date())]
-                                 for t, (sp, si) in sold.items() if t in self.frames}
+        self.state["tp_sold"] = {t: [rec[0], str(self.frames[t].index[min(rec[1], len(self.frames[t].index) - 1)].date()), dollars.get(t, 0.0)]
+                                 for t, rec in sold.items() if t in self.frames}
+        self.state["tp_peak"] = {t: v for t, v in peak.items() if t in new_held}
         if notes:
             log.info("take-profit: %s", "; ".join(notes))
         return ("take-profit: " + "; ".join(notes)) if notes else ""

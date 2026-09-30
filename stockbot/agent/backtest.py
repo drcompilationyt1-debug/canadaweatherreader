@@ -45,30 +45,66 @@ def blended_scores(ds, inputs: dict[str, float] | None = None) -> pd.DataFrame:
 
 
 def take_profit_step(held: list[str], price, entry: dict, vol, pct, tp: dict, i: int, sold: dict, k: int, ranked=None,
-                     stats: dict | None = None, proj=None) -> tuple[list[str], list[tuple]]:
+                     stats: dict | None = None, proj=None, mult: dict | None = None, peak: dict | None = None) -> tuple[list[str], list[tuple]]:
     """One day of the take-profit re-evaluation (the backtest and the live runner share it).
 
-    ``entry`` {name: (reference price, bar)} and ``sold`` {name: (sale price, bar)} are updated in place; ``price``, ``vol``
-    (daily volatility) and ``pct`` (today's score percentile) are mappings by name; ``ranked`` lists the choosable names best
-    first (for ``replace``).  What counts as a peak is itself tuned: ``pct`` (a fixed gain), ``z`` (a move of z standard
-    deviations of the name's own daily moves, scaled by the square root of the bars held) or ``fz`` (the price beat the
-    model's own projection - ``proj``, the 20-day log-return forecast recorded with the reference - by fz standard
-    deviations).  A triggered name is kept - reference (and projection) reset to today, so only a further extreme move
-    triggers again - while it ranks at least ``keep_pct``, and sold otherwise.  Returns (new held list, events)."""
+    ``entry`` {name: (reference price, bar, projection)}, ``sold`` {name: (sale price, bar, amount sold in slot units)},
+    ``mult`` {name: slot multiplier, 1 = a full slot} and ``peak`` {name: highest price since its peak} are updated in place;
+    ``price``, ``vol`` (daily volatility), ``pct`` (today's score percentile) and ``proj`` (the models' 20-day log-return
+    projection) are mappings by name; ``ranked`` lists the choosable names best first (for ``replace``).
+
+    What counts as a peak is tuned: ``pct`` (a fixed gain), ``z`` (a move of z times the name's own volatility, scaled by the
+    square root of the bars held) or ``fz`` (the price beat the projection made at the reference by fz volatilities).  At a
+    peak the name is re-evaluated: kept while it ranks at least ``keep_pct`` (reference and projection reset), otherwise sold -
+    all of it, or the ``scale`` fraction (scale-out: the rest runs on).  Practitioners' exits, each optional:
+    ``trail`` - after a peak, sell what is left when the price falls ``trail`` monthly volatilities below its high since the peak
+    (a trailing stop protects the gain); ``stop`` - sell when the price falls ``stop`` below the reference (Han, Zhou and Zhu
+    2016: a 10% stop more than doubled momentum's Sharpe ratio); ``rebuy_dip`` - a name sold on a peak is bought back when it
+    falls that far below the sale price and still ranks in the top half, with the whole sale amount (the same money buys more
+    shares); ``replace`` - a slot emptied by a sale goes to the best-ranked name not held.  Returns (held list, events)."""
     held = list(held)
+    mult = mult if mult is not None else {}
+    peak = peak if peak is not None else {}
     events: list[tuple] = []
+    has_peak = any(key in tp for key in ("pct", "z", "fz"))
+
+    def sell(t: str, p: float, kind: str, gain: float, frac: float = 1.0) -> None:
+        amount = mult.get(t, 1.0) * frac
+        prev = sold.get(t)
+        sold[t] = (float(p), int(i), (prev[2] if prev and len(prev) > 2 else 0.0) + amount)
+        if frac >= 1.0 - 1e-9:
+            held.remove(t)
+            entry.pop(t, None)
+            peak.pop(t, None)
+            mult.pop(t, None)
+        else:
+            mult[t] = mult.get(t, 1.0) * (1.0 - frac)
+        events.append((kind, t, gain, frac))
+        if stats is not None:
+            stats["sold"] += 1
+
     for t in list(held):
         ref = entry.get(t)
         p = price.get(t) if hasattr(price, "get") else None
         if ref is None or p is None or not np.isfinite(p) or ref[0] <= 0:
             continue
-        gain, days = float(p) / float(ref[0]) - 1.0, max(1, int(i) - int(ref[1]))
+        p = float(p)
+        gain, days = p / float(ref[0]) - 1.0, max(1, int(i) - int(ref[1]))
         v = vol.get(t, np.nan) if hasattr(vol, "get") else np.nan
         ok_v = v is not None and np.isfinite(v) and v > 0
-        if "fz" in tp:                                                # beyond the projection the model made at the reference
+        if "stop" in tp and gain <= -float(tp["stop"]):                   # the stop-loss
+            sell(t, p, "stopped", gain)
+            continue
+        if t in peak and "trail" in tp and ok_v:                          # the trailing stop after a peak
+            peak[t] = max(peak[t], p)
+            if p <= peak[t] * (1.0 - float(tp["trail"]) * float(v) * np.sqrt(20.0)):
+                sell(t, p, "trailed", gain)
+                continue
+        if not has_peak:
+            continue
+        if "fz" in tp:
             mu = float(ref[2]) if len(ref) > 2 and ref[2] is not None and np.isfinite(ref[2]) else 0.0
-            expected = mu * min(days, 20) / 20.0
-            hit = ok_v and np.log1p(gain) > expected + float(tp["fz"]) * float(v) * np.sqrt(days)
+            hit = ok_v and np.log1p(gain) > mu * min(days, 20) / 20.0 + float(tp["fz"]) * float(v) * np.sqrt(days)
         elif "z" in tp:
             hit = ok_v and gain > float(tp["z"]) * float(v) * np.sqrt(days)
         else:
@@ -77,36 +113,47 @@ def take_profit_step(held: list[str], price, entry: dict, vol, pct, tp: dict, i:
             continue
         if stats is not None:
             stats["triggers"] += 1
+        mu_now = proj.get(t, np.nan) if (proj is not None and hasattr(proj, "get")) else np.nan
+        new_ref = (p, int(i), float(mu_now) if mu_now is not None and np.isfinite(mu_now) else 0.0)
         if float(pct.get(t, 0.0) or 0.0) >= float(tp.get("keep_pct", 1.01)):
-            mu_now = proj.get(t, np.nan) if (proj is not None and hasattr(proj, "get")) else np.nan
-            entry[t] = (float(p), int(i), float(mu_now) if mu_now is not None and np.isfinite(mu_now) else 0.0)
-            events.append(("kept", t, gain))
+            entry[t] = new_ref
+            peak[t] = max(peak.get(t, p), p)
+            events.append(("kept", t, gain, 0.0))
             if stats is not None:
                 stats["kept"] += 1
             continue
-        held.remove(t)
-        entry.pop(t, None)
-        sold[t] = (float(p), int(i))
-        events.append(("sold", t, gain))
-        if stats is not None:
-            stats["sold"] += 1
-        if tp.get("replace") and ranked:
+        frac = float(tp.get("scale", 1.0) or 1.0)
+        sell(t, p, "sold", gain, frac)
+        if frac < 1.0 - 1e-9:                                             # scaled out: the rest runs on from here
+            entry[t] = new_ref
+            peak[t] = max(peak.get(t, p), p)
+        elif tp.get("replace") and ranked:
             for c in ranked:
                 if c not in held and c not in sold:
                     held.append(c)
-                    events.append(("in", c, 0.0))
+                    mult[c] = 1.0
+                    events.append(("in", c, 0.0, 1.0))
                     break
     dip = float(tp.get("rebuy_dip", 0.0) or 0.0)
-    if dip > 0:                                                       # the flip: buy back on the dip while it still ranks
-        for t, (sp, _si) in list(sold.items()):
+    if dip > 0:                                                       # the flip: the whole sale buys back in on the dip
+        for t, rec in list(sold.items()):
+            sp, amount = rec[0], (rec[2] if len(rec) > 2 else 1.0)
             p = price.get(t) if hasattr(price, "get") else None
-            if (len(held) < k and t not in held and p is not None and np.isfinite(p) and p <= sp * (1.0 - dip)
-                    and float(pct.get(t, 0.0) or 0.0) >= 0.5):
+            if p is None or not np.isfinite(p) or p > sp * (1.0 - dip) or float(pct.get(t, 0.0) or 0.0) < 0.5:
+                continue
+            if t in held:
+                mult[t] = mult.get(t, 1.0) + amount
+            elif len(held) < k:
                 held.append(t)
-                sold.pop(t)
-                events.append(("rebought", t, float(p) / sp - 1.0))
-                if stats is not None:
-                    stats["rebought"] += 1
+                mult[t] = amount
+                mu_now = proj.get(t, np.nan) if (proj is not None and hasattr(proj, "get")) else np.nan
+                entry[t] = (float(p), int(i), float(mu_now) if mu_now is not None and np.isfinite(mu_now) else 0.0)
+            else:
+                continue
+            sold.pop(t)
+            events.append(("rebought", t, float(p) / sp - 1.0, amount))
+            if stats is not None:
+                stats["rebought"] += 1
     return held, events
 
 
@@ -261,7 +308,9 @@ def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, e
     prev_row = pd.Series(0.0, index=px.columns)
     tp = dict(take_profit or {})
     entry: dict[str, tuple[float, int]] = {}                          # name -> (reference price, bar index) for the take-profit test
-    sold_tp: dict[str, tuple[float, int]] = {}                        # name -> (sale price, bar index) of a take-profit sale
+    sold_tp: dict[str, tuple] = {}                                    # name -> (sale price, bar index, amount) of a take-profit sale
+    tp_mult: dict[str, float] = {}                                    # name -> slot multiplier after a scale-out or a buy-back
+    tp_peak: dict[str, float] = {}                                    # name -> highest price since its peak (trailing stop)
     tp_vol = (px.pct_change(fill_method=None).rolling(int(tp.get("vol_days", 60)), min_periods=20).std().reindex(idx)
               if tp else None)
     tp_stats = {"triggers": 0, "sold": 0, "kept": 0, "rebought": 0}
@@ -290,6 +339,8 @@ def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, e
                 s = s[[t for t in s.index if el.at[d, t]]]                # not yet in the index that day: not choosable
             held = select_top(s.to_dict(), held, k, hysteresis, sectors=sectors, max_per_sector=max_per_sector) if len(s) else held
             sold_tp.clear()
+            tp_mult.clear()
+            tp_peak.clear()
         elif tp and held:
             s = score.loc[d].dropna() if d in score.index else pd.Series(dtype=float)
             if core_t is not None:
@@ -299,7 +350,7 @@ def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, e
             if len(s) >= 10:
                 held, _ = take_profit_step(held, px.loc[d], entry, tp_vol.loc[d], s.rank(pct=True), tp, i, sold_tp, k,
                                            ranked=list(s.sort_values(ascending=False).index), stats=tp_stats,
-                                           proj=proj.loc[d] if proj is not None and d in proj.index else None)
+                                           proj=proj.loc[d] if proj is not None and d in proj.index else None, mult=tp_mult, peak=tp_peak)
         elif deals:
             s = score.loc[d].dropna() if d in score.index else pd.Series(dtype=float)
             if core_t is not None:
@@ -311,6 +362,10 @@ def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, e
         scale = vol_scale(book, vol_target, vol_window, vol_floor, 1.0) if vol_target > 0 else 1.0
         if held:
             wts.loc[d, held] = satellite * scale / max(k, 1)              # a slot is full or empty: no trims
+            if tp_mult:                                                   # ... except a scale-out or a buy-back of the whole sale
+                for t in held:
+                    if t in tp_mult:
+                        wts.at[d, t] = satellite * scale / max(k, 1) * tp_mult[t]
         if tp:
             for t in held:
                 if t not in entry:
@@ -721,7 +776,13 @@ def tune_profile(cfg, ds, account: str = "main", out_path=None, years: int = 10,
 # model's own 20-day projection by fz volatilities - each either re-evaluated (keep while ranking in the top half) or always sold
 PEAKS = [{"pct": 0.15}, {"pct": 0.25}, {"pct": 0.40}, {"z": 2.0}, {"z": 3.0}, {"z": 4.0}, {"fz": 1.5}, {"fz": 2.5}]
 TP_CANDIDATES = ([None] + [{**p, "keep_pct": kp} for p in PEAKS for kp in (0.5, 1.01)]
-                 + [{"fz": 2.5, "keep_pct": 0.5, "rebuy_dip": 0.05}, {"z": 3.0, "keep_pct": 0.5, "replace": True}])
+                 + [{"fz": 2.5, "keep_pct": 0.5, "rebuy_dip": 0.05}, {"z": 3.0, "keep_pct": 0.5, "replace": True},
+                    # practitioners' exits: scale out half at the peak, trail what is left, a plain stop-loss, and combinations
+                    {"z": 3.0, "keep_pct": 0.5, "scale": 0.5}, {"fz": 2.5, "keep_pct": 0.5, "scale": 0.5},
+                    {"z": 3.0, "keep_pct": 0.5, "trail": 1.0}, {"fz": 2.5, "keep_pct": 0.5, "trail": 1.0},
+                    {"fz": 2.5, "keep_pct": 0.5, "scale": 0.5, "trail": 1.0, "rebuy_dip": 0.05},
+                    {"pct": 0.25, "keep_pct": 1.01, "rebuy_dip": 0.05}, {"stop": 0.10}, {"stop": 0.15},
+                    {"z": 3.0, "keep_pct": 0.5, "trail": 1.0, "stop": 0.15}])
 
 
 def load_tuned_take_profit(models_dir, account: str = "main") -> dict | None:

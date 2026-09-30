@@ -16,8 +16,8 @@ def test_step_keeps_a_spike_that_still_ranks_and_sells_one_that_does_not():
     pct = {"A": 0.9, "B": 0.2, "C": 0.5, "D": 0.95}
     sold, stats = {}, {"triggers": 0, "kept": 0, "sold": 0, "rebought": 0}
     new, ev = take_profit_step(held, price, entry, vol, pct, {"z": 3.0, "keep_pct": 0.5}, 4, sold, 3, ranked=["D", "A", "C", "B"], stats=stats)
-    assert new == ["A", "C"] and ("sold", "B", 0.30000000000000004) in ev or ("sold", "B", 0.3) in [(k, t, round(g, 2)) for k, t, g in ev]
-    assert entry["A"][:2] == (130.0, 4) and "B" not in entry and sold["B"] == (130.0, 4)     # A kept with its reference reset, B sold
+    assert new == ["A", "C"] and ("sold", "B") in [e[:2] for e in ev]
+    assert entry["A"][:2] == (130.0, 4) and "B" not in entry and sold["B"][:2] == (130.0, 4)     # A kept with its reference reset, B sold
     assert stats == {"triggers": 2, "kept": 1, "sold": 1, "rebought": 0}                  # C's +1% is no spike
     no, _ = take_profit_step(["A", "C"], {"A": 131.0, "C": 101.0, "B": 120.0}, entry, vol, pct, {"z": 3.0, "keep_pct": 0.5, "rebuy_dip": 0.05},
                              5, sold, 3)
@@ -137,6 +137,42 @@ def test_runner_applies_the_rule_in_force(cfg, frames):
     kept = {t: current[t] * r.max_position for t in names}
     scores = {names[0]: 3.0, names[1]: -3.0, **{t: 0.0 for t in names[2:]}}
     note = r._take_profit(kept, current, names, scores, 0.9, "2026-09-29")
-    assert kept[names[1]] == 0.0 and kept[names[0]] > 0 and "sold" in note and "kept" in note     # the low-ranked spike goes
+    assert kept[names[1]] == 0.0 and kept[names[0]] > 0 and "took profit on" in note and "kept" in note     # the low-ranked spike goes
     assert names[1] in r.state["tp_sold"] and names[0] in r.state["tp_entry"]
     assert abs(r.state["tp_entry"][names[0]][0] - last[names[0]]) < 1e-6                         # the kept name's reference reset
+
+
+def test_buy_back_spends_the_whole_sale_scale_out_trailing_and_stop():
+    # buy-back: the sold amount (1.3 slots, the grown position) comes back in full on the dip
+    sold, mult = {"B": (130.0, 4, 1.3)}, {}
+    held, ev = take_profit_step(["A"], {"A": 100.0, "B": 120.0}, {"A": (100.0, 0, 0.0)}, {"A": 0.01, "B": 0.01}, {"A": 0.9, "B": 0.8},
+                                {"z": 9.0, "keep_pct": 0.5, "rebuy_dip": 0.05}, 6, sold, 3, mult=mult)
+    assert held == ["A", "B"] and abs(mult["B"] - 1.3) < 1e-12 and ev[-1][0] == "rebought" and "B" not in sold
+    # scale-out: half of a spike that no longer ranks is sold, the rest runs on with its peak tracked
+    entry, mult, peak, sold = {"C": (100.0, 0, 0.0)}, {"C": 1.0}, {}, {}
+    held, ev = take_profit_step(["C"], {"C": 140.0}, entry, {"C": 0.02}, {"C": 0.2}, {"z": 3.0, "keep_pct": 0.5, "scale": 0.5}, 5, sold, 3,
+                                mult=mult, peak=peak)
+    assert held == ["C"] and mult["C"] == 0.5 and sold["C"][2] == 0.5 and peak["C"] == 140.0 and ev[0][:2] == ("sold", "C") and ev[0][3] == 0.5
+    # trailing stop: after the peak the rest goes once the price falls a monthly volatility below its high
+    held, ev = take_profit_step(["C"], {"C": 150.0}, entry, {"C": 0.02}, {"C": 0.2}, {"z": 99.0, "keep_pct": 0.5, "trail": 1.0}, 6, sold, 3,
+                                mult=mult, peak=peak)
+    assert held == ["C"] and peak["C"] == 150.0
+    held, ev = take_profit_step(["C"], {"C": 130.0}, entry, {"C": 0.02}, {"C": 0.2}, {"z": 99.0, "keep_pct": 0.5, "trail": 1.0}, 7, sold, 3,
+                                mult=mult, peak=peak)
+    assert held == [] and ev[0][0] == "trailed" and abs(sold["C"][2] - 1.0) < 1e-12        # 0.5 scaled out earlier + the last 0.5
+    # stop-loss on its own: no peak rule, sells 10% under the reference
+    held, ev = take_profit_step(["D"], {"D": 89.0}, {"D": (100.0, 0, 0.0)}, {"D": 0.02}, {"D": 0.9}, {"stop": 0.10}, 3, {}, 3)
+    assert held == [] and ev[0][0] == "stopped"
+    held, ev = take_profit_step(["D"], {"D": 140.0}, {"D": (100.0, 0, 0.0)}, {"D": 0.02}, {"D": 0.1}, {"stop": 0.10}, 3, {}, 3)
+    assert held == ["D"] and ev == []                                                        # a stop alone never takes profit
+
+
+def test_simulator_scale_out_changes_the_weights():
+    idx = pd.bdate_range("2024-01-01", periods=300)
+    rng = np.random.default_rng(2)
+    px = pd.DataFrame({t: 100 * np.cumprod(1 + rng.normal(0.001, 0.03, 300)) for t in "ABCDEFGHIJKL"}, index=idx)
+    sc = pd.DataFrame(rng.normal(size=(300, 12)), index=idx, columns=px.columns)
+    full = simulate(px, sc, idx[0], k=4, every=21, hysteresis=2, fee_bps=10.0, take_profit={"z": 2.0, "keep_pct": 1.01})
+    half = simulate(px, sc, idx[0], k=4, every=21, hysteresis=2, fee_bps=10.0, take_profit={"z": 2.0, "keep_pct": 1.01, "scale": 0.5})
+    assert half["take_profit"]["sold"] > 0 and half["total"] != full["total"]
+
