@@ -282,7 +282,8 @@ def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, e
              fee_bps: float = 8.0, end=None, core: dict | None = None, trend: dict | None = None, reserve: float = 0.0,
              sectors: dict[str, str] | None = None, max_per_sector: int = 0, vol_target: float = 0.0, vol_window: int = 20,
              vol_floor: float = 0.4, eligible: pd.DataFrame | None = None, deals: dict | None = None,
-             take_profit: dict | None = None, projection: pd.DataFrame | None = None) -> dict:
+             take_profit: dict | None = None, projection: pd.DataFrame | None = None, weighting: str = "equal",
+             season: dict | None = None) -> dict:
     """Daily portfolio returns of the rank-core rule (``score`` None = equal-weight everything), fees on turnover.
     ``core`` = {ticker, share}: a buy-and-hold slice bought once and never sold; ``trend`` = {benchmark, sma, band}: the
     rank slots go to cash while the benchmark is below its moving average; ``reserve`` = cash never invested;
@@ -315,6 +316,9 @@ def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, e
               if tp else None)
     tp_stats = {"triggers": 0, "sold": 0, "kept": 0, "rebought": 0}
     proj = projection.reindex(index=idx, columns=px.columns).ffill(limit=5) if (tp and projection is not None) else None
+    # sizing inside the book: "equal" slots, "inv_vol" (each holding the same risk: 1/volatility, the book's total unchanged) or
+    # "score" (more to the names the ranker likes most); ``season`` = {months, scale}: exposure scaled in those months
+    w_vol = (px.pct_change(fill_method=None).rolling(60, min_periods=20).std().reindex(idx) if weighting == "inv_vol" else None)
     for i, d in enumerate(idx):
         if i > 0:
             book.append(float((prev_row * rets.loc[d]).sum()))
@@ -362,6 +366,15 @@ def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, e
         scale = vol_scale(book, vol_target, vol_window, vol_floor, 1.0) if vol_target > 0 else 1.0
         if held:
             wts.loc[d, held] = satellite * scale / max(k, 1)              # a slot is full or empty: no trims
+            if weighting != "equal" and len(held) > 1:
+                if weighting == "inv_vol":
+                    raw = 1.0 / w_vol.loc[d, held].clip(lower=1e-4).fillna(w_vol.loc[d, held].median())
+                else:
+                    raw = score.loc[d].reindex(held).rank(pct=True).fillna(0.5) + 0.5
+                raw = raw.replace([np.inf, -np.inf], np.nan).fillna(1.0)
+                wts.loc[d, held] = satellite * scale / max(k, 1) * (raw / raw.mean()).clip(upper=2.5).to_numpy()
+            if season and d.month in set(season.get("months", ())):
+                wts.loc[d] = wts.loc[d] * float(season.get("scale", 1.0))
             if tp_mult:                                                   # ... except a scale-out or a buy-back of the whole sale
                 for t in held:
                     if t in tp_mult:
