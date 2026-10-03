@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 95, "reasoning": "Unrealised loss of -9.41% exceeds the -8% loss limit requiring mandatory closure to protect capital. The position has never been profitable (peak PnL -2.54%) and therefore must be fully exited."}

@@ -1,0 +1,644 @@
+{
+ "period": "week",
+ "start": "2026-09-07",
+ "end": "2026-09-12",
+ "generated": "2026-09-15T20:47:26.800947+00:00",
+ "actual_return": -0.0009350000000000191,
+ "oracle_return": 0.03199901604084432,
+ "regret": 0.03293401604084434,
+ "captured": -0.029219648466895436,
+ "alternatives": {
+  "hold": 0.0,
+  "equal": -0.006699773493518801,
+  "benchmark": -0.007660479096534778,
+  "oracle": 0.03199901604084432,
+  "period_oracle": 0.013701167620244092,
+  "half": -0.0009350000000000191,
+  "double": -0.0009350000000000191,
+  "follow:alpha101": -0.0004226999999999981,
+  "follow:alpha_factors": -0.0009350000000000191,
+  "follow:candles": -0.00017900000000004024,
+  "follow:chronos": -0.0005967000000000056,
+  "follow:dl_forecast": -0.0009350000000000191,
+  "follow:dqn_agent": -0.00034319999999998796,
+  "follow:es_agent": -0.0006663999999999559,
+  "follow:finbert": -0.0003530000000000477,
+  "follow:kronos": -0.00020889999999995634,
+  "follow:llm_trader": -0.00013430000000003162,
+  "follow:news_llm": -0.0003182999999999936,
+  "follow:qlib": -0.00047759999999996694,
+  "follow:sentiment": -0.0007511000000000045,
+  "follow:strategy_zoo": -0.0006564999999999488,
+  "follow:supertrend": -0.00045759999999994694,
+  "follow:ta_keras": -0.00019400000000002748,
+  "follow:talib_candles": -0.0006017999999999857,
+  "follow:timesfm": -0.0004973000000000338,
+  "follow:trend": -0.0003830000000000222,
+  "follow:xs_rank": -0.0005768999999999913,
+  "path_oracle": 0.04539446115039929
+ },
+ "ranking": [
+  {
+   "name": "path_oracle",
+   "return": 0.04539446115039929
+  },
+  {
+   "name": "oracle",
+   "return": 0.03199901604084432
+  },
+  {
+   "name": "period_oracle",
+   "return": 0.013701167620244092
+  },
+  {
+   "name": "hold",
+   "return": 0.0
+  },
+  {
+   "name": "follow:llm_trader",
+   "return": -0.00013430000000003162
+  },
+  {
+   "name": "follow:candles",
+   "return": -0.00017900000000004024
+  },
+  {
+   "name": "follow:ta_keras",
+   "return": -0.00019400000000002748
+  },
+  {
+   "name": "follow:kronos",
+   "return": -0.00020889999999995634
+  },
+  {
+   "name": "follow:news_llm",
+   "return": -0.0003182999999999936
+  },
+  {
+   "name": "follow:dqn_agent",
+   "return": -0.00034319999999998796
+  },
+  {
+   "name": "follow:finbert",
+   "return": -0.0003530000000000477
+  },
+  {
+   "name": "follow:trend",
+   "return": -0.0003830000000000222
+  },
+  {
+   "name": "follow:alpha101",
+   "return": -0.0004226999999999981
+  },
+  {
+   "name": "follow:supertrend",
+   "return": -0.00045759999999994694
+  },
+  {
+   "name": "follow:qlib",
+   "return": -0.00047759999999996694
+  },
+  {
+   "name": "follow:timesfm",
+   "return": -0.0004973000000000338
+  },
+  {
+   "name": "follow:xs_rank",
+   "return": -0.0005768999999999913
+  },
+  {
+   "name": "follow:chronos",
+   "return": -0.0005967000000000056
+  },
+  {
+   "name": "follow:talib_candles",
+   "return": -0.0006017999999999857
+  },
+  {
+   "name": "follow:strategy_zoo",
+   "return": -0.0006564999999999488
+  },
+  {
+   "name": "follow:es_agent",
+   "return": -0.0006663999999999559
+  },
+  {
+   "name": "follow:sentiment",
+   "return": -0.0007511000000000045
+  },
+  {
+   "name": "actual",
+   "return": -0.0009350000000000191
+  },
+  {
+   "name": "half",
+   "return": -0.0009350000000000191
+  },
+  {
+   "name": "double",
+   "return": -0.0009350000000000191
+  },
+  {
+   "name": "follow:alpha_factors",
+   "return": -0.0009350000000000191
+  },
+  {
+   "name": "follow:dl_forecast",
+   "return": -0.0009350000000000191
+  },
+  {
+   "name": "equal",
+   "return": -0.006699773493518801
+  },
+  {
+   "name": "benchmark",
+   "return": -0.007660479096534778
+  }
+ ],
+ "best_alternative": {
+  "name": "hold",
+  "return": 0.0
+ },
+ "best_model": "llm_trader",
+ "per_name": [
+  {
+   "ticker": "AAPL",
+   "move": 0.03844106555628235,
+   "avg_weight": 0.010253402394521355,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "ADBE",
+   "move": -0.05358152982938269,
+   "avg_weight": 0.004182771024041981,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "AMD",
+   "move": 0.08074208381435422,
+   "avg_weight": 0.0010015387453597548,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "AMZN",
+   "move": -0.006692239839751646,
+   "avg_weight": 0.005736513239586315,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "ATD.TO",
+   "move": -0.01564723413588498,
+   "avg_weight": 0.02128588659696067,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "AVGO",
+   "move": 0.011427763083655229,
+   "avg_weight": 0.007263263693197181,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "BABA",
+   "move": -0.03479331407928532,
+   "avg_weight": 0.005827415573054933,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "BAC",
+   "move": 0.00015951374416922626,
+   "avg_weight": 0.009955179074105999,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "BIDU",
+   "move": -0.08112998487773804,
+   "avg_weight": 0.0041470366275196515,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "BMO.TO",
+   "move": -0.0011945678558854533,
+   "avg_weight": 0.02128588659696067,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "BNS.TO",
+   "move": -0.00015417674209716736,
+   "avg_weight": 0.02128588659696067,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "BRK-B",
+   "move": 0.008576559390470972,
+   "avg_weight": -0.0010501499054953456,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "CNQ.TO",
+   "move": 0.002325360249368247,
+   "avg_weight": 0.02128588659696067,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "CNR.TO",
+   "move": -0.0003830323589947282,
+   "avg_weight": 0.02128588659696067,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "COST",
+   "move": -0.011979350929424037,
+   "avg_weight": 0.010253402394521355,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "CP.TO",
+   "move": -0.02311272684991461,
+   "avg_weight": 0.02128588659696067,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "CVX",
+   "move": 0.02617445491525383,
+   "avg_weight": 0.009955179074105999,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "DIS",
+   "move": 0.011774812666519363,
+   "avg_weight": 0.007222367679683263,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "ENB.TO",
+   "move": -0.04457582734411547,
+   "avg_weight": 0.02128588659696067,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "GOOGL",
+   "move": 0.00011820760483360893,
+   "avg_weight": 0.010253402394521355,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "HD",
+   "move": -0.03834293109063125,
+   "avg_weight": 0.009955179074105999,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "HSBC",
+   "move": -0.016898492655024966,
+   "avg_weight": 0.007222367679683263,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "JD",
+   "move": -0.04246287166385254,
+   "avg_weight": 0.007222367679683263,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "JNJ",
+   "move": -0.03506167216096878,
+   "avg_weight": 0.010253402394521355,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "JPM",
+   "move": -0.006719840407300559,
+   "avg_weight": 0.010253402394521355,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "KO",
+   "move": 0.0024980268135057493,
+   "avg_weight": 0.009955179074105999,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "LLY",
+   "move": -0.029285893548305242,
+   "avg_weight": 0.006184226032972547,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "META",
+   "move": 0.05068341322650971,
+   "avg_weight": 0.004672476141252618,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "MFC.TO",
+   "move": -0.01728075270058993,
+   "avg_weight": 0.02128588659696067,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "MRK",
+   "move": -0.04257306643597303,
+   "avg_weight": 0.005782752227521216,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "MSFT",
+   "move": -0.008144901390421566,
+   "avg_weight": 0.010253402394521355,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "NFLX",
+   "move": -0.010862600308256809,
+   "avg_weight": 0.008776096279745543,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "NTES",
+   "move": -0.030849193368534644,
+   "avg_weight": 0.0053431444546317465,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "NVDA",
+   "move": -0.05133594504880268,
+   "avg_weight": 0.0075551134771184155,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "ORCL",
+   "move": -0.05353319098972242,
+   "avg_weight": 0.0046129635524493635,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "PDD",
+   "move": -0.05352148856439953,
+   "avg_weight": 0.007222367679683263,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "PG",
+   "move": -0.007989607685328082,
+   "avg_weight": 0.009955179074105999,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "QQQ",
+   "move": -0.005674887288794173,
+   "avg_weight": 0.009218061198128909,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "RY.TO",
+   "move": -0.021545212510615253,
+   "avg_weight": 0.02128588659696067,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "SHOP.TO",
+   "move": -0.11132691500430147,
+   "avg_weight": 0.015855247433432654,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "SPY",
+   "move": -0.007660479096534778,
+   "avg_weight": 0.009488227951522522,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "SU.TO",
+   "move": 0.02319093489654267,
+   "avg_weight": 0.02128588659696067,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "TCOM",
+   "move": -0.048988505516295966,
+   "avg_weight": 0.007222367679683263,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "TD.TO",
+   "move": -0.0030908479284498247,
+   "avg_weight": 0.02128588659696067,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "TSLA",
+   "move": 0.03208319108660529,
+   "avg_weight": 0.005256660248196729,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "UNH",
+   "move": -0.04545006460956724,
+   "avg_weight": 0.010157621527575088,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "V",
+   "move": -0.012317687436932068,
+   "avg_weight": -0.013397211208939552,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "WMT",
+   "move": 9.335576150326652e-05,
+   "avg_weight": 0.007137660839298823,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "XOM",
+   "move": 0.04088545947546218,
+   "avg_weight": 0.010177491860772984,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "YUMC",
+   "move": -0.029357771194799875,
+   "avg_weight": 0.007222367679683263,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  }
+ ],
+ "lessons": [
+  "week 2026-09-07 to 2026-09-12: actual -0.09%, oracle +3.20%, regret +3.29%, captured -3% of what was available",
+  "'hold' would have done better: +0.00% vs actual -0.09%",
+  "most useful input this week: llm_trader (-0.01% if followed alone)",
+  "missed: BRK-B +0.86% (not held)",
+  "fee-aware best path this week: +4.54% with 21 switches across 10 names, vs +3.20% if every day were played perfectly - the best week is not the best days strung together",
+  "regret came mostly from missed: missed +8.43%, wrong side +0.00%, under-sized +0.00%, fees +0.09%",
+  "24 round trips: win rate 71%, profit factor 1.88, average hold 1.9 days; best AAPL +153, worst UNH -93",
+  "market context: down-calm (SPY -0.77%, vol 11%)"
+ ],
+ "days": 4,
+ "n_names": 50,
+ "stats": {
+  "return": -0.0009350000000000191,
+  "volatility": 0.007421332427536175,
+  "max_drawdown": -0.0009350000000000191,
+  "win_days": 0.0,
+  "sharpe": -7.937253933193772,
+  "benchmark_return": -0.007660479096534778,
+  "excess_return": 0.006725479096534759
+ },
+ "path_oracle": {
+  "return": 0.04539446115039929,
+  "names": [
+   "AMD",
+   "META",
+   "AAPL",
+   "TSLA",
+   "XOM",
+   "AVGO",
+   "CVX",
+   "GOOGL",
+   "ORCL",
+   "SU.TO"
+  ],
+  "switches": 21,
+  "per_name": {
+   "AAPL": {
+    "pnl_per_slice": 0.05286747830476896,
+    "switches": 1,
+    "avg_level": 0.5
+   },
+   "AMD": {
+    "pnl_per_slice": 0.11364124429969674,
+    "switches": 3,
+    "avg_level": 0.75
+   },
+   "AVGO": {
+    "pnl_per_slice": 0.03240268741245296,
+    "switches": 3,
+    "avg_level": 0.5
+   },
+   "CVX": {
+    "pnl_per_slice": 0.03037922232515151,
+    "switches": 3,
+    "avg_level": 0.75
+   },
+   "GOOGL": {
+    "pnl_per_slice": 0.023437518878690448,
+    "switches": 1,
+    "avg_level": 0.5
+   },
+   "META": {
+    "pnl_per_slice": 0.07061154430470279,
+    "switches": 3,
+    "avg_level": 0.5
+   },
+   "ORCL": {
+    "pnl_per_slice": 0.023156638631548605,
+    "switches": 2,
+    "avg_level": 0.25
+   },
+   "SU.TO": {
+    "pnl_per_slice": 0.022936350481446554,
+    "switches": 1,
+    "avg_level": 1.0
+   },
+   "TSLA": {
+    "pnl_per_slice": 0.04433917401995898,
+    "switches": 3,
+    "avg_level": 0.5
+   },
+   "XOM": {
+    "pnl_per_slice": 0.040172752845575366,
+    "switches": 1,
+    "avg_level": 1.0
+   }
+  }
+ },
+ "attribution": {
+  "missed": 0.08426617215209731,
+  "wrong_side": 0.0,
+  "under_sized": 0.0,
+  "cost": 0.0009349999999999997,
+  "total": 0.08520117215209731,
+  "biggest": "missed"
+ },
+ "execution": {
+  "fills": 96,
+  "traded_notional": 402165.0000248145,
+  "fees": NaN,
+  "shortfall_bps": 0.1702448694740112,
+  "fees_bps": NaN
+ },
+ "round_trips": {
+  "n": 24,
+  "win_rate": 0.7083333333333334,
+  "avg_pnl": 8.178345341440224,
+  "total_pnl": 196.28028819456537,
+  "profit_factor": 1.879893255682426,
+  "avg_win": 24.66783112058485,
+  "avg_loss": -31.8675486936253,
+  "avg_holding_days": 1.904624808584105,
+  "best": {
+   "symbol": "AAPL",
+   "pnl": 153.299560546875
+  },
+  "worst": {
+   "symbol": "UNH",
+   "pnl": -93.15002441406193
+  },
+  "open_positions": 47,
+  "total_return": 0.0019641876342277845
+ },
+ "regime": {
+  "benchmark_return": -0.007660479096534778,
+  "benchmark_vol": 0.11069821447864077,
+  "label": "down-calm"
+ }
+}
