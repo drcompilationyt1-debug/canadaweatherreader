@@ -407,7 +407,7 @@ def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, e
                     if f is None or f[0] >= 1.0 - 1e-9:
                         continue
                     p_t = float(px.at[d, t])
-                    while f[3] < len(dips) and p_t <= f[1] * (1.0 - dips[f[3]]) and (pct_d is None or float(pct_d.get(t, 0.0)) >= 0.5):
+                    while f[3] < len(dips) and p_t <= f[1] * (1.0 - dips[f[3]]) and (pct_d is None or float(pct_d.get(t, 0.0)) >= float(si.get("min_pct", 0.5))):
                         f[0] = min(1.0, f[0] + adds[f[3]])
                         f[3] += 1
                     if i - f[2] >= int(si.get("expire", 10)) and si.get("complete", True):
