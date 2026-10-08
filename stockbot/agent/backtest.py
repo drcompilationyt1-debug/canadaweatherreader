@@ -283,7 +283,7 @@ def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, e
              sectors: dict[str, str] | None = None, max_per_sector: int = 0, vol_target: float = 0.0, vol_window: int = 20,
              vol_floor: float = 0.4, eligible: pd.DataFrame | None = None, deals: dict | None = None,
              take_profit: dict | None = None, projection: pd.DataFrame | None = None, weighting: str = "equal",
-             season: dict | None = None) -> dict:
+             season: dict | None = None, scale_in: dict | None = None, order_cost: float = 0.0, sector_tilt: float = 0.0) -> dict:
     """Daily portfolio returns of the rank-core rule (``score`` None = equal-weight everything), fees on turnover.
     ``core`` = {ticker, share}: a buy-and-hold slice bought once and never sold; ``trend`` = {benchmark, sma, band}: the
     rank slots go to cash while the benchmark is below its moving average; ``reserve`` = cash never invested;
@@ -319,6 +319,22 @@ def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, e
     # sizing inside the book: "equal" slots, "inv_vol" (each holding the same risk: 1/volatility, the book's total unchanged) or
     # "score" (more to the names the ranker likes most); ``season`` = {months, scale}: exposure scaled in those months
     w_vol = (px.pct_change(fill_method=None).rolling(60, min_periods=20).std().reindex(idx) if weighting == "inv_vol" else None)
+    # staged entries: a name new to the book starts at ``first`` of its slot and adds ``adds[j]`` when the price falls ``dips[j]``
+    # under its entry price (while it still ranks in the top half); after ``expire`` bars the rest is bought (``complete``) or
+    # left in cash.  first=0 with one dip = wait for a pullback before buying.  ``order_cost`` = a fixed cost per order as a
+    # fraction of the book (moomoo's minimum); ``sector_tilt`` > 0 leans the slots toward sectors with the best 3-month return
+    si = dict(scale_in or {})
+    si_fill: dict[str, list] = {}                                     # name -> [fill fraction, entry price, entry bar, dips used]
+    sec_mom = None
+    if sector_tilt and sectors:
+        r63 = px / px.shift(63) - 1.0
+        groups: dict[str, list[str]] = {}
+        for t in px.columns:
+            sec = sectors.get(t)
+            if sec and sec not in ("Unknown", "Index"):
+                groups.setdefault(sec, []).append(t)
+        sm = pd.DataFrame({sec: r63[names].mean(axis=1) for sec, names in groups.items()}).rank(axis=1, pct=True)
+        sec_mom = pd.DataFrame({t: sm[sectors[t]] if sectors.get(t) in sm.columns else 0.5 for t in px.columns}).reindex(idx)
     for i, d in enumerate(idx):
         if i > 0:
             book.append(float((prev_row * rets.loc[d]).sum()))
@@ -341,7 +357,14 @@ def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, e
                 s = s.drop(core_t, errors="ignore")
             if el is not None and len(s):
                 s = s[[t for t in s.index if el.at[d, t]]]                # not yet in the index that day: not choosable
+            before = set(held)
             held = select_top(s.to_dict(), held, k, hysteresis, sectors=sectors, max_per_sector=max_per_sector) if len(s) else held
+            if si:
+                for t in held:
+                    if t not in before:
+                        si_fill[t] = [float(si.get("first", 0.5)), float(px.at[d, t]), i, 0]
+                for t in [t for t in si_fill if t not in held]:
+                    si_fill.pop(t)
             sold_tp.clear()
             tp_mult.clear()
             tp_peak.clear()
@@ -373,6 +396,23 @@ def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, e
                     raw = score.loc[d].reindex(held).rank(pct=True).fillna(0.5) + 0.5
                 raw = raw.replace([np.inf, -np.inf], np.nan).fillna(1.0)
                 wts.loc[d, held] = satellite * scale / max(k, 1) * (raw / raw.mean()).clip(upper=2.5).to_numpy()
+            if sec_mom is not None:
+                raw = 1.0 + float(sector_tilt) * (sec_mom.loc[d, held].fillna(0.5) - 0.5) * 2.0
+                wts.loc[d, held] = wts.loc[d, held] * (raw / raw.mean()).to_numpy()
+            if si_fill:
+                pct_d = score.loc[d].rank(pct=True) if d in score.index else None
+                dips, adds = list(si.get("dips", [0.03, 0.06])), list(si.get("adds", [0.25, 0.25]))
+                for t in held:
+                    f = si_fill.get(t)
+                    if f is None or f[0] >= 1.0 - 1e-9:
+                        continue
+                    p_t = float(px.at[d, t])
+                    while f[3] < len(dips) and p_t <= f[1] * (1.0 - dips[f[3]]) and (pct_d is None or float(pct_d.get(t, 0.0)) >= 0.5):
+                        f[0] = min(1.0, f[0] + adds[f[3]])
+                        f[3] += 1
+                    if i - f[2] >= int(si.get("expire", 10)) and si.get("complete", True):
+                        f[0] = 1.0
+                    wts.at[d, t] = wts.at[d, t] * f[0]
             if season and d.month in set(season.get("months", ())):
                 wts.loc[d] = wts.loc[d] * float(season.get("scale", 1.0))
             if tp_mult:                                                   # ... except a scale-out or a buy-back of the whole sale
@@ -390,6 +430,10 @@ def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, e
     prev = wts.shift(1).fillna(0.0)
     turnover = (wts - prev).abs().sum(axis=1)
     daily = (prev * rets).sum(axis=1) - turnover * fee_bps / 1e4
+    if order_cost > 0:                                                # a minimum fee per order: many small orders cost more
+        slot = max(1e-9, (1.0 - float(reserve)) / max(k, 1))
+        orders = ((wts - prev).abs() > 0.1 * slot).sum(axis=1)
+        daily = daily - orders * float(order_cost)
     eq = (1.0 + daily).cumprod()
     return {"daily": daily, "total": float(eq.iloc[-1] - 1.0) if len(eq) else 0.0,
             "sharpe": float(daily.mean() / daily.std() * np.sqrt(252)) if len(daily) > 1 and daily.std() > 0 else 0.0,
