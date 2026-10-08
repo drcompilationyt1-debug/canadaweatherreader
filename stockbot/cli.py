@@ -627,10 +627,10 @@ def cmd_portfolio(cfg, args) -> int:
                 pr = tune_profile(cfg, ds, acc, out_path=cfg.path("models_dir", "models") / f"rank_profile_{acc}.json", years=args.years)
                 long = f"{args.years}y"
                 print(f"\nstructure tuning [{acc}]: {'ACCEPTED' if pr['accepted'] else 'kept'} - {pr['reason']}")
-                print(f"  current {pr['current']}: 1y sharpe {pr['current_result']['1y']['sharpe']:.2f} total {100 * pr['current_result']['1y']['total']:+.1f}%, "
-                      f"{long} sharpe {pr['current_result'][long]['sharpe']:.2f} total {100 * pr['current_result'][long]['total']:+.1f}%")
-                print(f"  best    {pr['best']}: 1y sharpe {pr['best_result']['1y']['sharpe']:.2f} total {100 * pr['best_result']['1y']['total']:+.1f}%, "
-                      f"{long} sharpe {pr['best_result'][long]['sharpe']:.2f} total {100 * pr['best_result'][long]['total']:+.1f}%")
+                sh, lg = pr["short"], pr["long"]
+                for label, key, res in (("current", "current", "current_result"), ("best   ", "best", "best_result")):
+                    print(f"  {label} {pr[key]}: {sh} {100 * pr[res][sh]['geo']:+.1f}%/yr dd {100 * pr[res][sh]['max_drawdown']:+.0f}%, "
+                          f"{lg} {100 * pr[res][lg]['geo']:+.1f}%/yr - blended {100 * pr[key + '_score' if key == 'best' else 'current_score']:+.1f}%/yr")
             except Exception as e:  # noqa: BLE001
                 print(f"structure tuning [{acc}] failed: {e}")
         from .agent.backtest import tune_take_profit
@@ -641,8 +641,8 @@ def cmd_portfolio(cfg, args) -> int:
                 print(f"\ntake-profit test [{acc}]: {tp['reason']}; in force: {tp['in_force'] or 'plain holding'}"
                       f"{' (bad-loss streak ' + str(tp['loss_streak']) + ')' if tp.get('loss_streak') else ''}")
                 for r in tp["results"]:
-                    print(f"  {str(r['rule'] or 'hold'):58s} {args.years}y {100 * r['long']['geo']:+5.1f}%/yr dd {100 * r['long']['max_drawdown']:+5.1f}%"
-                          f" | 3y {100 * r['recent']['geo']:+5.1f}%/yr | triggers/yr {r['long']['triggers_per_year']:.1f}")
+                    print(f"  {str(r['rule'] or 'hold'):58s} 3y {100 * r['recent']['geo']:+5.1f}%/yr dd {100 * r['recent']['max_drawdown']:+5.1f}%"
+                          f" | {args.years}y {100 * r['long']['geo']:+5.1f}%/yr | blended {100 * r['score']:+5.1f}% | triggers/yr {r['long']['triggers_per_year']:.1f}")
             except Exception as e:  # noqa: BLE001
                 print(f"take-profit test [{acc}] failed: {e}")
     if args.out:

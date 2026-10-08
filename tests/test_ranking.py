@@ -272,7 +272,8 @@ def test_structure_tuning_decides_slots_cadence_and_the_index_sleeve(cfg, frames
     rep = bt.tune_profile(cfg, ds, "main", out_path=out, years=2)
     assert out.exists() and len(rep["candidates"]) >= 8 and set(rep["profile"]) >= {"top_k", "every_bars", "hysteresis", "core_share"}
     assert any(c["core_share"] == 0.5 for c in rep["candidates"])                 # the index sleeve is one of the candidates ...
-    assert all("1y_sharpe" in c and "2y_total" in c for c in rep["candidates"])
+    assert all("score" in c and "2y_total" in c for c in rep["candidates"])                 # picked on blended 3y/10y growth
+    assert rep["short"] != rep["long"] and abs(rep["current_score"] - [c for c in rep["candidates"] if all(c[k] == rep["current"][k] for k in rep["current"])][0]["score"]) < 1e-12
     if rep["accepted"]:                                                          # ... and only a two-window improvement is adopted
         assert rep["best_result"]["2y"]["sharpe"] >= rep["current_result"]["2y"]["sharpe"] - 0.02
         assert load_tuned_profile(tmp_path, "main") == rep["profile"]

@@ -810,9 +810,10 @@ class TradingRunner:
             rec = entry_state.get(t)
             if rec is None:                                               # first sight: the buy price, dated by the holding age
                 avg = float(ctx.get("avg_price") or 0.0) or p
-                rec = [avg, str(ix[max(0, len(ix) - 1 - int(ctx.get("days", 0) or 0))].date()), float((proj or {}).get(t, 0.0))]
+                rec = [avg, str(ix[max(0, len(ix) - 1 - int(ctx.get("days", 0) or 0))].date()), float((proj or {}).get(t, 0.0)), avg]
                 entry_state[t] = rec
-            entry[t] = (float(rec[0]), int(ix.searchsorted(pd.Timestamp(rec[1]))), float(rec[2]) if len(rec) > 2 else 0.0)
+            entry[t] = (float(rec[0]), int(ix.searchsorted(pd.Timestamp(rec[1]))), float(rec[2]) if len(rec) > 2 else 0.0,
+                        float(rec[3]) if len(rec) > 3 else float(ctx.get("avg_price") or rec[0]))
         for t, rec in sold_state.items():
             f = self.frames.get(t)
             if f is not None and len(f):
@@ -848,7 +849,8 @@ class TradingRunner:
             elif kind == "kept":
                 notes.append(f"kept {t} at {100 * gain:+.0f}% (still ranks well, reference reset)")
         self.state["tp_entry"] = {t: [e[0], str(self.frames[t].index[min(e[1], len(self.frames[t].index) - 1)].date()),
-                                      float(e[2]) if len(e) > 2 else 0.0] for t, e in entry.items() if t in new_held}
+                                      float(e[2]) if len(e) > 2 else 0.0, float(e[3]) if len(e) > 3 else float(e[0])]
+                                  for t, e in entry.items() if t in new_held}
         self.state["tp_sold"] = {t: [rec[0], str(self.frames[t].index[min(rec[1], len(self.frames[t].index) - 1)].date()), dollars.get(t, 0.0)]
                                  for t, rec in sold.items() if t in self.frames}
         self.state["tp_peak"] = {t: v for t, v in peak.items() if t in new_held}

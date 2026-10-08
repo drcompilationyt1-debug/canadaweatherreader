@@ -176,3 +176,20 @@ def test_simulator_scale_out_changes_the_weights():
     half = simulate(px, sc, idx[0], k=4, every=21, hysteresis=2, fee_bps=10.0, take_profit={"z": 2.0, "keep_pct": 1.01, "scale": 0.5})
     assert half["take_profit"]["sold"] > 0 and half["total"] != full["total"]
 
+
+def test_horizon_score_weights_three_years_twice_the_decade():
+    from stockbot.agent.backtest import horizon_score
+
+    assert abs(horizon_score(0.30, 0.15) - 0.25) < 1e-12
+    assert horizon_score(0.20, 0.20) == 0.20
+
+
+def test_trailing_stop_never_sells_below_the_buy_price():
+    entry, peak, sold = {"A": (100.0, 0, 0.0, 100.0)}, {"A": 120.0}, {}
+    held, ev = take_profit_step(["A"], {"A": 98.0}, entry, {"A": 0.02}, {"A": 0.9}, {"z": 99.0, "keep_pct": 0.5, "trail": 1.0}, 5, sold, 3,
+                                peak=peak)
+    assert held == ["A"] and ev == []                                    # fell from 120 to 98: under the buy price, so held
+    held, ev = take_profit_step(["A"], {"A": 105.0}, entry, {"A": 0.02}, {"A": 0.9}, {"z": 99.0, "keep_pct": 0.5, "trail": 1.0}, 6, sold, 3,
+                                peak=peak)
+    assert held == [] and ev[0][0] == "trailed"                          # fell from 120 to 105: still a profit, locked in
+

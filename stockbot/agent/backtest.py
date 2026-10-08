@@ -44,6 +44,18 @@ def blended_scores(ds, inputs: dict[str, float] | None = None) -> pd.DataFrame:
     return num / den.replace(0.0, np.nan)
 
 
+SHORT_YEARS, SHORT_WEIGHT = 3, 2.0 / 3.0       # the owner's horizon: the last 3 years count twice the last 10
+
+
+def horizon_score(short_geo: float, long_geo: float, w_short: float = SHORT_WEIGHT) -> float:
+    """What the weekly tuners maximise: compounded growth a year, the last 3 years weighted 2/3 and the last 10 years 1/3."""
+    return float(w_short * short_geo + (1.0 - w_short) * long_geo)
+
+
+def _geo(total: float, years: float) -> float:
+    return float((1.0 + total) ** (1.0 / max(years, 1e-9)) - 1.0) if total > -1.0 else -1.0
+
+
 def take_profit_step(held: list[str], price, entry: dict, vol, pct, tp: dict, i: int, sold: dict, k: int, ranked=None,
                      stats: dict | None = None, proj=None, mult: dict | None = None, peak: dict | None = None) -> tuple[list[str], list[tuple]]:
     """One day of the take-profit re-evaluation (the backtest and the live runner share it).
@@ -97,7 +109,8 @@ def take_profit_step(held: list[str], price, entry: dict, vol, pct, tp: dict, i:
             continue
         if t in peak and "trail" in tp and ok_v:                          # the trailing stop after a peak
             peak[t] = max(peak[t], p)
-            if p <= peak[t] * (1.0 - float(tp["trail"]) * float(v) * np.sqrt(20.0)):
+            buy_px = float(ref[3]) if len(ref) > 3 and ref[3] else float(ref[0])
+            if p <= peak[t] * (1.0 - float(tp["trail"]) * float(v) * np.sqrt(20.0)) and p > buy_px:   # only ever locks in a profit
                 sell(t, p, "trailed", gain)
                 continue
         if not has_peak:
@@ -114,7 +127,8 @@ def take_profit_step(held: list[str], price, entry: dict, vol, pct, tp: dict, i:
         if stats is not None:
             stats["triggers"] += 1
         mu_now = proj.get(t, np.nan) if (proj is not None and hasattr(proj, "get")) else np.nan
-        new_ref = (p, int(i), float(mu_now) if mu_now is not None and np.isfinite(mu_now) else 0.0)
+        bought = float(ref[3]) if len(ref) > 3 and ref[3] else float(ref[0])          # the purchase price survives a reset
+        new_ref = (p, int(i), float(mu_now) if mu_now is not None and np.isfinite(mu_now) else 0.0, bought)
         if float(pct.get(t, 0.0) or 0.0) >= float(tp.get("keep_pct", 1.01)):
             entry[t] = new_ref
             peak[t] = max(peak.get(t, p), p)
@@ -147,7 +161,7 @@ def take_profit_step(held: list[str], price, entry: dict, vol, pct, tp: dict, i:
                 held.append(t)
                 mult[t] = amount
                 mu_now = proj.get(t, np.nan) if (proj is not None and hasattr(proj, "get")) else np.nan
-                entry[t] = (float(p), int(i), float(mu_now) if mu_now is not None and np.isfinite(mu_now) else 0.0)
+                entry[t] = (float(p), int(i), float(mu_now) if mu_now is not None and np.isfinite(mu_now) else 0.0, float(p))
             else:
                 continue
             sold.pop(t)
@@ -283,7 +297,8 @@ def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, e
              sectors: dict[str, str] | None = None, max_per_sector: int = 0, vol_target: float = 0.0, vol_window: int = 20,
              vol_floor: float = 0.4, eligible: pd.DataFrame | None = None, deals: dict | None = None,
              take_profit: dict | None = None, projection: pd.DataFrame | None = None, weighting: str = "equal",
-             season: dict | None = None, scale_in: dict | None = None, order_cost: float = 0.0, sector_tilt: float = 0.0) -> dict:
+             season: dict | None = None, scale_in: dict | None = None, order_cost: float = 0.0, sector_tilt: float = 0.0,
+             no_loss_sells: dict | None = None, sector_every: int = 1) -> dict:
     """Daily portfolio returns of the rank-core rule (``score`` None = equal-weight everything), fees on turnover.
     ``core`` = {ticker, share}: a buy-and-hold slice bought once and never sold; ``trend`` = {benchmark, sma, band}: the
     rank slots go to cash while the benchmark is below its moving average; ``reserve`` = cash never invested;
@@ -324,7 +339,10 @@ def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, e
     # left in cash.  first=0 with one dip = wait for a pullback before buying.  ``order_cost`` = a fixed cost per order as a
     # fraction of the book (moomoo's minimum); ``sector_tilt`` > 0 leans the slots toward sectors with the best 3-month return
     si = dict(scale_in or {})
-    si_fill: dict[str, list] = {}                                     # name -> [fill fraction, entry price, entry bar, dips used]
+    nls = dict(no_loss_sells or {})                                   # {floor}: a loser keeps its slot at a rebalance unless down > floor
+    buy_px: dict[str, float] = {}
+    si_fill: dict[str, list] = {}
+    tilt_w: dict[str, float] = {}                                     # name -> [fill fraction, entry price, entry bar, dips used]
     sec_mom = None
     if sector_tilt and sectors:
         r63 = px / px.shift(63) - 1.0
@@ -358,7 +376,17 @@ def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, e
             if el is not None and len(s):
                 s = s[[t for t in s.index if el.at[d, t]]]                # not yet in the index that day: not choosable
             before = set(held)
+            prev_held = list(held)
             held = select_top(s.to_dict(), held, k, hysteresis, sectors=sectors, max_per_sector=max_per_sector) if len(s) else held
+            if nls:
+                floor = float(nls.get("floor", -0.25))
+                keep = [t for t in prev_held if t not in held and t in buy_px and px.at[d, t] < buy_px[t]
+                        and px.at[d, t] / buy_px[t] - 1.0 > floor]
+                if keep:
+                    entrants = [t for t in held if t not in before]
+                    entrants.sort(key=lambda t: float(s.get(t, -np.inf)))      # the weakest newcomers make room
+                    drop = entrants[:max(0, len(held) + len(keep) - k)]
+                    held = [t for t in held if t not in drop] + keep
             if si:
                 for t in held:
                     if t not in before:
@@ -396,9 +424,11 @@ def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, e
                     raw = score.loc[d].reindex(held).rank(pct=True).fillna(0.5) + 0.5
                 raw = raw.replace([np.inf, -np.inf], np.nan).fillna(1.0)
                 wts.loc[d, held] = satellite * scale / max(k, 1) * (raw / raw.mean()).clip(upper=2.5).to_numpy()
-            if sec_mom is not None:
-                raw = 1.0 + float(sector_tilt) * (sec_mom.loc[d, held].fillna(0.5) - 0.5) * 2.0
-                wts.loc[d, held] = wts.loc[d, held] * (raw / raw.mean()).to_numpy()
+            if sec_mom is not None:                                       # re-weighted every ``sector_every`` bars, held fixed between
+                if i % max(1, int(sector_every)) == 0 or set(tilt_w) != set(held):
+                    raw = 1.0 + float(sector_tilt) * (sec_mom.loc[d, held].fillna(0.5) - 0.5) * 2.0
+                    tilt_w = (raw / raw.mean()).to_dict()
+                wts.loc[d, held] = wts.loc[d, held] * np.array([tilt_w.get(t, 1.0) for t in held])
             if si_fill:
                 pct_d = score.loc[d].rank(pct=True) if d in score.index else None
                 dips, adds = list(si.get("dips", [0.03, 0.06])), list(si.get("adds", [0.25, 0.25]))
@@ -419,11 +449,16 @@ def simulate(px: pd.DataFrame, score: pd.DataFrame | None, start, k: int = 20, e
                 for t in held:
                     if t in tp_mult:
                         wts.at[d, t] = satellite * scale / max(k, 1) * tp_mult[t]
+        for t in held:
+            if t not in buy_px:
+                buy_px[t] = float(px.at[d, t])
+        for t in [t for t in buy_px if t not in held]:
+            buy_px.pop(t)
         if tp:
             for t in held:
                 if t not in entry:
                     mu = proj.at[d, t] if proj is not None and t in proj.columns else np.nan
-                    entry[t] = (float(px.at[d, t]), i, float(mu) if np.isfinite(mu) else 0.0)
+                    entry[t] = (float(px.at[d, t]), i, float(mu) if np.isfinite(mu) else 0.0, float(px.at[d, t]))
             for t in [t for t in entry if t not in held]:
                 entry.pop(t)
         prev_row = wts.loc[d]
@@ -676,7 +711,7 @@ def tune_rank_weights(cfg, ds, out_path=None, days: int = 250, min_t: float = 2.
         budget = (1.0 - anchor_share) / anchor_share            # the others share this much relative to the anchor's 1.0
         tuned.update({k: round(budget * v / others, 4) for k, v in good.items()})
     px = closes(ds)
-    start = px.index[-1] - pd.DateOffset(years=1)
+    start = px.index[-1] - pd.DateOffset(years=SHORT_YEARS)              # the owner's horizon: the last 3 years, not 1
     k, every, hyst = int(rk.get("top_k", 20)), every_bars_of(rk.get("every_bars", 10)), int(rk.get("hysteresis", 3))
     fee = round_trip_bps(cfg, 100_000, k)
     elig = eligibility(cfg, px)
@@ -723,7 +758,7 @@ def deals_of(rk: dict) -> dict | None:
     return {k: dl[k] for k in ("enter_pct", "exit_pct", "max_swaps", "min_gap") if k in dl} if bool(dl.get("enabled", False)) else None
 
 
-def tune_profile(cfg, ds, account: str = "main", out_path=None, years: int = 10, min_gain: float = 0.05) -> dict:
+def tune_profile(cfg, ds, account: str = "main", out_path=None, years: int = 10, min_gain: float = 0.003, short_years: int = SHORT_YEARS) -> dict:
     """Choose an account's structure from the trailing evidence: every candidate (slots x cadence x hysteresis x index sleeve,
     the sleeve timed by the policy) is backtested at the account's fees over the last year and the last ``years``; the best
     last-year Sharpe wins only if it beats the current structure by ``min_gain`` there and is no worse over the long window
@@ -756,7 +791,12 @@ def tune_profile(cfg, ds, account: str = "main", out_path=None, years: int = 10,
     px = closes(ds)
     score = blended_scores(ds, inputs)
     last = px.index[-1]
-    windows = {"1y": last - pd.DateOffset(years=1), f"{years}y": last - pd.DateOffset(years=years)}
+    short_years = min(int(short_years), int(years))
+    short, long = f"{short_years}y", f"{years}y"
+    if short == long:
+        short = f"{short_years}y_"
+    windows = {short: last - pd.DateOffset(years=short_years), long: last - pd.DateOffset(years=years)}
+    span = {short: float(short_years), long: float(years)}
     series_cache: dict[tuple, pd.Series | None] = {}
     # the structure is judged under the same risk controls production uses (sector cap, volatility targeting)
     max_per_sector = int(rk.get("max_per_sector", 0) or 0)
@@ -786,7 +826,7 @@ def tune_profile(cfg, ds, account: str = "main", out_path=None, years: int = 10,
         r = simulate(px, score, start, k=int(p["top_k"]), every=int(p["every_bars"]), hysteresis=int(p["hysteresis"]), fee_bps=fee,
                      core=core, trend=trend, reserve=reserve, sectors=sectors, max_per_sector=max_per_sector, vol_target=vol_target,
                      vol_window=vol_window, vol_floor=vol_floor, eligible=elig, deals=p.get("deals"))
-        return {k: v for k, v in r.items() if k != "daily"}
+        return {**{k: v for k, v in r.items() if k != "daily"}, "geo": _geo(r["total"], span[wname])}
 
     cands = [{"top_k": k, "every_bars": e, "hysteresis": h, "core_share": cs, "core_ticker": core_t, "deals": dl}
              for k in grid["top_k"] for e in grid["every_bars"] for h in grid["hysteresis"] for cs in grid["core_share"]
@@ -795,13 +835,14 @@ def tune_profile(cfg, ds, account: str = "main", out_path=None, years: int = 10,
         cands.append(dict(current))
     results = []
     for cd in cands:
-        r1, r3 = run(cd, "1y"), run(cd, f"{years}y")
-        results.append({**cd, "1y": r1, f"{years}y": r3})
+        rs, rl = run(cd, short), run(cd, long)
+        results.append({**cd, short: rs, long: rl, "score": horizon_score(rs["geo"], rl["geo"])})
     cur = next(r for r in results if all(r[k] == current[k] for k in ("top_k", "every_bars", "hysteresis", "core_share", "deals")))
-    best = max(results, key=lambda r: r["1y"]["sharpe"])
-    long = f"{years}y"
-    ok = (best is not cur and best["1y"]["sharpe"] >= cur["1y"]["sharpe"] + min_gain
-          and best[long]["sharpe"] >= cur[long]["sharpe"] - 0.02 and best[long]["total"] >= cur[long]["total"] - 0.01)
+    best = max(results, key=lambda r: r["score"])
+    # the owner's horizon: the blended growth must improve, the long window may not lose more than a point a year and the
+    # recent drawdown may not get more than 3 points deeper
+    ok = (best is not cur and best["score"] >= cur["score"] + min_gain and best[long]["geo"] >= cur[long]["geo"] - 0.01
+          and best[short]["max_drawdown"] >= cur[short]["max_drawdown"] - 0.03)
     keys = ("top_k", "every_bars", "hysteresis", "core_share", "deals")
     today = str(date.today())
     proposal = {k: best[k] for k in keys} if ok else None
@@ -811,13 +852,16 @@ def tune_profile(cfg, ds, account: str = "main", out_path=None, years: int = 10,
            "profile": {k: chosen[k] for k in ("top_k", "every_bars", "hysteresis", "core_share", "core_ticker", "deals")},   # in force from now on
            "config_base": config_base,                                        # the config this was tuned from: an edit there resets it
            "current": {k: cur[k] for k in keys},
-           "current_result": {"1y": cur["1y"], long: cur[long]}, "best_result": {"1y": best["1y"], long: best[long]},
+           "short": short, "long": long, "current_score": cur["score"], "best_score": best["score"],
+           "current_result": {short: cur[short], long: cur[long]}, "best_result": {short: best[short], long: best[long]},
            "best": {k: best[k] for k in keys},
            "reason": ("a better structure over both windows, two weeks running - in force" if accepted else
                       ("a better structure this week - in force if it wins again next week" if ok else
                        "the current structure is as good or the best one fails the long-window guard - kept")),
-           "candidates": [{k: r[k] for k in ("top_k", "every_bars", "hysteresis", "core_share", "deals")} | {"1y_sharpe": r["1y"]["sharpe"], "1y_total": r["1y"]["total"],
-                           f"{long}_sharpe": r[long]["sharpe"], f"{long}_total": r[long]["total"], "1y_maxdd": r["1y"]["max_drawdown"]} for r in results]}
+           "candidates": [{k: r[k] for k in ("top_k", "every_bars", "hysteresis", "core_share", "deals")} | {
+                              "score": r["score"], f"{short}_geo": r[short]["geo"], f"{short}_total": r[short]["total"], f"{short}_sharpe": r[short]["sharpe"],
+                              f"{long}_geo": r[long]["geo"], f"{long}_total": r[long]["total"], f"{long}_sharpe": r[long]["sharpe"],
+                              f"{short}_maxdd": r[short]["max_drawdown"]} for r in results]}
     if out_path is not None:
         import json
         from pathlib import Path
@@ -838,8 +882,9 @@ TP_CANDIDATES = ([None] + [{**p, "keep_pct": kp} for p in PEAKS for kp in (0.5, 
                     {"z": 3.0, "keep_pct": 0.5, "scale": 0.5}, {"fz": 2.5, "keep_pct": 0.5, "scale": 0.5},
                     {"z": 3.0, "keep_pct": 0.5, "trail": 1.0}, {"fz": 2.5, "keep_pct": 0.5, "trail": 1.0},
                     {"fz": 2.5, "keep_pct": 0.5, "scale": 0.5, "trail": 1.0, "rebuy_dip": 0.05},
-                    {"pct": 0.25, "keep_pct": 1.01, "rebuy_dip": 0.05}, {"stop": 0.10}, {"stop": 0.15},
-                    {"z": 3.0, "keep_pct": 0.5, "trail": 1.0, "stop": 0.15}])
+                    {"pct": 0.25, "keep_pct": 1.01, "rebuy_dip": 0.05},
+                    {"pct": 0.25, "keep_pct": 1.01, "trail": 1.0}, {"pct": 0.25, "keep_pct": 0.5, "trail": 1.0}])
+# the owner's rule (2026-10-08): sell high, never at a loss - no stop-loss candidates, and a trailing stop only locks in a profit
 
 
 def load_tuned_take_profit(models_dir, account: str = "main") -> dict | None:
@@ -940,19 +985,21 @@ def tune_take_profit(cfg, ds, account: str = "main", out_path=None, years: int =
     results = [{"rule": tp, **run(tp)} for tp in cands]
     cur = next(r for r in results if r["rule"] == current)
     hold = next(r for r in results if r["rule"] is None)
+    for r in results:
+        r["score"] = horizon_score(r["recent"]["geo"], r["long"]["geo"])
     rules = [r for r in results if r["rule"] is not None]
-    best = max(rules, key=lambda r: r["long"]["geo"]) if rules else hold
+    best = max(rules, key=lambda r: r["score"]) if rules else hold
     today = str(date.today())
     same_day = str(prev.get("tuned_at")) == today                     # a rerun the same day never counts as another week
-    better = (best is not cur and best["long"]["geo"] >= cur["long"]["geo"] + min_gain and best["recent"]["geo"] >= cur["recent"]["geo"]
-              and best["long"]["max_drawdown"] >= cur["long"]["max_drawdown"] - 0.01)
+    better = (best is not cur and best["score"] >= cur["score"] + min_gain and best["long"]["geo"] >= cur["long"]["geo"] - 0.01
+              and best["recent"]["max_drawdown"] >= cur["recent"]["max_drawdown"] - 0.03)
     loss_streak = int(prev.get("loss_streak", 0) or 0)
     if current is None:                                               # holding: turn on after one winning replay
         in_force, loss_streak = (best["rule"] if better else None), 0
         reason = (f"take-profit turned on: {best['rule']} beat holding over both windows" if better else
                   "plain holding is as good as every take-profit rule - still holding")
     else:
-        very_bad = (hold["long"]["geo"] >= cur["long"]["geo"] + off_loss or cur["long"]["max_drawdown"] <= hold["long"]["max_drawdown"] - off_dd)
+        very_bad = (hold["score"] >= cur["score"] + off_loss or cur["recent"]["max_drawdown"] <= hold["recent"]["max_drawdown"] - off_dd)
         if very_bad:
             loss_streak = loss_streak if same_day else loss_streak + 1
         else:
