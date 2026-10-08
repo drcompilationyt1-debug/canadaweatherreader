@@ -81,3 +81,30 @@ def test_top_up_respects_the_order_cap_and_the_minimum_trade(cfg, frames):
     r.min_trade_usd = 100_000                                  # every top-up would be below the minimum trade
     kept2 = {t: current[t] * r.max_position for t in universe}
     assert r._top_up(kept2, current, universe, 0.9) == []
+
+
+def test_a_top_up_is_not_vetoed_by_the_rebalance_deadband(cfg, frames):
+    """The top-up decided GS from 3.6% to 4.5% of the book every day and the 10% deadband vetoed it every day."""
+    from stockbot.agent.decide import decide
+
+    r = _runner(cfg, frames, require_market_open=False, min_trade_usd=10)
+    r.rank_top_k, r.max_position, r.cash_reserve, r.deadband = 20, 0.10, 0.10, 0.10
+    r.top_up, r.top_up_min_cash, r.top_up_band, r.top_up_max_names = True, 0.02, 0.15, 5
+
+    class Broker:
+        def equity(self):
+            return 100_000.0
+
+        def cash(self):
+            return 15_000.0
+
+    r.broker = Broker()
+    r._no_deadband = set()
+    t = list(frames)[0]
+    current = {t: 0.36}                                        # 3.6% of the book, the slot is 4.5%
+    kept = {t: current[t] * r.max_position}
+    assert r._top_up(kept, current, [t], 0.9) == [t] and t in r._no_deadband
+    target = kept[t] / r.max_position
+    assert decide(t, target, 0.36, 10_000, 100.0, r.deadband, False, 10).action == "HOLD"     # the old veto
+    assert decide(t, target, 0.36, 10_000, 100.0, 0.0, False, 10).action == "BUY"             # what the runner now does
+

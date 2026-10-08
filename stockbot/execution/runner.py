@@ -110,6 +110,7 @@ class TradingRunner:
             log.info("block mask: %s masked (no value for six months)", ", ".join(self.block_mask))
         self.last_rank: dict = {}
         self._rebalanced = False
+        self._no_deadband: set[str] = set()                                   # names a top-up / take-profit already decided to trade
         # the core sleeve (execution.core): a broad index the model times between min_share and max_share around its
         # baseline share - trimmed when the model's conviction is low (sell high), rebuilt when it is high (buy low, with the
         # proceeds) - re-decided every core_every bars, traded only when the change clears the band; never sold intraday
@@ -666,6 +667,7 @@ class TradingRunner:
             except Exception:  # noqa: BLE001
                 current[t] = 0.0
         self._rebalanced = False
+        self._no_deadband: set[str] = set()                                   # names a top-up / take-profit already decided to trade
         core_t = self.core_ticker if self.core_ticker in tickers else None
         core_w: dict[str, float] = {}
         core_weight = 0.0
@@ -829,6 +831,7 @@ class TradingRunner:
                                             proj=proj or {}, mult=mult, peak=peak)
         notes = []
         for kind, t, gain, frac in events:
+            self._no_deadband.add(t)
             if kind in ("sold", "stopped", "trailed"):
                 sale = kept.get(t, 0.0) * frac
                 dollars[t] = dollars.get(t, 0.0) + sale * equity            # remembered in dollars: a buy-back spends all of it
@@ -876,6 +879,7 @@ class TradingRunner:
             kept[t] = kept[t] + spend / equity
             idle -= spend
             out.append(t)
+            self._no_deadband.add(t)            # the minimum trade still applies; the rebalance deadband must not veto it
         if out:
             log.info("idle cash %.0f%% of equity above the reserve: topping up %s toward %.2f%% slots", 100 * (float(self.broker.cash()) /
                      equity - self.cash_reserve), ", ".join(out), 100 * target)
@@ -1053,7 +1057,8 @@ class TradingRunner:
             slice_cap = eq_of[t] * self.max_position
             _, current = self.portfolio_state(t, price, eq_of[t])
             target = weights[t] / self.max_position if self.max_position > 0 else 0.0
-            dec = decide(t, target, current, slice_cap, price, self.deadband, allow_short, self.min_trade_for(t))
+            band = 0.0 if t in self._no_deadband else self.deadband             # a top-up / take-profit trade is decided already
+            dec = decide(t, target, current, slice_cap, price, band, allow_short, self.min_trade_for(t))
             if self.whole_shares and dec.action != "HOLD":                     # moomoo Canada: whole shares only
                 whole = float(int(abs(dec.shares)))
                 if whole < 1.0:
