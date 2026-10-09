@@ -201,3 +201,13 @@ def test_news_scorecard_settles_verdicts_against_what_followed(tmp_path):
     assert rep["llm_full_close"]["calls"] == 50 and rep["llm_full_close"]["excess_20d"] < 0
     assert rep["llm_close_proven"] and rep["rank_ic"]["finbert"]["ic_20d"] > 0.2
     assert score_news(tmp_path / "missing.jsonl", closes)["verdicts"] == 0
+
+
+def test_whole_shares_only_a_name_whose_share_does_not_fit_the_slot_is_skipped():
+    names, pct = _universe()
+    stats = {t: _stats(_walk()) for t in names}
+    stats["N00"] = _stats(_walk(start=5000.0))                                 # one share = $5,000
+    out, _, _ = plan_day(weights={}, book={}, age={}, pct=pct, stats=stats, agree={}, level="normal", slot=0.3, capacity=0.9,
+                         cash_w=0.9, cost_rt={t: 0.004 for t in names}, min_w={t: 0.05 for t in names}, ic=0.05, disp=0.08,
+                         equity=10_000.0, rules=RULES)
+    assert "N00" not in out and set(out) == {"N01", "N02"}                     # a $3,000 slot cannot hold it: the next names

@@ -136,7 +136,7 @@ def market_activity(bench, agreement: float | None, rules: DailyRules) -> tuple[
 def plan_day(*, weights: dict[str, float], book: dict[str, dict], age: dict[str, int], pct: dict[str, float],
              stats: dict[str, Stats], agree: dict[str, float], level: str, slot: float, capacity: float, cash_w: float,
              cost_rt: dict[str, float], min_w: dict[str, float], ic: float, disp: float, bad_news: set[str] | None = None,
-             sold_high: dict[str, dict] | None = None, max_w: float = 1.0, rules: DailyRules
+             sold_high: dict[str, dict] | None = None, max_w: float = 1.0, equity: float | None = None, rules: DailyRules
              ) -> tuple[dict[str, float], list[tuple], dict[str, dict]]:
     """One day's plan.
 
@@ -148,7 +148,8 @@ def plan_day(*, weights: dict[str, float], book: dict[str, dict], age: dict[str,
     cost of a full slot as a fraction; ``min_w`` the smallest order worth its fee as a weight; ``ic``/``disp`` turn a percentile
     into an expected return; ``bad_news`` names whose news verdict is clearly negative; ``sold_high`` names recently sold into
     strength ({price, left: days to keep watching, w: the weight sold}) - sell high, buy back low with ALL of it (more shares
-    for the same money, so every round compounds); ``max_w`` the largest weight one name may reach.
+    for the same money, so every round compounds); ``max_w`` the largest weight one name may reach; ``equity`` the book's value
+    in dollars when only whole shares trade (moomoo Canada): a name whose single share does not fit the order is skipped.
 
     Returns (new weights for the names that change, events, the updated book)."""
     bad_news = bad_news or set()
@@ -165,6 +166,10 @@ def plan_day(*, weights: dict[str, float], book: dict[str, dict], age: dict[str,
 
     def w_now(t: str) -> float:
         return out.get(t, weights.get(t, 0.0))
+
+    def shares_ok(t: str, w: float) -> bool:
+        """At least one whole share in an order of weight ``w``."""
+        return not equity or (t in stats and w * equity >= stats[t].price)
 
     # 1) exits, any day: really bad (even at a loss), the trailing stop, spikes, leaving the rank band (never at a loss)
     for t in held:
@@ -208,7 +213,7 @@ def plan_day(*, weights: dict[str, float], book: dict[str, dict], age: dict[str,
             p0 = float(rec.get("pct0", p if np.isfinite(p) else 0.5))
             overreaction = one_day >= 0.6 or (np.isfinite(p) and p <= p0) or s.run126 >= 0.5
             sale = weights[t] * rules.spike_sell
-            if overreaction and sale >= min_w.get(t, 0.0) and weights[t] - sale >= min_w.get(t, 0.0):
+            if overreaction and sale >= min_w.get(t, 0.0) and weights[t] - sale >= min_w.get(t, 0.0) and shares_ok(t, sale):
                 out[t] = weights[t] - sale
                 rec["spiked"] = True
                 sold_high[t] = {"price": s.price, "left": rules.rebuy_days, "w": sale}
@@ -231,7 +236,7 @@ def plan_day(*, weights: dict[str, float], book: dict[str, dict], age: dict[str,
         if s.price <= float(rec["price"]) * (1.0 - rules.rebuy_z * s.vol * sqrt(10.0)):
             w_old = w_now(t)
             add = min(max(float(rec.get("w", 0.0)), slot - w_old), max_w - w_old, max(0.0, cash_w))
-            if add >= min_w.get(t, 0.0):
+            if add >= min_w.get(t, 0.0) and shares_ok(t, add):
                 out[t] = w_old + add
                 room -= add
                 sold_high.pop(t)
@@ -246,7 +251,7 @@ def plan_day(*, weights: dict[str, float], book: dict[str, dict], age: dict[str,
         if rec is None or not rec.get("starter") or w_now(t) <= 0 or int(age.get(t, 0)) < rules.starter_days:
             continue
         add = min(slot - w_now(t), room)
-        if rank.get(t, 10 ** 6) <= rules.buy_rank and add >= min_w.get(t, 0.0):
+        if rank.get(t, 10 ** 6) <= rules.buy_rank and add >= min_w.get(t, 0.0) and shares_ok(t, add):
             out[t] = w_now(t) + add
             room -= add
             rec["starter"] = False
@@ -257,6 +262,8 @@ def plan_day(*, weights: dict[str, float], book: dict[str, dict], age: dict[str,
 
     def buyable(t: str) -> bool:
         s = stats[t]
+        if not shares_ok(t, slot):
+            return False                                          # one share costs more than a slot (whole shares only)
         if t in sold_high and s.price > float(sold_high[t]["price"]) * (1.0 - rules.rebuy_z * s.vol * sqrt(10.0)):
             return False                                          # sold high recently: only back in cheaper
         z5 = np.log(1.0 + s.ret5) / (s.vol * sqrt(5.0))

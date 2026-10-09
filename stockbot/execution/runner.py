@@ -908,7 +908,8 @@ class TradingRunner:
         sold_high = dict(self.state.get("sold_high") or {})
         changes, events, book = plan_day(weights=weights, book=book, age=age, pct=pct, stats=stats, agree=agree, level=level, slot=slot,
                                          capacity=satellite, cash_w=cash_w, cost_rt=cost_rt, min_w=min_w, ic=ic, disp=disp,
-                                         bad_news=bad_news, sold_high=sold_high, max_w=self.max_position, rules=rules)
+                                         bad_news=bad_news, sold_high=sold_high, max_w=self.max_position,
+                                         equity=equity if self.whole_shares else None, rules=rules)
         for r in book.values():
             if r.pop("date_new", False) or "date" not in r:
                 r["date"] = as_of
