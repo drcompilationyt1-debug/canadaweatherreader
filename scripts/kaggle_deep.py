@@ -96,7 +96,18 @@ def push(user: str, slug: str = SLUG, command: str = HEADS_COMMAND, collect: lis
                 "enable_gpu": True, "enable_internet": True, "machine_shape": "NvidiaTeslaT4", "dataset_sources": [],
                 "competition_sources": [], "kernel_sources": [], "model_sources": []}
         (Path(d) / "kernel-metadata.json").write_text(json.dumps(meta, indent=1), encoding="utf-8")
-        print(kaggle("kernels", "push", "-p", d).strip())
+        for attempt in range(60):                                      # Kaggle runs at most 2 GPU sessions at a time
+            out = kaggle("kernels", "push", "-p", d, check=False).strip()
+            print(out, flush=True)
+            if "session count" in out.lower():
+                print("all GPU slots busy - retrying in 5 minutes", flush=True)
+                time.sleep(300)
+                continue
+            if "error" in out.lower() and "successfully" not in out.lower():
+                raise SystemExit(f"kernel push failed: {out}")
+            break
+        else:
+            raise SystemExit("no GPU slot became free")
     return kid
 
 
