@@ -10,7 +10,8 @@ name: session
 on:
   schedule:
     - cron: "15 12 * * 1-5"      # 08:15 New York while daylight-saving time is in force (Mar-Nov)
-    # - cron: "15 13 * * 1-5"      # 08:15 New York in standard time (Nov-Mar)
+    - cron: "15 13 * * 1-5"      # 08:15 New York in standard time (Nov-Mar); both stay on: the gate below lets only the one near
+                                 # the open trade (the other exits in seconds - in summer it waits behind the session, then skips)
   workflow_dispatch:
     inputs:
       mode:
