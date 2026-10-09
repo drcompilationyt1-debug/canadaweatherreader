@@ -593,6 +593,7 @@ def cmd_fill_caches(cfg, args) -> int:
     frames = load_frames(cfg, refresh=True)
     ctx = build_context(cfg, with_llm=False, with_news=False)
     ctx.extra["frames"] = frames
+    ctx.extra["fill_all"] = True                                         # the whole history, not the build's per-name cap
     by_name = {k.name: k for k in PROVIDER_CLASSES}
     for name in args.blocks:
         p = by_name[name](cfg, ctx)

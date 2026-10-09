@@ -86,6 +86,9 @@ class ChronosSignal(SignalProvider):
             keep = set(eligible[::-self.stride].tolist())          # always includes the newest bar
             eligible = np.array(sorted(keep), dtype=int)
         missing = self.cache.missing_dates(ticker, idx[eligible])
+        cap = int(self.cfg.get("max_new_per_build", 200) or 0)          # a build never computes years of history on a CPU
+        if cap > 0 and len(missing) > cap and not self.ctx.extra.get("fill_all"):
+            missing = missing[-cap:]                                       # the rest comes from the GPU fill (stockbot fill-caches)
         if len(missing) > 1 and self.ctx.extra.get("latest_only"):    # a live cycle: today's window now, the history at the weekly build
             missing = missing[-1:]
         if len(missing):

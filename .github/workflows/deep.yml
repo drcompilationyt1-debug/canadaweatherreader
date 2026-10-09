@@ -6,6 +6,16 @@ on:
   schedule:
     - cron: "30 12 * * 6"        # Saturday 12:30 UTC, after the retrain job
   workflow_dispatch:
+    inputs:
+      slug:
+        description: "Kaggle kernel name"
+        default: "cwr-trainer"
+      cmd:
+        description: "command to run on the GPU"
+        default: "python -m stockbot gpu-train --ic-start 2019-01-01"
+      collect:
+        description: "comma-separated globs (relative to the repo) to bring back and save to the state branch"
+        default: "models/signals/xs_nn.joblib,models/signals/xs_nn_preds.parquet,models/signals/xs_tabpfn.joblib,models/signals/xs_tabpfn_preds.parquet"
 
 concurrency:
   group: stockbot-state
@@ -30,13 +40,17 @@ jobs:
         run: pip install -q kaggle
       - name: train on the Kaggle GPU (push the kernel, wait, download)
         id: kaggle
-        run: python scripts/kaggle_deep.py run --out kaggle_out --max-minutes 300
+        run: >
+          python scripts/kaggle_deep.py run --out kaggle_out --max-minutes 300
+          --slug "${{ inputs.slug || 'cwr-trainer' }}"
+          --cmd "${{ inputs.cmd || 'python -m stockbot gpu-train --ic-start 2019-01-01' }}"
+          --collect "${{ inputs.collect || 'models/signals/xs_nn.joblib,models/signals/xs_nn_preds.parquet,models/signals/xs_tabpfn.joblib,models/signals/xs_tabpfn_preds.parquet' }}"
       - name: save the trained heads to the state branch
         if: ${{ steps.kaggle.outcome == 'success' }}
         run: |
           python scripts/ci_state.py restore
-          mkdir -p models/signals
-          find kaggle_out -name '*.joblib' -o -name '*_preds.parquet' | while read f; do cp "$f" models/signals/; echo "updated $(basename "$f")"; done
+          src=$(find kaggle_out -type d -path '*out/models' | head -1)
+          if [ -n "$src" ]; then cp -r "$src"/. models/; echo "updated $(find "$src" -type f | wc -l) files under models/"; fi
           python scripts/ci_state.py save
       - uses: actions/upload-artifact@v4
         if: always()
