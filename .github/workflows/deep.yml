@@ -1,0 +1,46 @@
+name: deep
+
+# Saturday after the weekend job: the heavy ranking heads (neural ensemble, TabPFN) are trained on a free Kaggle GPU from the
+# saved dataset, then saved to the `state` branch; every runner reuses them for daily scoring (signals.<head>.pretrained).
+on:
+  schedule:
+    - cron: "30 12 * * 6"        # Saturday 12:30 UTC, after the retrain job
+  workflow_dispatch:
+
+concurrency:
+  group: stockbot-state
+  cancel-in-progress: false
+
+jobs:
+  deep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    permissions:
+      contents: write
+    env:
+      KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+      TABPFN_TOKEN: ${{ secrets.TABPFN_TOKEN }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: kaggle client
+        run: pip install -q kaggle
+      - name: train on the Kaggle GPU (push the kernel, wait, download)
+        id: kaggle
+        run: python scripts/kaggle_deep.py run --out kaggle_out --max-minutes 300
+      - name: save the trained heads to the state branch
+        if: ${{ steps.kaggle.outcome == 'success' }}
+        run: |
+          python scripts/ci_state.py restore
+          mkdir -p models/signals
+          find kaggle_out -name '*.joblib' -o -name '*_preds.parquet' | while read f; do cp "$f" models/signals/; echo "updated $(basename "$f")"; done
+          python scripts/ci_state.py save
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: deep-${{ github.run_number }}
+          path: kaggle_out/**/report.json
+          if-no-files-found: ignore

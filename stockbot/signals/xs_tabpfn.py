@@ -36,7 +36,14 @@ class _TabPFN:
 
             cls = TabPFNRegressor
         code = getattr(cls.__init__, "__code__", None)
-        return cls(device="cpu") if code is not None and "device" in code.co_varnames else cls()
+        dev = "cpu"
+        try:
+            import torch
+
+            dev = "cuda" if torch.cuda.is_available() else "cpu"
+        except ImportError:
+            pass
+        return cls(device=dev) if code is not None and "device" in code.co_varnames else cls()
 
     def fit(self, X, y):
         X, y = np.asarray(X, dtype=np.float32), np.asarray(y, dtype=np.float32)
@@ -79,10 +86,19 @@ class XSTabPFNSignal(XSRankSignal):
 
     def __init__(self, cfg, ctx):
         super().__init__(cfg, ctx)
-        self.max_train_rows = int(self.cfg.get("max_train_rows", 4000))
-        self.chunk = int(self.cfg.get("chunk", 2000))
-        self.years_back = int(self.cfg.get("years_back", 2))
-        self.stride = int(self.cfg.get("stride", 5))
+        gpu = False
+        try:
+            import torch
+
+            gpu = torch.cuda.is_available()
+        except ImportError:
+            pass
+        g = dict(self.cfg.get("gpu", {}) or {}) if gpu else {}             # a GPU affords the full recipe
+        self.max_train_rows = int(g.get("max_train_rows", self.cfg.get("max_train_rows", 4000)))
+        self.chunk = int(g.get("chunk", self.cfg.get("chunk", 2000)))
+        self.years_back = int(g.get("years_back", self.cfg.get("years_back", 2)))
+        self.stride = int(g.get("stride", self.cfg.get("stride", 5)))
+        self.trained_on = "gpu" if gpu else "cpu"
 
     def availability(self) -> tuple[bool, str]:
         if self.model_cls is not None:

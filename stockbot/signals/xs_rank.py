@@ -43,6 +43,11 @@ class XSRankSignal(SignalProvider):
         self.n_estimators = int(self.cfg.get("n_estimators", 300))
         self.max_train_rows = int(self.cfg.get("max_train_rows", 400_000))
         self.years_back = int(self.cfg.get("years_back", 0) or 0)         # >0: only the last N yearly refits (slow heads)
+        pt = dict(self.cfg.get("pretrained", {}) or {})
+        self.pretrained = bool(pt.get("enabled", False))                   # reuse a (GPU-)trained state instead of refitting here
+        self.pretrained_max_age = float(pt.get("max_age_days", 45))
+        self.trained_on = "cpu"
+        self.trained_through: str | None = None                            # the last date the model was fitted on (not scored to)
         self.spec: list[tuple[str, int]] = []      # (block, size) in feature order
         self.model = None
         self.preds: pd.DataFrame | None = None
@@ -108,6 +113,12 @@ class XSRankSignal(SignalProvider):
         panel.loc[panel["fwd"].isna(), "y"] = np.nan
         years = pd.DatetimeIndex(dates).year.to_numpy()
         uniq = sorted(set(years.tolist()))
+        reused = self._reuse_pretrained(panel, X) if self.pretrained else None
+        if reused is not None:                                             # trained elsewhere (a GPU): score only the new rows
+            panel["pred"] = reused
+            self.preds = panel[["ticker", "date", "pred"]].dropna().reset_index(drop=True)
+            self.save_state()
+            return self._features_from(panel, frames)
         pred = np.full(len(panel), np.nan)
         fit_years = [yr for i, yr in enumerate(uniq[self.min_train_years:]) if i % self.refit_every == 0]
         if self.years_back > 0:
@@ -125,6 +136,7 @@ class XSRankSignal(SignalProvider):
             m = self._lgbm().fit(X[tr], y[tr])
             pred[te] = m.predict(X[te])
         final = np.flatnonzero(~np.isnan(y) & X.any(axis=1))
+        self.trained_through = str(pd.Timestamp(panel["date"].max()).date())
         if len(final) >= 5000:
             if len(final) > self.max_train_rows:
                 final = rng.choice(final, self.max_train_rows, replace=False)
@@ -135,6 +147,36 @@ class XSRankSignal(SignalProvider):
                  X.shape[1], len(self.spec))
         self.save_state()
         return self._features_from(panel, frames)
+
+    def _reuse_pretrained(self, panel: pd.DataFrame, X: np.ndarray) -> np.ndarray | None:
+        """The stored walk-forward predictions plus the saved final model for the rows after them, when the saved state was
+        fitted on the same block spec and its predictions are recent; None to refit here."""
+        fresh_spec = list(self.spec)
+        if not self.load_state():
+            return None
+        if [tuple(x) for x in self.spec] != [tuple(x) for x in fresh_spec]:
+            log.info("%s: the pretrained state was fitted on other inputs - refitting here", self.name)
+            self.spec = fresh_spec
+            return None
+        p = self.state_path(self.PREDS_FILE)
+        if not p.exists():
+            return None
+        stored = pd.read_parquet(p)
+        stored["date"] = pd.to_datetime(stored["date"])
+        end = stored["date"].max()
+        last = pd.Timestamp(panel["date"].max())
+        trained = pd.Timestamp(self.trained_through) if self.trained_through else end
+        if (last - trained).days > self.pretrained_max_age:
+            log.info("%s: the pretrained state was fitted on data to %s, %d days ago - refitting here", self.name, trained.date(),
+                     (last - trained).days)
+            return None
+        key = pd.MultiIndex.from_arrays([panel["ticker"], pd.to_datetime(panel["date"])])
+        pred = stored.set_index(["ticker", "date"])["pred"].reindex(key).to_numpy(dtype=float)
+        new = np.flatnonzero(np.isnan(pred) & (pd.to_datetime(panel["date"]) > end).to_numpy() & X.any(axis=1))
+        if len(new):
+            pred[new] = np.asarray(self.model.predict(X[new]), dtype=float)
+        log.info("%s: reused the %s-trained state (predictions to %s), scored %d new rows here", self.name, self.trained_on, end.date(), len(new))
+        return pred
 
     @staticmethod
     def _rank_features(panel: pd.DataFrame) -> pd.DataFrame:
@@ -205,7 +247,8 @@ class XSRankSignal(SignalProvider):
             return
         import joblib
 
-        joblib.dump({"model": self.model, "spec": self.spec, "horizon": self.horizon,
+        joblib.dump({"model": self.model, "spec": self.spec, "horizon": self.horizon, "trained_on": self.trained_on,
+                     "trained_through": self.trained_through,
                      "saved_at": datetime.now(timezone.utc).isoformat()}, self.state_path(self.STATE_FILE))
         if self.preds is not None:
             self.preds.to_parquet(self.state_path(self.PREDS_FILE))
@@ -219,6 +262,8 @@ class XSRankSignal(SignalProvider):
 
             d = joblib.load(p)
             self.model, self.spec = d["model"], [tuple(x) for x in d["spec"]]
+            self.trained_on = str(d.get("trained_on", "cpu"))
+            self.trained_through = d.get("trained_through")
             return True
         except Exception as e:  # noqa: BLE001
             log.warning("could not load xs_rank state: %s", e)

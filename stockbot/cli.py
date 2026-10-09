@@ -582,6 +582,21 @@ def cmd_prune(cfg, args) -> int:
     return 0
 
 
+def cmd_gpu_train(cfg, args) -> int:
+    """Train the heavy ranking heads on a GPU from the saved dataset; the runners then reuse them (signals.<head>.pretrained)."""
+    from .agent.gpu_train import HEADS, gpu_train
+
+    res = gpu_train(cfg, heads=tuple(args.heads or HEADS), ic_start=args.ic_start)
+    for head, r in res.items():
+        if "error" in r:
+            print(f"{head:36s} skipped: {r['error']}")
+        elif "device" in r:
+            print(f"{head:36s} {r['device']:28s} {r['seconds']:7.0f}s {r['rows']:9d} rows   IC {r['ic']:+.3f} (t {r['t']:.1f}) since {args.ic_start}")
+        else:
+            print(f"{head:36s} {'':28s} {'':8s} {'':9s}      IC {r['ic']:+.3f} (t {r['t']:.1f})")
+    return 0
+
+
 def cmd_portfolio_rl(cfg, args) -> int:
     """Walk-forward the portfolio agent (when to rebalance, how much to expose) against the fixed-cadence rule; adopted only when it wins."""
     from .agent.portfolio_rl import format_report, walk_forward
@@ -911,6 +926,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--out", help="write the report as JSON")
     p.add_argument("--tune", action="store_true", help="re-weight the rank blend from trailing ICs (kept only if it backtests no worse)")
     p.set_defaults(fn=cmd_portfolio)
+
+    p = sub.add_parser("gpu-train", help="train the heavy ranking heads (neural ensemble, TabPFN) on a GPU from the saved dataset for the runners to reuse")
+    p.add_argument("--heads", nargs="*", help="default: xs_nn xs_tabpfn")
+    p.add_argument("--ic-start", default="2019-01-01", help="report the out-of-sample IC from this date")
+    p.set_defaults(fn=cmd_gpu_train)
 
     p = sub.add_parser("portfolio-rl", help="portfolio agent (rebalance timing + exposure on top of the ranker): walk-forward vs the rule, adopted only when it wins")
     p.add_argument("--windows", type=int, default=3, help="one-year test windows, newest last")
