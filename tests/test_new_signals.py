@@ -91,6 +91,7 @@ class _Fake:
 def test_chronos_cache_and_alignment(cfg, frames, monkeypatch):
     cfg.set_path("signals.chronos.context", 64)
     cfg.set_path("signals.chronos.history_years", 1)
+    cfg.set_path("signals.chronos.max_new_per_build", 0)                # no per-build cap: the whole year at once
     p, _ = _provider(cfg, frames, "chronos")
     fake = _Fake()
     monkeypatch.setattr(p, "_forecast", fake.chronos)
@@ -170,3 +171,18 @@ def test_finbert_history_from_csv(cfg, frames, monkeypatch, tmp_path):
     a2 = p.safe_history("AAA", df)
     assert fake.n == 30 and np.array_equal(np.nan_to_num(a), np.nan_to_num(a2))   # scored once, cached
     assert p.safe_latest("AAA", df) is not None
+
+
+def test_forecast_history_is_capped_per_build(cfg, frames, monkeypatch):
+    cfg.set_path("signals.chronos.context", 64)
+    cfg.set_path("signals.chronos.history_years", 1)
+    cfg.set_path("signals.chronos.max_new_per_build", 50)
+    p, ctx = _provider(cfg, frames, "chronos")
+    fake = _Fake()
+    monkeypatch.setattr(p, "_forecast", fake.chronos)
+    monkeypatch.setattr(p, "availability", lambda: (True, "fake"))
+    a = p.safe_history("AAA", frames["AAA"])
+    assert fake.calls == 50 and not np.isnan(a[-50:]).any()             # the newest bars first
+    ctx.extra["fill_all"] = True                                         # the fill command lifts the cap
+    p.safe_history("AAA", frames["AAA"])
+    assert fake.calls > 200

@@ -67,6 +67,7 @@ for block, model, feat, h in VARIANTS:
     cfg.set_path(f"signals.{block}.stride", 5)
     ctx = SignalContext(cfg=cfg, models_dir=Path("models/research_fm") / model.split("/")[-1])
     ctx.extra["frames"] = frames
+    ctx.extra["fill_all"] = True                       # the whole history, not the weekly build's per-name cap
     p = by_name[block](cfg, ctx)
     ok, why = p.availability()
     if not ok:
