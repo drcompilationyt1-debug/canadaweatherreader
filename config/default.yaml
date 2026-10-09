@@ -5,7 +5,7 @@
 #   OPENAI_API_KEY, ALPACA_API_KEY / ALPACA_SECRET_KEY (Alpaca paper or live account),
 #   FINNHUB_API_KEY (TradingAgents), FINANCIAL_DATASETS_API_KEY (ai-hedge-fund)
 
-universe:                   # 130 US names + 12 TSX names (.TO, CAD) + 8 China / Hong Kong ADRs (US-listed) = 150
+universe:                   # 280 US names + 12 TSX names (.TO, CAD) + 8 China / Hong Kong ADRs (US-listed) = 300
   # --- Canada (TSX; paper-traded on the built-in simulator with moomoo Canada fees, see execution.routes)
   - RY.TO
   - TD.TO
@@ -163,6 +163,158 @@ universe:                   # 130 US names + 12 TSX names (.TO, CAD) + 8 China /
   - CTSH
   - TPR
   - SCHW
+  # --- the next 150 by 2011 dollar volume (2026-10-09): the same price-based ranker earned 26.1%/yr on 300 names against 22.5% on
+  # 150 over 2019-2026 (2.5 vs 1.4 pts/yr over equal weight since 2012) - the signals are stronger in less-watched names
+  - LMT
+  - AFL
+  - SO
+  - NSC
+  - BIIB
+  - ADM
+  - LULU
+  - DHR
+  - FITB
+  - CCL
+  - KMB
+  - VIAV
+  - ITW
+  - STT
+  - AMT
+  - A
+  - TJX
+  - TMO
+  - CNX
+  - AKAM
+  - ANF
+  - ETN
+  - GIS
+  - LIN
+  - TT
+  - BLK
+  - MCK
+  - KR
+  - IP
+  - GEN
+  - STX
+  - CME
+  - PH
+  - TFC
+  - MSI
+  - NUE
+  - RL
+  - RRC
+  - ISRG
+  - UAL
+  - EXPE
+  - PPL
+  - ADP
+  - GD
+  - HIG
+  - WDC
+  - MAR
+  - NOC
+  - DAL
+  - CB
+  - INTU
+  - FE
+  - AEP
+  - NBR
+  - ALL
+  - PCAR
+  - WM
+  - FLR
+  - VTRS
+  - BEN
+  - D
+  - CI
+  - ADI
+  - ECL
+  - HST
+  - HUM
+  - VMRK
+  - PCG
+  - BSX
+  - EL
+  - AMP
+  - DOC
+  - XRX
+  - MUR
+  - KLAC
+  - WY
+  - TROW
+  - SYK
+  - SYY
+  - DECK
+  - VFC
+  - SWKS
+  - CAH
+  - CIEN
+  - BXP
+  - ADSK
+  - VRTX
+  - SWK
+  - LRCX
+  - WHR
+  - APD
+  - ZBH
+  - ROK
+  - BDX
+  - AON
+  - ATI
+  - PPG
+  - KEY
+  - AZO
+  - NEE
+  - VNO
+  - LNC
+  - RF
+  - WU
+  - WELL
+  - IVZ
+  - RCL
+  - TEL
+  - FTI
+  - PLD
+  - VTR
+  - ETR
+  - CAG
+  - ED
+  - CLX
+  - URBN
+  - OMC
+  - TXT
+  - MRSH
+  - DLTR
+  - COR
+  - PSA
+  - PEG
+  - DOV
+  - DRI
+  - MAT
+  - TDC
+  - GT
+  - HBAN
+  - HOG
+  - ROST
+  - DGX
+  - GME
+  - LUV
+  - CBRE
+  - MCO
+  - EIX
+  - SHW
+  - PGR
+  - PAYX
+  - HP
+  - EMN
+  - EW
+  - CCI
+  - ICE
+  - NTRS
+  - SPGI
+  - CHRW
+  - VRSN
+  - MCHP
 
 models_dir: models
 
@@ -194,7 +346,8 @@ signals:
   # score_history: let the LLM score past headlines (one call per week per ticker, resumable, capped
   # per run by max_history_calls) so the block has a training history - needs data/news/*.csv
   # rag_grading: retrieve -> grade relevance -> generate (stocks-insights-ai-agent's news graph), one extra call
-  news_llm:      { enabled: true, lookback_days: 3, max_items: 25, score_history: false, max_history_calls: 200, history_granularity: week, rag_grading: false }
+  news_llm:      { enabled: true, lookback_days: 3, max_items: 25, score_history: false, max_history_calls: 200, history_granularity: week, rag_grading: false,
+                   top_n: 30, budget_minutes: 15 }   # live: the LLM reads headlines only for the held + top-30 consensus names (70 of 95 cycle minutes went here for 150 names)
   qlib:          { enabled: true, predictions: models/qlib/pred.parquet, max_age_bars: 5 }   # rebuilt every morning before the session (session.yml); the last score is kept up to 5 bars if that fails
   qlib_tra:      { enabled: true, predictions: models/qlib/pred_tra.parquet, max_age_bars: 7 }   # qlib's TRA (Lin et al. 2021), trained on the weekend by scripts/qlib_train.py --model tra
   freqtrade:     { enabled: true }

@@ -582,6 +582,35 @@ def cmd_prune(cfg, args) -> int:
     return 0
 
 
+def cmd_fill_caches(cfg, args) -> int:
+    """Compute the forecasting models' history (their incremental caches under models/signals) for every name in the universe -
+    on a GPU this is minutes; the weekly CPU build then only adds the newest bars."""
+    import time
+
+    from .agent.train import load_frames
+    from .signals.registry import PROVIDER_CLASSES, build_context
+
+    frames = load_frames(cfg, refresh=True)
+    ctx = build_context(cfg, with_llm=False, with_news=False)
+    ctx.extra["frames"] = frames
+    by_name = {k.name: k for k in PROVIDER_CLASSES}
+    for name in args.blocks:
+        p = by_name[name](cfg, ctx)
+        ok, why = p.availability()
+        if not ok:
+            print(f"{name}: unavailable - {why}")
+            continue
+        t0, done = time.time(), 0
+        for t, df in frames.items():
+            try:
+                p.compute_history(t, df)
+                done += 1
+            except Exception as e:  # noqa: BLE001
+                print(f"{name} {t}: {e}")
+        print(f"{name}: {done}/{len(frames)} names in {time.time() - t0:.0f}s")
+    return 0
+
+
 def cmd_gpu_train(cfg, args) -> int:
     """Train the heavy ranking heads on a GPU from the saved dataset; the runners then reuse them (signals.<head>.pretrained)."""
     from .agent.gpu_train import HEADS, gpu_train
@@ -926,6 +955,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--out", help="write the report as JSON")
     p.add_argument("--tune", action="store_true", help="re-weight the rank blend from trailing ICs (kept only if it backtests no worse)")
     p.set_defaults(fn=cmd_portfolio)
+
+    p = sub.add_parser("fill-caches", help="compute the forecasting models' history for the whole universe (fast on a GPU)")
+    p.add_argument("--blocks", nargs="*", default=["chronos", "chronos2", "timesfm", "kronos"])
+    p.set_defaults(fn=cmd_fill_caches)
 
     p = sub.add_parser("gpu-train", help="train the heavy ranking heads (neural ensemble, TabPFN) on a GPU from the saved dataset for the runners to reuse")
     p.add_argument("--heads", nargs="*", help="default: xs_nn xs_tabpfn")

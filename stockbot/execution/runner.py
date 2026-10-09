@@ -103,6 +103,9 @@ class TradingRunner:
                 log.info("portfolio agent in force for %s: it decides rebalance timing and exposure", self.account)
         self.llm_trader_top_n = int(cfg.get_path("signals.llm_trader.top_n", 0) or 0)
         self.llm_trader_budget = float(cfg.get_path("signals.llm_trader.budget_minutes", 0) or 0)
+        # the per-name LLM blocks run only on the held names + the top consensus names, within a budget (top_n 0 = every name)
+        self.llm_caps = {name: (int(cfg.get_path(f"signals.{name}.top_n", 0) or 0), float(cfg.get_path(f"signals.{name}.budget_minutes", 0) or 0))
+                         for name in ("llm_trader", "news_llm")}
         from ..signals.pruning import load_block_mask
 
         self.block_mask = list(load_block_mask(cfg.path("models_dir", "models"))) if bool(cfg.get_path("signals.pruning.enabled", True)) else []
@@ -441,7 +444,9 @@ class TradingRunner:
             budget = float(budget_minutes)
         agents = self.agent_providers() if top_n > 0 else []
         skip = skip or set()
-        deferred = None
+        deferred: list = []
+        caps = dict(self.llm_caps)
+        caps["llm_trader"] = (self.llm_trader_top_n, self.llm_trader_budget)
         for p in self.providers:
             if not p.enabled or p in agents:
                 continue
@@ -449,8 +454,8 @@ class TradingRunner:
                 for t in frames:
                     vectors[t][p.name] = None
                 continue
-            if p.name == "llm_trader" and self.llm_trader_top_n > 0:         # one LLM call per name: only where it can matter, below
-                deferred = p
+            if caps.get(p.name, (0, 0))[0] > 0:                               # one LLM call per name: only where it can matter, below
+                deferred.append(p)
                 for t in frames:
                     vectors[t][p.name] = None
                 continue
@@ -461,20 +466,25 @@ class TradingRunner:
                     vectors[t][p.name] = None
                 continue
             self._compute_provider(p, frames, vectors)
-        if deferred is not None:
-            ok, why = deferred.availability()
-            reasons[deferred.name] = why
-            if ok:
-                held = [t for t in self.ctx.extra.get("positions", {}) or {} if t in frames]
-                picks = held + [t for t in self.select_agent_tickers(vectors, self.llm_trader_top_n) if t not in held]
-                deadline = time.time() + self.llm_trader_budget * 60.0 if self.llm_trader_budget > 0 else None
-                log.info("llm_trader on %d names (%d held + top-%d consensus, budget %.0f min)", len(picks), len(held), self.llm_trader_top_n,
-                         self.llm_trader_budget)
-                for t in picks:
-                    if deadline is not None and time.time() >= deadline:
-                        log.warning("llm_trader: budget exhausted before %s", t)
-                        break
-                    vectors[t][deferred.name] = deferred.safe_latest(t, frames[t])
+        for dp in deferred:
+            ok, why = dp.availability()
+            reasons[dp.name] = why
+            if not ok:
+                continue
+            top, budget_d = caps[dp.name]
+            held = [t for t in self.ctx.extra.get("positions", {}) or {} if t in frames]
+            picks = held + [t for t in self.select_agent_tickers(vectors, top) if t not in held]
+            deadline = time.time() + budget_d * 60.0 if budget_d > 0 else None
+            log.info("%s on %d names (%d held + top-%d consensus, budget %.0f min)", dp.name, len(picks), len(held), top, budget_d)
+            for t in picks:
+                if deadline is not None and time.time() >= deadline:
+                    log.warning("%s: budget exhausted before %s", dp.name, t)
+                    break
+                if dp.live_only or type(dp).compute_latest is not SignalProvider.compute_latest:
+                    vectors[t][dp.name] = dp.safe_latest(t, frames[t])
+                else:
+                    a = dp.safe_history(t, frames[t])
+                    vectors[t][dp.name] = None if a is None or len(a) == 0 or np.isnan(a[-1]).any() else a[-1]
         self.agent_tickers = []
         if agents:
             selected = self.select_agent_tickers(vectors, top_n)
