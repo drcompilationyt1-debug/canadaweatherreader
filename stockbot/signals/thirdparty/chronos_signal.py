@@ -51,7 +51,7 @@ class ChronosSignal(SignalProvider):
             import torch
             from chronos import BaseChronosPipeline
 
-            self._pipe = BaseChronosPipeline.from_pretrained(self.model_id, device_map="cpu", torch_dtype=torch.float32)
+            self._pipe = BaseChronosPipeline.from_pretrained(self.model_id, device_map="cuda" if torch.cuda.is_available() else "cpu", torch_dtype=torch.float32)
         return self._pipe
 
     def _forecast(self, windows: np.ndarray) -> np.ndarray:

@@ -61,7 +61,7 @@ class KronosSignal(SignalProvider):
 
             tok = KronosTokenizer.from_pretrained(self.tokenizer_id)
             mdl = Kronos.from_pretrained(self.model_id)
-            self._predictor = KronosPredictor(mdl, tok, device="cpu", max_context=min(512, self.context))
+            self._predictor = KronosPredictor(mdl, tok, device=(__import__('torch').cuda.is_available() and 'cuda' or 'cpu'), max_context=min(512, self.context))
         return self._predictor
 
     @staticmethod

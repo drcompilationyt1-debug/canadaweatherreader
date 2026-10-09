@@ -46,7 +46,7 @@ class Chronos2Signal(ChronosSignal):
             import torch
             from chronos import Chronos2Pipeline
 
-            self._pipe = Chronos2Pipeline.from_pretrained(self.model_id, device_map="cpu", torch_dtype=torch.float32)
+            self._pipe = Chronos2Pipeline.from_pretrained(self.model_id, device_map="cuda" if torch.cuda.is_available() else "cpu", torch_dtype=torch.float32)
         return self._pipe
 
     # ------------------------------------------------------------------ covariates

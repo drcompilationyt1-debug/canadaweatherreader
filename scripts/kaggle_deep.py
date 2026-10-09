@@ -43,17 +43,20 @@ run([sys.executable, "-m", "pip", "install", "-q", "-e", "/kaggle/temp/code"])
 run([sys.executable, "-m", "pip", "install", "-q", "tabpfn"])
 import torch
 print("cuda:", torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else "-", flush=True)
-r = subprocess.run([sys.executable, "-m", "stockbot", "gpu-train", "--ic-start", "2019-01-01"], cwd="/kaggle/temp/code",
-                   capture_output=True, text=True)
+r = subprocess.run(__COMMAND__, cwd="/kaggle/temp/code", capture_output=True, text=True, shell=True)
 print(r.stdout[-6000:], r.stderr[-6000:], flush=True)
 out = "/kaggle/working/out"
 os.makedirs(out, exist_ok=True)
 copied = []
-for f in __HEAD_FILES__:
-    src = os.path.join("/kaggle/temp/code/models/signals", f)
-    if os.path.exists(src):
-        shutil.copy2(src, out)
-        copied.append(f)
+import glob
+for pattern in __COLLECT__:
+    for src in glob.glob(os.path.join("/kaggle/temp/code", pattern), recursive=True):
+        if os.path.isfile(src):
+            rel = os.path.relpath(src, "/kaggle/temp/code")
+            dst = os.path.join(out, rel)
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            shutil.copy2(src, dst)
+            copied.append(rel)
 json.dump({"returncode": r.returncode, "copied": copied, "minutes": round((time.time() - t0) / 60, 1),
            "cuda": torch.cuda.is_available(), "report": r.stdout[-4000:]}, open(os.path.join(out, "report.json"), "w"), indent=1)
 print("done", copied, flush=True)
@@ -78,13 +81,17 @@ def username() -> str:
     return m.group(1)
 
 
-def push(user: str) -> str:
-    kid = f"{user}/{SLUG}"
+HEADS_COMMAND = "python -m stockbot gpu-train --ic-start 2019-01-01"
+HEADS_COLLECT = [f"models/signals/{f}" for f in HEAD_FILES]
+
+
+def push(user: str, slug: str = SLUG, command: str = HEADS_COMMAND, collect: list[str] | None = None) -> str:
+    kid = f"{user}/{slug}"
     with tempfile.TemporaryDirectory() as d:
         src = (KERNEL.replace("__REPO__", REPO).replace("__TABPFN_TOKEN__", os.environ.get("TABPFN_TOKEN", ""))
-               .replace("__HEAD_FILES__", json.dumps(HEAD_FILES)))
+               .replace("__COMMAND__", json.dumps(command)).replace("__COLLECT__", json.dumps(collect or HEADS_COLLECT)))
         (Path(d) / "run.py").write_text(src, encoding="utf-8")
-        meta = {"id": kid, "title": SLUG, "code_file": "run.py", "language": "python", "kernel_type": "script", "is_private": True,
+        meta = {"id": kid, "title": slug, "code_file": "run.py", "language": "python", "kernel_type": "script", "is_private": True,
                 "enable_gpu": True, "enable_internet": True, "machine_shape": "NvidiaTeslaT4", "dataset_sources": [],
                 "competition_sources": [], "kernel_sources": [], "model_sources": []}
         (Path(d) / "kernel-metadata.json").write_text(json.dumps(meta, indent=1), encoding="utf-8")
@@ -117,13 +124,17 @@ def main() -> int:
     ap.add_argument("action", choices=["run", "push", "status", "download"])
     ap.add_argument("--out", default="kaggle_out")
     ap.add_argument("--max-minutes", type=float, default=300)
+    ap.add_argument("--slug", default=SLUG, help="the Kaggle kernel's name (research runs use their own)")
+    ap.add_argument("--cmd", default=HEADS_COMMAND, help="what to run in the repo on the GPU")
+    ap.add_argument("--collect", default=None, help="comma-separated globs (relative to the repo) returned as output")
     args = ap.parse_args()
-    kid = f"{username()}/{SLUG}"
+    collect = [c.strip() for c in args.collect.split(",")] if args.collect else HEADS_COLLECT
+    kid = f"{username()}/{args.slug}"
     if args.action == "status":
         print(kid, status(kid))
         return 0
     if args.action in ("run", "push"):
-        kid = push(username())
+        kid = push(username(), args.slug, args.cmd, collect)
         if args.action == "push":
             return 0
         time.sleep(30)

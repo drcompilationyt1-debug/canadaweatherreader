@@ -58,7 +58,7 @@ class TimesFMSignal(SignalProvider):
         elif hasattr(timesfm, "TimesFM3Forecaster"):
             from timesfm import ModelConfig, TimesFM3Forecaster
 
-            m = TimesFM3Forecaster(ModelConfig(checkpoint_path=self.model_id, per_core_batch_size=self.batch_size, device="cpu"))
+            m = TimesFM3Forecaster(ModelConfig(checkpoint_path=self.model_id, per_core_batch_size=self.batch_size, device=(__import__('torch').cuda.is_available() and 'cuda' or 'cpu')))
             self._api = "3.0"
         else:
             raise RuntimeError("unsupported timesfm package version")
