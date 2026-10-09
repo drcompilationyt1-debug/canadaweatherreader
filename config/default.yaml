@@ -632,6 +632,41 @@ execution:
     # portfolio --tune, models/take_profit_<account>.json): ON after one replay that beats holding, OFF only after two
     # consecutive replays where holding beats it by 1%/yr or its drawdown is 3 points deeper; true = the rule below; false = never
     take_profit: { enabled: auto, z: 3.0, keep_pct: 0.5, replace: false, rebuy_dip: 0.0 }
+    # THE DAILY BOOK (owner + research, 2026-10-09) - replaces the frozen holding period, the fixed take-profit and the tuned
+    # structure above (top_k / every_bars / hysteresis now only drive the shadow of the old rule).  Every morning: the day's
+    # activity level (quiet / careful / normal / active) from the market's stress, its 200-day trend and how far the independent
+    # models agree; then exits on evidence (really bad even at a loss: the ranking in the bottom half, a stock-specific drop of
+    # bad_drop_z volatilities, or bad news plus a news_drop_z drop), a trailing stop armed after a big gain that never sells
+    # under the buy price, selling part of a spike that looks like overreaction, leaving the hold band only in profit;
+    # buying back what was sold high once it is clearly cheaper - with ALL the sale's money (more shares: sell high, buy low,
+    # compounding); new names only into open slots, never one that just spiked, at most what the day allows; swaps only
+    # when the better name's expected gain beats `hurdle` x the round trip.  Every order clears the US$1.99 minimum several
+    # times over (no trims, no orders under min_trade_usd).  The old rule runs as a shadow on the same live prices: the
+    # paper accounts, not a backtest, decide which is better (see the session note "since <date>: this book .. the old rule ..").
+    # Easy look, 2019-2026 replay on the 150-name survivor universe (inflated; compare rows, not vs SPY): 10k book 38.4%/yr, worst
+    # drawdown -32%, 97 orders/yr, fees 0.47%/yr vs the old rule 42.9%, -51%; 100k book 28.0%, -29% vs 32.3%, -47%; SPY 17.4%, -34%
+    daily:
+      enabled: true
+      k: 20                   # names held
+      buy_rank: 20            # a new name must rank within this (smoothed score)
+      hold_rank: 45           # a held name keeps its place while it ranks within this
+      min_hold_days: 5
+      hurdle: 2.0             # expected 20-day gain >= 2 x the round-trip cost (fees + spread)
+      max_new: 3              # new names a day at most (quiet 0, careful 1, normal 2, active 3)
+      max_swaps: 2
+      starter: 1.0            # full slots: half-slot starters cost the 100k book 1.8 pt/yr in the replay; the book is staged across
+      starter_days: 10        # names instead (2-3 new names a day at most, only with idle cash, none on quiet days)
+      ema_halflife: 3         # days of score smoothing
+      spike_z: 3.0
+      spike_sell: 0.5
+      arm_z: 2.5
+      trail_atr: 2.5
+      bad_drop_z: 2.5
+      bad_rank_pct: 0.3       # really bad = the ranking puts it in the bottom 30% (0.5 sold on ranking noise: -4.5 pt/yr, 10k book)
+      news_drop_z: 2.0
+      chase_z: 2.0
+      rebuy_z: 1.0
+      level: auto             # or force quiet / careful / normal / active
     portfolio_rl: { enabled: true }   # the portfolio agent (stockbot portfolio-rl: PPO over rebalance timing + exposure, walk-forward vs this
                                       # rule) takes over the cadence and the volatility targeting only once its report says accepted
     vol_target:               # volatility targeting on the whole book (Moreira & Muir 2017): gross exposure is scaled so the book's
@@ -775,7 +810,10 @@ accounts:                     # extra accounts traded in the SAME session from t
       # monthly is clearly right for a 5-name book at $1.99 an order (+28.1% a year vs +23.1% every 10 bars and +18.0% every 5);
       # hysteresis 8 adds +0.8 pt/yr over 3
       rank: { top_k: 5, every_bars: 21, hysteresis: 8, policy_floor: 1.0, trend_filter: { enabled: false }, max_per_sector: 0,
-              vol_target: { enabled: false, target: 0.30, window: 20, floor: 0.4 } }
+              vol_target: { enabled: false, target: 0.30, window: 20, floor: 0.4 },
+              # 8 names (5 left the result to luck: ~9%/yr of noise vs the index), full slots only - a half slot here would be an
+              # order the US$1.99 minimum makes expensive - and at most one swap a day
+              daily: { k: 8, buy_rank: 8, hold_rank: 20, max_new: 2, max_swaps: 1, starter: 1.0 } }
       min_trade_usd: 800      # never an order the US$1.99 minimum would make expensive
       cadence: daily          # (the rank layer's every_bars sets the cadence)
       cash_reserve: 0.10

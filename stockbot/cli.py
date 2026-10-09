@@ -612,6 +612,26 @@ def cmd_fill_caches(cfg, args) -> int:
     return 0
 
 
+def cmd_news_score(cfg, args) -> int:
+    """Settle the logged news / LLM verdicts against what the stocks then did (5 and 20 days, vs the universe)."""
+    import json
+
+    import pandas as pd
+
+    from .agent.train import load_frames
+    from .feedback.news_score import score_news
+
+    frames = load_frames(cfg, refresh=False)
+    closes = pd.DataFrame({t: f["close"].astype(float) for t, f in frames.items()})
+    closes.index = pd.to_datetime(closes.index).tz_localize(None) if getattr(closes.index, "tz", None) else pd.to_datetime(closes.index)
+    rep = score_news(cfg.path("feedback.news_file", "data/experience/news_verdicts.jsonl"), closes)
+    out = cfg.path("report.news_score", "reports/news_score.json")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(rep, indent=1, default=str), encoding="utf-8")
+    print(json.dumps(rep, indent=1, default=str))
+    return 0
+
+
 def cmd_gpu_train(cfg, args) -> int:
     """Train the heavy ranking heads on a GPU from the saved dataset; the runners then reuse them (signals.<head>.pretrained)."""
     from .agent.gpu_train import HEADS, gpu_train
@@ -960,6 +980,9 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("fill-caches", help="compute the forecasting models' history for the whole universe (fast on a GPU)")
     p.add_argument("--blocks", nargs="*", default=["chronos", "chronos2", "timesfm", "kronos"])
     p.set_defaults(fn=cmd_fill_caches)
+
+    p = sub.add_parser("news-score", help="score the logged news / LLM verdicts against what the stocks then did")
+    p.set_defaults(fn=cmd_news_score)
 
     p = sub.add_parser("gpu-train", help="train the heavy ranking heads (neural ensemble, TabPFN) on a GPU from the saved dataset for the runners to reuse")
     p.add_argument("--heads", nargs="*", help="default: xs_nn xs_tabpfn")

@@ -196,7 +196,9 @@ jobs:
           python -m stockbot account --account small --sync --close-dust 500 --period 1M --days 25 --fills 25 || true
       - name: forecast scorecard
         if: ${{ always() && (steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true') }}
-        run: python -m stockbot forecast --no-refresh || true
+        run: |
+          python -m stockbot forecast --no-refresh || true
+          python -m stockbot news-score | tail -40 || true
       - name: experience
         if: ${{ always() && (steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true') }}
         run: python -m stockbot experience || true

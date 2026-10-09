@@ -145,6 +145,18 @@ class TradingRunner:
                     self.core_ticker, self.core_share = None, 0.0
                 log.info("rank profile (tuned): top_k %d, every %d bars, hysteresis %d, core %.0f%%", self.rank_top_k, self.rank_every,
                          self.rank_hysteresis, 100 * self.core_share)
+        # the daily book (execution.rank.daily): look every day, trade rarely, let winners run - replaces the frozen holding period,
+        # the fixed take-profit and the tuned structure (its own k / bands); the old rule keeps running as a shadow on the same prices
+        dd = dict(rk.get("daily", {}) or {})
+        self.daily_cfg = dd
+        self.daily_rules = None
+        if self.rank_enabled and bool(dd.get("enabled", False)):
+            from .daily_book import DailyRules
+
+            self.daily_rules = DailyRules.from_config(dd)
+            log.info("daily book for %s: hold %d names (buy within the top %d, keep within the top %d), trades must beat %.1fx their "
+                     "round-trip cost; the old rule (top %d every %d bars) runs as a shadow", self.account, self.daily_rules.k,
+                     self.daily_rules.buy_rank, self.daily_rules.hold_rank, self.daily_rules.hurdle, self.rank_top_k, self.rank_every)
         # Faber-style trend filter on the rank slots: to cash while the benchmark sits below its moving average
         tf = dict(rk.get("trend_filter", {}) or {})
         self.trend_filter = tf if bool(tf.get("enabled", False)) else None
@@ -695,6 +707,8 @@ class TradingRunner:
         index = self.frames["SPY"].index if "SPY" in self.frames else next(iter(self.frames.values())).index
         sig_dim = self.bundle.layout.signal_dim
         scores = rank_scores(self.bundle.layout, {t: obs_by[t][:sig_dim] for t in universe}, self.rank_inputs)
+        if self.daily_rules is not None:
+            return {**self._daily_book(obs_by, current, universe, satellite, scores, as_of), **core_w}
         agent_exposure = None
         due = rebalance_due(index, self.state.get("last_rebalance_date"), as_of, self.rank_every)
         if was_on and self.portfolio_agent is not None:                    # the adopted agent decides timing and exposure
@@ -768,6 +782,219 @@ class TradingRunner:
         log.info("rank core: top-%d by %s -> %s%s", self.rank_top_k, "+".join(self.rank_inputs), ", ".join(chosen),
                  f"; leaving {', '.join(dropped)}" if dropped else "")
         return weights
+
+    def _feature(self, obs: np.ndarray | None, key: str) -> float:
+        """One block feature from a live observation (NaN when the block is masked or absent)."""
+        if obs is None:
+            return float("nan")
+        block, feat = key.split(".", 1)
+        try:
+            b = self.bundle.layout.block(block)
+            j = b.start + list(b.feature_names).index(feat)
+        except (KeyError, ValueError):
+            return float("nan")
+        return float(obs[j]) if len(obs) > j and obs[b.offset] > 0.5 else float("nan")
+
+    def _news(self, obs_by: dict[str, np.ndarray], universe: list[str], as_of: str, prices: dict[str, float]) -> set[str]:
+        """Names whose news reads clearly bad today (the LLM trader's full close at confidence >= 0.8, the news LLM's sentiment
+        <= -0.4 at confidence >= 0.6, or FinBERT's net <= -0.3 on several headlines).  Bad news alone sells nothing: it only
+        lowers the stock-specific drop that counts as really bad.  Every verdict is logged so `stockbot news-score` can
+        measure whether they predict anything."""
+        import json
+
+        bad: set[str] = set()
+        rows = []
+        keys = ("llm_trader.nofx_direction", "llm_trader.nofx_confidence", "llm_trader.nofx_close", "llm_trader.nofx_open",
+                "news_llm.llm_sentiment", "news_llm.llm_confidence", "finbert.fb_net", "finbert.fb_n")
+        for t in universe:
+            o = obs_by.get(t)
+            v = {k: self._feature(o, k) for k in keys}
+            if all(not np.isfinite(x) for x in v.values()):
+                continue
+            g = {k: (x if np.isfinite(x) else 0.0) for k, x in v.items()}
+            llm_close = g["llm_trader.nofx_close"] > 0.5 and g["llm_trader.nofx_direction"] <= -0.9 and g["llm_trader.nofx_confidence"] >= 0.8
+            news_bad = g["news_llm.llm_sentiment"] <= -0.4 and g["news_llm.llm_confidence"] >= 0.6
+            fb_bad = g["finbert.fb_net"] <= -0.3 and g["finbert.fb_n"] >= 3
+            if llm_close or news_bad or fb_bad:
+                bad.add(t)
+            rows.append({"date": as_of, "ticker": t, "price": prices.get(t),
+                         **{k.split(".", 1)[1]: (round(x, 4) if np.isfinite(x) else None) for k, x in v.items()}})
+        if rows and self.shared is None and self.state.get("news_logged") != as_of:     # the signals are shared: log them once
+            f = self.cfg.path("feedback.news_file", "data/experience/news_verdicts.jsonl")
+            try:
+                f.parent.mkdir(parents=True, exist_ok=True)
+                with open(f, "a", encoding="utf-8") as fh:
+                    for r in rows:
+                        fh.write(json.dumps(r) + "\n")
+                self.state["news_logged"] = as_of
+            except OSError as e:
+                log.warning("news verdicts not logged: %s", e)
+        return bad
+
+    def _daily_book(self, obs_by: dict[str, np.ndarray], current: dict[str, float], universe: list[str], satellite: float,
+                    scores: dict[str, float], as_of: str) -> dict[str, float]:
+        """The daily book (execution.rank.daily, stockbot/execution/daily_book.py): today's activity level, then exits, buy-backs,
+        new names and swaps - each only when it is worth its fees - with the old rule run alongside as a shadow."""
+        from .daily_book import describe, market_activity, name_stats, plan_day
+        from .ranking import bars_since, rank_scores
+
+        rules = self.daily_rules
+        equity = float(self.broker.equity()) or 1.0
+        weights = {t: (current[t] * self.max_position if abs(current[t]) > 0.05 else 0.0) for t in universe}
+        # smoothed scores: an exponential average over days (a rerun on the same day starts from the same base)
+        hl = float(self.daily_cfg.get("ema_halflife", 3) or 0)
+        ema = self.state.setdefault("score_ema", {"date": None, "base": {}, "today": {}})
+        if ema.get("date") != as_of:
+            ema["base"], ema["date"] = dict(ema.get("today") or {}), as_of
+        a = 1.0 if hl <= 0 else 1.0 - 0.5 ** (1.0 / hl)
+        today = {}
+        for t, v in scores.items():
+            if np.isfinite(v):
+                b = ema["base"].get(t)
+                today[t] = float(v) if b is None else float(b + a * (v - b))
+        ema["today"] = today
+        sm = pd.Series({t: today.get(t, np.nan) for t in universe}, dtype=float).dropna()
+        pct = sm.rank(pct=True).to_dict()
+        ranked = list(sm.sort_values(ascending=False).index)
+        # how far the independent models agree on each name (share of them putting it in their top fifth)
+        keys = list(self.daily_cfg.get("consensus_inputs") or ["xs_rank.xs_score", "xs_nn.nn_score", "xs_tabpfn.pfn_score",
+                                                               "timesfm.tfm_ret_20", "factors.mom_12_1", "qlib.qlib_score",
+                                                               "chronos.chr_ret_20"])
+        sig_dim = self.bundle.layout.signal_dim
+        heads = pd.DataFrame({k: rank_scores(self.bundle.layout, {t: obs_by[t][:sig_dim] for t in universe}, {k: 1.0}) for k in keys})
+        heads = heads.loc[:, heads.notna().any()]
+        agree = {}
+        if heads.shape[1] >= 2:
+            agree = ((heads >= 0.8).sum(axis=1) / heads.notna().sum(axis=1).replace(0, np.nan)).fillna(0.0).to_dict()
+        top = ranked[: rules.k]
+        agreement = float(np.mean([agree.get(t, 0.0) for t in top])) if agree and top else None
+        bench_t = str(self.daily_cfg.get("benchmark", "SPY"))
+        bench = self.frames[bench_t]["close"].astype(float).to_numpy() if bench_t in self.frames else None
+        level, info = market_activity(bench, agreement, rules)
+        forced = str(self.daily_cfg.get("level", "auto") or "auto").lower()
+        if forced != "auto":
+            level = forced
+        stats = {}
+        for t in universe:
+            f = self.frames.get(t)
+            if f is not None and len(f) > 12:
+                st = name_stats(f["close"].astype(float).to_numpy()[-260:], bench[-260:] if bench is not None else None)
+                if st is not None:
+                    stats[t] = st
+        slot = min(satellite / max(rules.k, 1), self.max_position)
+        spread = 2.0 * float(rules.spread)
+        cost_rt = {t: self.fee_drag(t, st.price, slot * equity) / 100.0 + spread for t, st in stats.items()}
+        min_w = {t: self.min_trade_for(t) / equity for t in universe}
+        cash_w = (float(self.broker.cash()) - self.cash_reserve * equity) / equity
+        ic, disp = self._ic_and_dispersion(universe)
+        prices = {t: st.price for t, st in stats.items()}
+        bad_news = self._news(obs_by, universe, as_of, prices)
+        # the book's records: entry price and date (the broker's average price for names held before the switch), highest close since
+        book = {t: dict(r) for t, r in (self.state.get("daily_book") or {}).items()}
+        pos_ctx = self.ctx.extra.get("positions") or {}
+        age = {}
+        for t, w in weights.items():
+            if w <= 0 or t not in stats:
+                continue
+            ix = self.frames[t].index
+            if t not in book:
+                ctx = pos_ctx.get(t) or {}
+                days = int(ctx.get("days", 0) or 0)
+                d0 = ix[max(0, len(ix) - 1 - days)]
+                closes = self.frames[t]["close"].astype(float)
+                book[t] = {"entry": float(ctx.get("avg_price") or stats[t].price), "date": str(d0.date()), "pct0": pct.get(t, 0.5),
+                           "high": float(closes[closes.index >= d0].max())}
+            age[t] = int(bars_since(ix, book[t].get("date"), as_of) or 0)
+        sold_high = dict(self.state.get("sold_high") or {})
+        changes, events, book = plan_day(weights=weights, book=book, age=age, pct=pct, stats=stats, agree=agree, level=level, slot=slot,
+                                         capacity=satellite, cash_w=cash_w, cost_rt=cost_rt, min_w=min_w, ic=ic, disp=disp,
+                                         bad_news=bad_news, sold_high=sold_high, max_w=self.max_position, rules=rules)
+        for r in book.values():
+            if r.pop("date_new", False) or "date" not in r:
+                r["date"] = as_of
+        self.state["daily_book"], self.state["sold_high"] = book, sold_high
+        before = dict(weights)
+        for t, w in changes.items():
+            weights[t] = min(max(w, 0.0), self.max_position)
+            self._no_deadband.add(t)
+        held_after = [t for t, w in weights.items() if w > 1e-6]
+        self.last_rank = {"scores": today, "chosen": held_after, "as_of": as_of, "trend_on": True}
+        self._rebalanced = bool(changes)
+        self.state["last_turnover"] = float(sum(abs(weights[t] - before.get(t, 0.0)) for t in changes))
+        shadow_note = self._shadow(scores, universe, as_of, equity)
+        note = (f"daily book [{level}: market volatility at the {100 * info.get('vol_pct', 0.5):.0f}th percentile"
+                f"{', below its 200-day average' if info.get('below_200d') else ''}, models agree {100 * info.get('agreement', 0.5):.0f}%]: ")
+        acted = [e for e in events if e[0] not in ("wait", "kept_loss", "armed")]
+        note += describe(acted) if acted else "no trade worth its fees today"
+        if shadow_note:
+            note += "; " + shadow_note
+        self.last_cycle_note = (self.last_cycle_note + "; " if self.last_cycle_note else "") + note
+        log.info("%s", note)
+        for e in events:
+            if e[0] in ("wait", "kept_loss", "armed"):
+                log.info("daily book: %s", describe([e]))
+        return weights
+
+    def _ic_and_dispersion(self, universe: list[str]) -> tuple[float, float]:
+        """What a rank is worth: the ranking head's trailing information coefficient (models/rank_weights.json) and the
+        cross-sectional spread of 20-day returns over the last three months."""
+        import json
+
+        ic = 0.05
+        try:
+            d = json.loads((self.cfg.path("models_dir", "models") / "rank_weights.json").read_text(encoding="utf-8"))
+            ic = float(((d.get("ic") or {}).get("xs_rank.xs_score") or {}).get("ic", ic))
+        except Exception:  # noqa: BLE001
+            pass
+        disp = 0.08
+        try:
+            px = pd.DataFrame({t: self.frames[t]["close"].astype(float).iloc[-90:] for t in universe if t in self.frames})
+            d20 = (px / px.shift(20) - 1.0).std(axis=1).dropna()
+            if len(d20):
+                disp = float(d20.tail(60).mean())
+        except Exception:  # noqa: BLE001
+            pass
+        return float(np.clip(ic, 0.01, 0.10)), float(np.clip(disp, 0.03, 0.20))
+
+    def _shadow(self, scores: dict[str, float], universe: list[str], as_of: str, equity: float) -> str:
+        """The previous rule (top-k re-ranked every N bars, frozen in between) run on the same live prices from the day the daily
+        book took over - started from the real holdings - so the paper accounts, not a backtest, show which one does better."""
+        from .daily_book import shadow_step
+        from .ranking import bars_since
+
+        sh = self.state.get("shadow")
+        prices = {t: float(self.last_close(t)) for t in universe if t in self.frames}
+        if not sh:
+            units = {}
+            for t in universe:
+                try:
+                    pos = self.broker.position(t)
+                except Exception:  # noqa: BLE001
+                    continue
+                if pos.shares > 0 and prices.get(t, 0) > 0:
+                    units[t] = float(pos.shares)
+            sh = {"start": as_of, "start_equity": equity, "units": units, "cash": float(self.broker.cash()),
+                  "last": self.state.get("last_rebalance_date"), "log": []}
+        if sh.get("date") != as_of:
+            index = self.frames["SPY"].index if "SPY" in self.frames else next(iter(self.frames.values())).index
+
+            def fee(t: str, dollars: float) -> float:
+                sched = self.fee_book.for_ticker(t)
+                p = prices.get(t, 0.0)
+                return float(sched.cost(dollars / p, p, "buy")) if sched is not None and p > 0 and dollars > 0 else 0.0
+
+            sh = shadow_step(sh, scores, prices, bars_since(index, sh.get("last"), as_of), self.rank_top_k, self.rank_every,
+                             self.rank_hysteresis, fee, self.cash_reserve)
+            if sh.get("rebalanced"):
+                sh["last"] = as_of
+            sh["date"] = as_of
+            sh["log"] = (list(sh.get("log") or []) + [[as_of, round(equity, 2), round(float(sh["equity"]), 2)]])[-400:]
+        self.state["shadow"] = sh
+        base = float(sh.get("start_equity") or equity) or 1.0
+        if sh.get("start") == as_of:
+            return ""
+        return (f"since {sh['start']}: this book {100 * (equity / base - 1):+.2f}%, "
+                f"the old rule on the same prices {100 * (float(sh['equity']) / base - 1):+.2f}%")
 
     def _projections(self, obs_by: dict[str, np.ndarray], universe: list[str]) -> dict[str, float]:
         """The models' 20-day log-return projection per name from the live observations (TimesFM, else Chronos, else Chronos-2)."""
