@@ -85,6 +85,7 @@ jobs:
           git submodule update --init --depth 1 third_party/Kronos || echo "Kronos clone failed - block stays masked"
           git submodule update --init --depth 1 third_party/WorldQuant_alpha101_code || echo "alpha101 clone failed - block stays masked"
       - uses: actions/setup-python@v5
+        id: py
         with:
           python-version: "3.11"
           cache: pip
@@ -109,7 +110,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: .venv-tf
-          key: tf-env-${{ runner.os }}-${{ hashFiles('scripts/setup_agent_envs.py') }}
+          key: tf-env-${{ runner.os }}-py${{ steps.py.outputs.python-version }}-${{ hashFiles('scripts/setup_agent_envs.py') }}
       - name: TensorFlow env for the Keras models
         run: python scripts/setup_agent_envs.py --only tf
       - name: restore state

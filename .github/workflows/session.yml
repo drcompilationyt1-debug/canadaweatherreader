@@ -95,6 +95,7 @@ jobs:
           git submodule update --init --depth 1 third_party/Kronos || echo "Kronos clone failed - block stays masked"
           git submodule update --init --depth 1 third_party/WorldQuant_alpha101_code || echo "alpha101 clone failed - block stays masked"
       - uses: actions/setup-python@v5
+        id: py
         if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
         with:
           python-version: "3.11"
@@ -125,7 +126,7 @@ jobs:
         if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
         with:
           path: .venv-tf
-          key: tf-env-${{ runner.os }}-${{ hashFiles('scripts/setup_agent_envs.py') }}
+          key: tf-env-${{ runner.os }}-py${{ steps.py.outputs.python-version }}-${{ hashFiles('scripts/setup_agent_envs.py') }}
       - name: TensorFlow env for the Keras models
         if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
         run: python scripts/setup_agent_envs.py --only tf
@@ -135,7 +136,7 @@ jobs:
           path: |
             .venv-tradingagents
             .venv-aihf
-          key: agent-envs-${{ runner.os }}-${{ hashFiles('scripts/setup_agent_envs.py', '.gitmodules') }}
+          key: agent-envs-${{ runner.os }}-py${{ steps.py.outputs.python-version }}-${{ hashFiles('scripts/setup_agent_envs.py', '.gitmodules') }}
       - name: LLM agent frameworks (TradingAgents, ai-hedge-fund) in their own envs
         if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
         run: |

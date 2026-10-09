@@ -11,6 +11,7 @@ the StockBot adapters run them as subprocesses (``stockbot/signals/thirdparty/ag
 from __future__ import annotations
 
 import argparse
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -39,6 +40,9 @@ def setup(name: str) -> bool:
             print(f"[{name}] repo not cloned: run python scripts/setup_submodules.py --only {repo.split('/')[-1]}")
             return False
     py = env_python(env_dir)
+    if env_dir.exists() and not py.exists():     # a cached env whose base Python is gone (the runner's Python was updated)
+        print(f"[{name}] {env_dir} is broken - rebuilding it")
+        shutil.rmtree(env_dir)
     if not py.exists():
         print(f"[{name}] creating {env_dir}")
         subprocess.run([sys.executable, "-m", "venv", str(env_dir)], check=True)
