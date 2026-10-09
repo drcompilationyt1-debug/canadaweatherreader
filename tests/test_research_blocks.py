@@ -128,3 +128,15 @@ def test_state_save_leaves_out_files_github_would_reject(tmp_path):
     assert ci_state._oversized(small, limit_mb=0.0005)
     assert not ci_state._oversized(tmp_path / "missing.bin")
 
+
+
+def test_state_save_refuses_without_a_restore(tmp_path, monkeypatch, capsys):
+    import sys
+    sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[1] / "scripts"))
+    import ci_state
+
+    monkeypatch.setattr(ci_state, "_marker", lambda: tmp_path / "never-restored")
+    pushed = []
+    monkeypatch.setattr(ci_state, "git", lambda *a, **k: pushed.append(a))
+    assert ci_state.save("origin", "state") == 1          # a job that failed before its restore must not push over the state
+    assert not pushed and "refusing" in capsys.readouterr().out

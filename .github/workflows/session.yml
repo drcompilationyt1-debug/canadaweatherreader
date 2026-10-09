@@ -143,6 +143,7 @@ jobs:
           python scripts/setup_agent_envs.py --only tradingagents || echo "TradingAgents env failed - block stays masked"
           python scripts/setup_agent_envs.py --only aihf || echo "ai-hedge-fund env failed - block stays masked"
       - name: restore state
+        id: restore
         if: ${{ steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true' }}
         run: python scripts/ci_state.py restore
       - name: doctor (which inputs are live on this runner)
@@ -200,7 +201,7 @@ jobs:
         if: ${{ always() && (steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true') }}
         run: python -m stockbot experience || true
       - name: save state
-        if: ${{ always() && !(inputs.dry_run == true) && (steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true') }}
+        if: ${{ always() && !(inputs.dry_run == true) && steps.restore.outcome == 'success' }}
         run: python scripts/ci_state.py save
       - uses: actions/upload-artifact@v4
         if: ${{ always() && (steps.gate.outcome == 'skipped' || steps.gate.outputs.proceed == 'true') }}

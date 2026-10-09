@@ -87,7 +87,7 @@ def main() -> int:
     else:
         run(["git", "remote", "add", "origin", url])
     run(["git", "push", "-u", "origin", "HEAD:main"])
-    run([sys.executable, "scripts/ci_state.py", "save"])
+    run([sys.executable, "scripts/ci_state.py", "save", "--fresh"])
     # never leave the token in .git/config
     run(["git", "remote", "set-url", "origin", f"https://github.com/{full}.git"])
 

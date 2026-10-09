@@ -8,10 +8,16 @@ does not grow with history.
     python scripts/ci_state.py restore      # git fetch origin state && check the files out
     python scripts/ci_state.py save         # commit the state paths to a fresh tree and push -f origin state
     python scripts/ci_state.py save --remote origin --branch state
+    python scripts/ci_state.py save --fresh # the very first push, when there is no state to restore
+
+A save only goes through after a restore in the same checkout (a marker under .git records it), and never when it would
+drop more than half of the restored files: a job that failed or was cancelled before its restore step must not push a
+near-empty tree over the real state (the branch keeps a single commit, so that would lose it).
 """
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import subprocess
 import sys
@@ -37,14 +43,27 @@ def git(*args: str, check: bool = True, env: dict | None = None, capture: bool =
     return subprocess.run(["git", *args], cwd=ROOT, check=check, text=True, capture_output=capture, env=env)
 
 
+def _marker() -> Path:
+    r = git("rev-parse", "--git-path", "stockbot-state-restored", check=False)
+    return ROOT / (r.stdout.strip() if r.returncode == 0 and r.stdout.strip() else ".state-restored")
+
+
+def _mark(files: int) -> None:
+    m = _marker()
+    m.parent.mkdir(parents=True, exist_ok=True)
+    m.write_text(json.dumps({"files": files}), encoding="utf-8")
+
+
 def restore(remote: str, branch: str) -> int:
     r = git("fetch", remote, branch, "--depth", "1", check=False)
     if r.returncode != 0:
         print(f"no '{branch}' branch on {remote} yet - nothing to restore")
+        _mark(0)
         return 0
     files = git("ls-tree", "-r", "--name-only", f"{remote}/{branch}").stdout.split()
     if not files:
         print("state branch is empty")
+        _mark(0)
         return 0
     # directory pathspecs, not one argument per file: hundreds of file names overflow the Windows command line
     specs = [p for p in STATE_PATHS if any(f == p or f.startswith(p.rstrip("/") + "/") for f in files)]
@@ -54,6 +73,7 @@ def restore(remote: str, branch: str) -> int:
             git("checkout", f"{remote}/{branch}", "--", *chunk)
             git("reset", "-q", "--", *chunk, check=False)  # keep the files, do not stage them on the working branch
     print(f"restored {len(files)} files from {remote}/{branch}")
+    _mark(len(files))
     return 0
 
 
@@ -67,7 +87,15 @@ def _oversized(path: Path, limit_mb: float = MAX_FILE_MB) -> bool:
         return False
 
 
-def save(remote: str, branch: str) -> int:
+def save(remote: str, branch: str, fresh: bool = False) -> int:
+    restored = None
+    if not fresh:
+        try:
+            restored = int(json.loads(_marker().read_text(encoding="utf-8"))["files"])
+        except (OSError, ValueError, KeyError):
+            print(f"ERROR: the state was not restored in this checkout - refusing to save over {remote}/{branch} "
+                  "(run restore first; --fresh only for the very first push)")
+            return 1
     present = [p for p in STATE_PATHS if (ROOT / p).exists()]
     if not present:
         print("nothing to save")
@@ -86,6 +114,9 @@ def save(remote: str, branch: str) -> int:
             git("rm", "-q", "--cached", "--", *drop[i:i + 200], env=env)
         kept = len(listed) - len(drop)
         print(f"state: {kept} files kept, {len(drop)} excluded (checkpoints / archives / caches)")
+        if restored and kept < restored / 2:
+            print(f"ERROR: only {kept} files against the {restored} restored - refusing to save a state this much smaller")
+            return 1
         tree = git("write-tree", env=env).stdout.strip()
         msg = f"state {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}"
         cenv = {**env, "GIT_AUTHOR_NAME": "stockbot", "GIT_AUTHOR_EMAIL": "stockbot@localhost",
@@ -102,8 +133,9 @@ def main() -> int:
     ap.add_argument("action", choices=["restore", "save"])
     ap.add_argument("--remote", default="origin")
     ap.add_argument("--branch", default="state")
+    ap.add_argument("--fresh", action="store_true", help="save without a restore first (only the very first push)")
     args = ap.parse_args()
-    return restore(args.remote, args.branch) if args.action == "restore" else save(args.remote, args.branch)
+    return restore(args.remote, args.branch) if args.action == "restore" else save(args.remote, args.branch, args.fresh)
 
 
 if __name__ == "__main__":

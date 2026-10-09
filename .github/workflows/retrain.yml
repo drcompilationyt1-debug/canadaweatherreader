@@ -114,6 +114,7 @@ jobs:
       - name: TensorFlow env for the Keras models
         run: python scripts/setup_agent_envs.py --only tf
       - name: restore state
+        id: restore
         run: python scripts/ci_state.py restore
       - name: doctor
         run: python -m stockbot doctor
@@ -167,7 +168,7 @@ jobs:
       - name: forecast scorecard
         run: python -m stockbot forecast --no-refresh || true
       - name: save state
-        if: always()
+        if: ${{ always() && steps.restore.outcome == 'success' }}
         run: python scripts/ci_state.py save
       - name: continue the training in a follow-up run (the cached dataset, the policy resumed)
         if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.chain_minutes != '0' && inputs.chain_minutes != '' }}
