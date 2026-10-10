@@ -41,6 +41,7 @@ run(["git", "sparse-checkout", "set", "models/dataset", "models/signals"], cwd="
 shutil.copytree("/kaggle/temp/state/models", "/kaggle/temp/code/models", dirs_exist_ok=True)
 run([sys.executable, "-m", "pip", "install", "-q", "-e", "/kaggle/temp/code"])
 run([sys.executable, "-m", "pip", "install", "-q", "tabpfn", "chronos-forecasting", "einops", "safetensors", "huggingface_hub"])
+subprocess.run([sys.executable, "-m", "pip", "install", "-q", "timesfm[torch]"])
 subprocess.run(["git", "submodule", "update", "--init", "--depth", "1", "third_party/Kronos"], cwd="/kaggle/temp/code")
 import torch
 print("cuda:", torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else "-", flush=True)
