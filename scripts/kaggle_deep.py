@@ -133,7 +133,8 @@ def wait(kid: str, max_minutes: float) -> str:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("action", choices=["run", "push", "status", "download"])
+    ap.add_argument("action", choices=["run", "push", "status", "download", "attach"],
+                    help="attach = wait for the kernel already running (or finished) and download it, without pushing again")
     ap.add_argument("--out", default="kaggle_out")
     ap.add_argument("--max-minutes", type=float, default=300)
     ap.add_argument("--slug", default=SLUG, help="the Kaggle kernel's name (research runs use their own)")
@@ -145,11 +146,12 @@ def main() -> int:
     if args.action == "status":
         print(kid, status(kid))
         return 0
-    if args.action in ("run", "push"):
-        kid = push(username(), args.slug, args.cmd, collect)
-        if args.action == "push":
-            return 0
-        time.sleep(30)
+    if args.action in ("run", "push", "attach"):
+        if args.action != "attach":
+            kid = push(username(), args.slug, args.cmd, collect)
+            if args.action == "push":
+                return 0
+            time.sleep(30)
         st = wait(kid, args.max_minutes)
         print("final status:", st)
         if st != "COMPLETE":

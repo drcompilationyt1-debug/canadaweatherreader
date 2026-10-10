@@ -13,6 +13,10 @@ on:
       cmd:
         description: "command to run on the GPU"
         default: "python -m stockbot gpu-train --ic-start 2019-01-01"
+      attach:
+        description: "pick up the kernel's finished run instead of starting a new one (when the last wait ran out)"
+        type: boolean
+        default: false
       collect:
         description: "comma-separated globs (relative to the repo) to bring back and save to the state branch"
         default: "models/signals/xs_nn.joblib,models/signals/xs_nn_preds.parquet,models/signals/xs_tabpfn.joblib,models/signals/xs_tabpfn_preds.parquet"
@@ -41,7 +45,7 @@ jobs:
       - name: train on the Kaggle GPU (push the kernel, wait, download)
         id: kaggle
         run: >
-          python scripts/kaggle_deep.py run --out kaggle_out --max-minutes 300
+          python scripts/kaggle_deep.py ${{ inputs.attach && 'attach' || 'run' }} --out kaggle_out --max-minutes 300
           --slug "${{ inputs.slug || 'cwr-trainer' }}"
           --cmd "${{ inputs.cmd || 'python -m stockbot gpu-train --ic-start 2019-01-01' }}"
           --collect "${{ inputs.collect || 'models/signals/xs_nn.joblib,models/signals/xs_nn_preds.parquet,models/signals/xs_tabpfn.joblib,models/signals/xs_tabpfn_preds.parquet' }}"

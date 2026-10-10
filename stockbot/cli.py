@@ -590,7 +590,13 @@ def cmd_fill_caches(cfg, args) -> int:
     from .agent.train import load_frames
     from .signals.registry import PROVIDER_CLASSES, build_context
 
-    frames = load_frames(cfg, refresh=True)
+    if args.from_dataset:                                                # no download: the bars the weekly build saved (Yahoo
+        from .agent.gpu_train import frames_from_dataset                 # refuses Kaggle's machines)
+        from .env.dataset import MarketDataset
+
+        frames = frames_from_dataset(MarketDataset.load(cfg.path("models_dir", "models") / "dataset"))
+    else:
+        frames = load_frames(cfg, refresh=True)
     ctx = build_context(cfg, with_llm=False, with_news=False)
     ctx.extra["frames"] = frames
     ctx.extra["fill_all"] = True                                         # the whole history, not the build's per-name cap
@@ -979,6 +985,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("fill-caches", help="compute the forecasting models' history for the whole universe (fast on a GPU)")
     p.add_argument("--blocks", nargs="*", default=["chronos", "chronos2", "timesfm", "kronos"])
+    p.add_argument("--from-dataset", action="store_true", help="read the bars from the saved dataset instead of downloading them")
     p.set_defaults(fn=cmd_fill_caches)
 
     p = sub.add_parser("news-score", help="score the logged news / LLM verdicts against what the stocks then did")

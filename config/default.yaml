@@ -395,7 +395,7 @@ signals:
                    max_train_rows: 150000, seeds_gpu: 10, epochs_gpu: 60, max_train_rows_gpu: 2000000,
                    pretrained: { enabled: true, max_age_days: 45 } }   # GKX NN3 ensemble; GPU-trained (stockbot gpu-train) and reused here when fresh
   xs_tabpfn:     { enabled: true, horizon: 20, min_train_years: 3, refit_every: 1, max_train_rows: 4000, chunk: 2000, years_back: 2, stride: 5,
-                   gpu: { max_train_rows: 10000, chunk: 4000, years_back: 0, stride: 1 },
+                   gpu: { max_train_rows: 10000, chunk: 4000, years_back: 0, stride: 2 },
                    pretrained: { enabled: true, max_age_days: 45 } }   # on a CPU: a 4000-row context, 2 years, every 5th day; a GPU: the full recipe
   # block pruning (weekly, models/block_mask.json): a block whose every feature has |t| < mask_t on its 6-month cross-sectional IC and
   # that carries < mask_gain of the ranking head's gain is masked (flag 0, features 0 - the layout and the models stay valid) until it
