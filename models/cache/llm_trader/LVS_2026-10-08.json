@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 95, "reasoning": "The long position is down -12.32%, exceeding the -8% loss rule that mandates closing any position that breaches this threshold. Protecting capital overrides any profit considerations, so the position must be fully exited immediately."}

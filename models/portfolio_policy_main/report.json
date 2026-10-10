@@ -1,0 +1,96 @@
+{
+ "account": "main",
+ "tuned_at": "2026-09-16",
+ "windows": [
+  {
+   "window": "2023-09-15..2024-09-13",
+   "agent": {
+    "total": 0.2658506254333698,
+    "sharpe": 2.064532378365705,
+    "max_drawdown": -0.07474013842900185,
+    "rebalances_per_year": 1.0021663364524491
+   },
+   "rule": {
+    "total": 0.30727586896261055,
+    "sharpe": 2.216389944146148,
+    "max_drawdown": -0.07086976817639684
+   },
+   "starts": 4
+  },
+  {
+   "window": "2024-09-16..2025-09-15",
+   "agent": {
+    "total": 0.10652343404942921,
+    "sharpe": 0.8575009922751644,
+    "max_drawdown": -0.14621637961395897,
+    "rebalances_per_year": 2.2504264229048982
+   },
+   "rule": {
+    "total": 0.26173676087374365,
+    "sharpe": 1.325186501614123,
+    "max_drawdown": -0.17728855329125656
+   },
+   "starts": 4
+  },
+  {
+   "window": "2025-09-15..2026-09-15",
+   "agent": {
+    "total": 0.11904139863129759,
+    "sharpe": 1.5685225531296805,
+    "max_drawdown": -0.04466063289674041,
+    "rebalances_per_year": 1.0021663364524491
+   },
+   "rule": {
+    "total": 0.1583951190254566,
+    "sharpe": 1.2619603008299767,
+    "max_drawdown": -0.08288184193445333
+   },
+   "starts": 4
+  }
+ ],
+ "wins": 1,
+ "n": 3,
+ "agent_mean": {
+  "total": 0.16380515270469886,
+  "sharpe": 1.4968519745901832,
+  "max_drawdown": -0.08853905031323374
+ },
+ "rule_mean": {
+  "total": 0.24246924962060365,
+  "sharpe": 1.6011789155300826,
+  "max_drawdown": -0.11034672113403558
+ },
+ "accepted": false,
+ "timesteps": 200000,
+ "features": [
+  "spy_ret_20",
+  "spy_ret_60",
+  "spy_ret_120",
+  "spy_vol_20",
+  "spy_trend_200",
+  "breadth_50",
+  "xs_disp_20",
+  "score_disp",
+  "scored_frac",
+  "book_ret_60",
+  "exposure",
+  "since_rebalance",
+  "book_vol_20",
+  "drawdown",
+  "last_turnover",
+  "slots"
+ ],
+ "exposures": [
+  0.5,
+  0.75,
+  1.0
+ ],
+ "structure": {
+  "top_k": 25,
+  "every_bars": 10,
+  "hysteresis": 3,
+  "max_per_sector": 6,
+  "reserve": 0.1
+ },
+ "reason": "the fixed-cadence rule is as good - kept"
+}
