@@ -755,7 +755,7 @@ session:                      # `stockbot session`: the daily market-hours run (
   deadline_minutes: 0         # 0 = no job deadline; the GitHub workflow passes ~300 so watch + review + trainer end before the 6 h kill
   deadline_at: ""             # or an absolute ISO time (the workflow anchors it on the job's start: JOB_DEADLINE); the earlier one wins
   review_after: true          # after the watch window, replay the day and score it against the alternatives (`stockbot review`)
-  learn_before_open: true     # before the open, learn from yesterday (and any finished week / month / year not learned yet) in a
+  learn_before_open: false    # OFF 2026-10-10: it fine-tunes the RL policy, which no longer decides trades (the daily book does), and cost ~65 min each morning; before the open, learn from yesterday (and any finished week / month / year not learned yet) in a
   learn_margin_minutes: 8     # background process alongside the agent warm-up; it must be done this many minutes before the open
   accounts: true              # also trade every enabled account under `accounts:` from the same signals, each with its own rules
   intraday_exit:              # during the watch window, sell a held name when the exit model - fitted on the broker's 15-minute
