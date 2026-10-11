@@ -197,6 +197,8 @@ def test_hindsight_learns_one_unit_at_a_time(cfg, frames, monkeypatch):
 
 def test_session_learns_before_the_open_alongside_the_warm_up(cfg, frames, monkeypatch):
     import sys
+
+    cfg.set_path("session.learn_before_open", True)                       # off by default since the daily book; the feature stays
     from datetime import datetime, timedelta
 
     from stockbot.agent.policy import PolicyBundle
