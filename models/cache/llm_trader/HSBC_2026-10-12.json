@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 85, "reasoning": "Unrealised loss is -7.05%, close to the -8% stop\u2011loss threshold. The position has retraced far beyond the 30% profit\u2011peak drawdown rule (peak +1.66% to -7.05%). To protect capital per risk rules, a full exit is warranted despite the RSI indicating oversold conditions."}

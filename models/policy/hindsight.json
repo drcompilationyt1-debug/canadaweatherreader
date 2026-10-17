@@ -1,0 +1,194 @@
+{
+ "learned": {
+  "day": "2026-10-07",
+  "week": "2026-10-02",
+  "month": "2026-09-30"
+ },
+ "signature": "6be046e679e9",
+ "last": {
+  "period": "day",
+  "ran_at": "2026-10-08T17:54:38.498389+00:00",
+  "checkpoint": "/home/runner/work/canadaweatherreader/canadaweatherreader/models/policy",
+  "budget_minutes": 7.999960704644521,
+  "samples": 149,
+  "start": "2026-10-07",
+  "end": "2026-10-07",
+  "signature": "6be046e679e9",
+  "yardstick": {
+   "tickers": 8,
+   "bars": 500,
+   "epochs": 8
+  },
+  "seconds": 17.2,
+  "members": {
+   "seed0/best.zip": {
+    "path": "/home/runner/work/canadaweatherreader/canadaweatherreader/models/policy/ensemble/seed0/best.zip",
+    "loss_before": 0.9901601076126099,
+    "loss_after": 0.9586542844772339,
+    "anchor_drift": 0.002083476632833481,
+    "samples": 149,
+    "epochs": 8,
+    "score_before": 0.5017477004726167,
+    "score_after": 0.4693878878796372,
+    "accepted": false,
+    "seconds": 2.7
+   },
+   "seed1/best.zip": {
+    "path": "/home/runner/work/canadaweatherreader/canadaweatherreader/models/policy/ensemble/seed1/best.zip",
+    "loss_before": 1.7406319379806519,
+    "loss_after": 1.688370704650879,
+    "anchor_drift": 0.0024503525346517563,
+    "samples": 149,
+    "epochs": 8,
+    "score_before": 0.1581753610128171,
+    "score_after": 0.18098936784766678,
+    "accepted": true,
+    "seconds": 2.7
+   },
+   "seed2/best.zip": {
+    "path": "/home/runner/work/canadaweatherreader/canadaweatherreader/models/policy/ensemble/seed2/best.zip",
+    "loss_before": 0.2378397434949875,
+    "loss_after": 0.2347860187292099,
+    "anchor_drift": 0.00029130707844160497,
+    "samples": 149,
+    "epochs": 8,
+    "score_before": 0.4378631965959847,
+    "score_after": 0.4371791860057916,
+    "accepted": true,
+    "seconds": 2.7
+   }
+  },
+  "accepted": 2,
+  "mean_target": 0.24832214415073395,
+  "mean_level_best": 0.6241610738255033,
+  "mean_level_ours": 0.029002346393762656
+ },
+ "history": [
+  {
+   "ran_at": "2026-09-15T17:27:15.403218+00:00",
+   "period": "day",
+   "end": "2026-09-14",
+   "samples": 50,
+   "accepted": 3
+  },
+  {
+   "ran_at": "2026-09-16T17:25:51.327261+00:00",
+   "period": "day",
+   "end": "2026-09-15",
+   "samples": 100,
+   "accepted": 2
+  },
+  {
+   "ran_at": "2026-09-17T17:24:15.498146+00:00",
+   "period": "day",
+   "end": "2026-09-16",
+   "samples": 100,
+   "accepted": 2
+  },
+  {
+   "ran_at": "2026-09-22T17:57:41.286895+00:00",
+   "period": "day",
+   "end": "2026-09-21",
+   "samples": 150,
+   "accepted": 3
+  },
+  {
+   "ran_at": "2026-09-24T17:54:33.228649+00:00",
+   "period": "day",
+   "end": "2026-09-23",
+   "samples": 150,
+   "accepted": 1
+  },
+  {
+   "ran_at": "2026-09-25T17:49:48.250868+00:00",
+   "period": "day",
+   "end": "2026-09-24",
+   "samples": 150,
+   "accepted": 1
+  },
+  {
+   "ran_at": "2026-09-28T12:45:24.599880+00:00",
+   "period": "week",
+   "end": "2026-09-25",
+   "samples": 450,
+   "accepted": 0
+  },
+  {
+   "ran_at": "2026-09-28T18:02:02.538583+00:00",
+   "period": "day",
+   "end": "2026-09-25",
+   "samples": 150,
+   "accepted": 1
+  },
+  {
+   "ran_at": "2026-09-29T17:47:09.691174+00:00",
+   "period": "day",
+   "end": "2026-09-28",
+   "samples": 150,
+   "accepted": 1
+  },
+  {
+   "ran_at": "2026-09-30T17:39:41.951976+00:00",
+   "period": "day",
+   "end": "2026-09-29",
+   "samples": 150,
+   "accepted": 1
+  },
+  {
+   "ran_at": "2026-10-05T12:46:39.390059+00:00",
+   "period": "day",
+   "end": "2026-09-30",
+   "samples": 150,
+   "accepted": 1
+  },
+  {
+   "ran_at": "2026-10-05T12:47:36.504905+00:00",
+   "period": "day",
+   "end": "2026-10-01",
+   "samples": 150,
+   "accepted": 0
+  },
+  {
+   "ran_at": "2026-10-05T12:48:33.555324+00:00",
+   "period": "week",
+   "end": "2026-10-02",
+   "samples": 600,
+   "accepted": 0
+  },
+  {
+   "ran_at": "2026-10-05T12:49:27.739680+00:00",
+   "period": "month",
+   "end": "2026-09-30",
+   "samples": 1050,
+   "accepted": 0
+  },
+  {
+   "ran_at": "2026-10-05T17:39:49.583675+00:00",
+   "period": "day",
+   "end": "2026-10-02",
+   "samples": 150,
+   "accepted": 2
+  },
+  {
+   "ran_at": "2026-10-06T17:32:21.019940+00:00",
+   "period": "day",
+   "end": "2026-10-05",
+   "samples": 150,
+   "accepted": 2
+  },
+  {
+   "ran_at": "2026-10-07T17:48:26.642239+00:00",
+   "period": "day",
+   "end": "2026-10-06",
+   "samples": 149,
+   "accepted": 2
+  },
+  {
+   "ran_at": "2026-10-08T17:54:38.498389+00:00",
+   "period": "day",
+   "end": "2026-10-07",
+   "samples": 149,
+   "accepted": 2
+  }
+ ]
+}
