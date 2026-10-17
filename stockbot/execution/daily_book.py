@@ -184,7 +184,7 @@ def plan_day(*, weights: dict[str, float], book: dict[str, dict], age: dict[str,
         z10 = s.resid10 / (s.vol * sqrt(10.0))
         why = None
         if np.isfinite(p) and p < rules.bad_rank_pct:
-            why = f"the ranking collapsed (bottom {100 * (1 - p):.0f}%)"
+            why = f"the ranking collapsed (now in the bottom {max(1, round(100 * p))}%)"
         elif z10 <= -rules.bad_drop_z:
             why = f"a stock-specific drop of {abs(z10):.1f} volatilities in 10 days"
         elif t in bad_news and z10 <= -rules.news_drop_z:
