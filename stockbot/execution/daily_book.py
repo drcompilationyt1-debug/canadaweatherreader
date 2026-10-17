@@ -63,6 +63,10 @@ class DailyRules:
     agree_hi: float = 0.6        # most models agree on the top names = an active day
     agree_lo: float = 0.35
     spread: float = 0.0005       # half-spread per side added to the fees
+    sizing: str = "equal"        # equal slots, "conviction" (size ~ expected return, capped) or "conviction_vol" (also / volatility)
+    conv_floor: float = 0.5      # a position is between conv_floor and conv_cap slots
+    conv_cap: float = 2.0
+    resize_band: float = 0.4     # a held position is topped up / trimmed only when its target differs by this many slots
     premium: float = 0.005       # what 20 days in stocks instead of idle cash is worth (~6.5%/yr): counted for a buy into an
                                  # open slot, not for a swap (both sides are stocks)
 
@@ -171,6 +175,20 @@ def plan_day(*, weights: dict[str, float], book: dict[str, dict], age: dict[str,
         """At least one whole share in an order of weight ``w``."""
         return not equity or (t in stats and w * equity >= stats[t].price)
 
+    top_k = [t for t in order[: max(rules.k, 1)] if exp.get(t, 0.0) > 0]
+    exp_ref = float(np.mean([exp[t] for t in top_k])) if top_k else 0.0
+    vol_ref = float(np.median([stats[t].vol for t in top_k if t in stats])) if any(t in stats for t in top_k) else 0.0
+
+    def target(t: str) -> float:
+        """The position a name deserves: a full slot (equal), or slots in proportion to its expected return against the top
+        names' average (conviction), optionally scaled by its volatility against theirs - capped between conv_floor and conv_cap."""
+        if rules.sizing == "equal" or exp_ref <= 0:
+            return slot
+        c = exp.get(t, 0.0) / exp_ref
+        if rules.sizing == "conviction_vol" and t in stats and vol_ref > 0:
+            c *= float(np.clip(vol_ref / stats[t].vol, 0.5, 2.0))
+        return min(slot * float(np.clip(c, rules.conv_floor, rules.conv_cap)), max_w)
+
     # 1) exits, any day: really bad (even at a loss), the trailing stop, spikes, leaving the rank band (never at a loss)
     for t in held:
         s, rec = stats.get(t), book.get(t)
@@ -256,6 +274,28 @@ def plan_day(*, weights: dict[str, float], book: dict[str, dict], age: dict[str,
             room -= add
             rec["starter"] = False
             events.append(("complete", t, 0.0, "staged entry completed (still ranks well)"))
+    # 2b) conviction sizing: top up a holding whose case got stronger, trim one whose case weakened (only in profit, never a
+    #     small order) - the worse the odds, the more is sold; a collapse still sells everything above
+    if rules.sizing != "equal":
+        for t in held:
+            if t in out or t not in stats or t not in book or int(age.get(t, 0)) < rules.min_hold_days:
+                continue
+            w = w_now(t)
+            diff = target(t) - w
+            band = max(rules.resize_band * slot, min_w.get(t, 0.0))
+            if diff >= band:
+                add = min(diff, room, max_w - w)
+                cost_add = cost_rt.get(t, 0.0) * slot / max(2.0 * add, 1e-9)        # one more order (the exit is one order anyway)
+                if add >= min_w.get(t, 0.0) and shares_ok(t, add) and exp.get(t, 0.0) + rules.premium >= hurdle * cost_add:
+                    out[t] = w + add
+                    room -= add
+                    events.append(("added", t, exp.get(t, 0.0), f"conviction up: +{100 * add / max(slot, 1e-9):.0f}% of a slot"))
+            elif -diff >= band:
+                trim = -diff
+                gain = stats[t].price / float(book[t]["entry"]) - 1.0
+                if gain > cost_rt.get(t, 0.0) and trim >= min_w.get(t, 0.0) and w - trim >= min_w.get(t, 0.0) and shares_ok(t, trim):
+                    out[t] = w - trim
+                    events.append(("trimmed", t, gain, f"conviction down: sold {100 * trim / w:.0f}% of it"))
     # 3) new names into open slots - only the ones worth their fees, never one that just spiked, at most what the day allows
     held_after = [t for t in weights if w_now(t) > 1e-6] + [t for t in out if t not in weights and out[t] > 1e-6]
     open_slots = rules.k - len(held_after)
@@ -290,10 +330,11 @@ def plan_day(*, weights: dict[str, float], book: dict[str, dict], age: dict[str,
             continue
         if gain < hurdle * cost_rt.get(t, 0.0) and not superdeal:
             continue
-        size = slot * rules.starter if rules.starter < 1.0 else slot
+        full = target(t)
+        size = full * rules.starter if rules.starter < 1.0 else full
         if size < min_w.get(t, 0.0):
-            size = slot
-        if size > room + 1e-9 or size < min_w.get(t, 0.0):
+            size = full
+        if size > room + 1e-9 or size < min_w.get(t, 0.0) or not shares_ok(t, size):
             break
         s = stats[t]
         out[t] = size
@@ -303,7 +344,7 @@ def plan_day(*, weights: dict[str, float], book: dict[str, dict], age: dict[str,
         super_used = super_used or extra
         cands.remove(t)
         sold_high.pop(t, None)
-        book[t] = {"entry": s.price, "high": s.price, "pct0": pct.get(t, 0.5), "starter": size < slot - 1e-9, "date_new": True}
+        book[t] = {"entry": s.price, "high": s.price, "pct0": pct.get(t, 0.5), "starter": size < full - 1e-9, "date_new": True}
         events.append(("buy", t, gain, ("a very good deal, " if extra else "") + f"#{rank[t]}, expected {100 * gain:+.1f}% "
                        f"in 20 days vs {100 * cost_rt.get(t, 0.0):.2f}% round trip"))
     # 4) swaps when the slots are full: the weakest holding (never at a loss) for a clearly better name
@@ -323,7 +364,7 @@ def plan_day(*, weights: dict[str, float], book: dict[str, dict], age: dict[str,
             if gap < hurdle * cost_rt.get(t_in, 0.0) and not superdeal:
                 break
             out[t_out] = 0.0
-            out[t_in] = slot
+            out[t_in] = target(t_in)
             cands.pop(0)
             if swaps <= 0:
                 super_used = True
@@ -343,7 +384,7 @@ def describe(events: list[tuple]) -> str:
     """A short note for the session log."""
     words = {"bad": "sold (really bad)", "trail": "trailing stop sold", "spike": "sold into a spike", "band": "sold (left the band)",
              "rebuy": "bought back", "complete": "completed", "buy": "bought", "swap": "swapped in", "wait": "waiting",
-             "armed": "armed", "kept_loss": "kept"}
+             "armed": "armed", "kept_loss": "kept", "added": "added to", "trimmed": "trimmed"}
     parts = []
     for kind, t, val, why in events:
         if kind in ("buy", "swap"):

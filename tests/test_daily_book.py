@@ -223,3 +223,17 @@ def test_measured_trading_cost_replaces_the_assumption_after_enough_fills():
     assert TradingRunner._measured_spread(R, 0.0005) == pytest.approx(0.0012)      # 12 bps a side measured
     R.state = {"fill_costs": [-3.0] * 40}
     assert TradingRunner._measured_spread(R, 0.0005) == 0.0005                    # never cheaper than assumed
+
+
+def test_conviction_sizing_adds_to_a_stronger_case_and_trims_a_weaker_one_in_profit():
+    names, pct = _universe(40)
+    stats = {t: _stats(_walk()) for t in names}
+    rules = DailyRules(k=3, buy_rank=3, hold_rank=10, min_hold_days=5, hurdle=1.0, sizing="conviction", resize_band=0.3)
+    book = {"N00": {"entry": 90.0, "high": 100.0, "pct0": 0.9}, "N08": {"entry": 80.0, "high": 100.0, "pct0": 0.99}}
+    out, events, _ = _plan({"N00": 0.15, "N08": 0.3}, book, pct, stats, cash_w=0.3, rules=rules)
+    kinds = {e[0]: e[1] for e in events}
+    assert out["N00"] > 0.15 and kinds.get("added") == "N00"                   # the best name, under-sized: topped up
+    assert 0 < out["N08"] < 0.3 and kinds.get("trimmed") == "N08"              # a weaker case in profit: partly sold, not all
+    losing = dict(book, N08={"entry": 120.0, "high": 120.0, "pct0": 0.99})
+    out, _, _ = _plan({"N00": 0.15, "N08": 0.3}, losing, pct, stats, cash_w=0.3, rules=rules)
+    assert "N08" not in out                                                     # under water: never trimmed

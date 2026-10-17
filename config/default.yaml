@@ -669,6 +669,15 @@ execution:
       chase_z: 2.0
       rebuy_z: 1.0
       level: auto             # or force quiet / careful / normal / active
+      # conviction sizing (2026-10-17): a position is 0.5-2 slots in proportion to its expected return against the top names'
+      # average; a held name is topped up when its case gets stronger and partly trimmed (only in profit) when it weakens, and only
+      # when the change is worth an order (resize_band, min order, fee hurdle).  Replay 2019-26 on the blended scores: 10k book
+      # 46.2%/yr vs 43.7% equal slots, 100k 29.5% vs 28.5% (drawdown -24 vs -21); volatility scaling on top was worse (37.5 / 26.7);
+      # cvxportfolio (Boyd et al.) as the sizing engine was far worse (best 18.7 / 21.6: 40-90 names, up to 2.4%/yr in fees)
+      sizing: conviction
+      conv_floor: 0.5
+      conv_cap: 2.0
+      resize_band: 0.4
     portfolio_rl: { enabled: true }   # the portfolio agent (stockbot portfolio-rl: PPO over rebalance timing + exposure, walk-forward vs this
                                       # rule) takes over the cadence and the volatility targeting only once its report says accepted
     vol_target:               # volatility targeting on the whole book (Moreira & Muir 2017): gross exposure is scaled so the book's
