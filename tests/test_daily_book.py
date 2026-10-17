@@ -211,3 +211,15 @@ def test_whole_shares_only_a_name_whose_share_does_not_fit_the_slot_is_skipped()
                          cash_w=0.9, cost_rt={t: 0.004 for t in names}, min_w={t: 0.05 for t in names}, ic=0.05, disp=0.08,
                          equity=10_000.0, rules=RULES)
     assert "N00" not in out and set(out) == {"N01", "N02"}                     # a $3,000 slot cannot hold it: the next names
+
+
+def test_measured_trading_cost_replaces_the_assumption_after_enough_fills():
+    from stockbot.execution.runner import TradingRunner
+
+    class R:
+        state = {"fill_costs": [12.0] * 10}
+    assert TradingRunner._measured_spread(R, 0.0005) == 0.0005                    # too few fills: the assumption
+    R.state = {"fill_costs": [12.0] * 40}
+    assert TradingRunner._measured_spread(R, 0.0005) == pytest.approx(0.0012)      # 12 bps a side measured
+    R.state = {"fill_costs": [-3.0] * 40}
+    assert TradingRunner._measured_spread(R, 0.0005) == 0.0005                    # never cheaper than assumed

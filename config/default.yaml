@@ -607,7 +607,9 @@ execution:
     top_k: 20
     every_bars: 15            # 1 daily, 5 weekly, 15 every three weeks, 21 monthly - the fee per round trip decides
     hysteresis: 10            # a held name keeps its slot while it ranks within top_k + 10: fewer round trips on score noise
-    inputs: { xs_rank.xs_score: 1.0, timesfm.tfm_ret_20: 0.5 }
+    # the three ranking heads blended equally (2026-10-17): they disagree (rank correlations 0.25-0.45), so the blend's IC is
+    # 0.049 (2019+) / 0.052 (2024+) vs 0.041 / 0.048 for LightGBM alone; the top 8 beat the universe by 2.6% per 20 days vs 1.45%
+    inputs: { xs_rank.xs_score: 1.0, xs_tabpfn.pfn_score: 1.0, xs_nn.nn_score: 1.0, timesfm.tfm_ret_20: 0.5 }
     policy_floor: 1.0         # slots always full: the reflection's regret is dominated by under-sized positions and the per-name
                               # policy's own out-of-sample record is below buy-and-hold, so it keeps only its veto (policy_veto)
     policy_veto: 0.05

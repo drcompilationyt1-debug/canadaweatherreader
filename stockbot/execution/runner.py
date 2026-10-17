@@ -882,7 +882,7 @@ class TradingRunner:
                 if st is not None:
                     stats[t] = st
         slot = min(satellite / max(rules.k, 1), self.max_position)
-        spread = 2.0 * float(rules.spread)
+        spread = 2.0 * self._measured_spread(float(rules.spread))
         cost_rt = {t: self.fee_drag(t, st.price, slot * equity) / 100.0 + spread for t, st in stats.items()}
         min_w = {t: self.min_trade_for(t) / equity for t in universe}
         cash_w = (float(self.broker.cash()) - self.cash_reserve * equity) / equity
@@ -935,6 +935,14 @@ class TradingRunner:
             if e[0] in ("wait", "kept_loss", "armed"):
                 log.info("daily book: %s", describe([e]))
         return weights
+
+    def _measured_spread(self, assumed: float) -> float:
+        """The cost per side beyond the fees: the assumed half-spread until 30 fills are logged, then what the fills really cost
+        against the decision price (median, never below the assumption - a lucky streak must not make trading look free)."""
+        costs = [c for c in (self.state.get("fill_costs") or []) if np.isfinite(c)]
+        if len(costs) < 30:
+            return assumed
+        return max(assumed, float(np.median(costs)) / 1e4)
 
     def _ic_and_dispersion(self, universe: list[str]) -> tuple[float, float]:
         """What a rank is worth: the ranking head's trailing information coefficient (models/rank_weights.json) and the
@@ -1367,6 +1375,9 @@ class TradingRunner:
                 if fill is not None:
                     fills.append(fill.to_dict())
                     fees_paid = float(fill.cost)
+                    if price > 0 and fill.price > 0:                  # what the fill cost against the decision price (bps, + = worse)
+                        slip = (fill.price / price - 1.0) * (1.0 if dec.shares > 0 else -1.0) * 1e4
+                        self.state["fill_costs"] = (list(self.state.get("fill_costs") or []) + [round(float(slip), 2)])[-300:]
                     dec.note = (dec.note + "; " if dec.note else "") + f"filled {fill.qty:.3f} @ {fill.price:.2f} fees {fill.cost:.2f}"
                     self.state["fees_paid"] = float(self.state.get("fees_paid", 0.0)) + fees_paid
                     if dec.shares > 0:
