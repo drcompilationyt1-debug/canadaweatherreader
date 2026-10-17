@@ -1307,6 +1307,10 @@ class TradingRunner:
                     dec.shares = whole * (1.0 if dec.shares > 0 else -1.0)
                     dec.amount_usd = dec.shares * price
             planned[t] = (dec, price, current)
+        if not dry_run and self.require_open and not self.market_is_open():    # the cycle took long and the market closed meanwhile:
+            self.last_cycle_note = (self.last_cycle_note + "; " if self.last_cycle_note else "") +                 "the market closed before the orders could go - none sent (nothing is ever left waiting for the next open)"
+            log.warning("market closed during the cycle - no orders sent")
+            dry_run = True
         cash_left: dict[str, float] = {}
         order = sorted(tickers, key=lambda t: 0 if planned[t][0].shares < 0 else 1)   # sells / covers first
         results: dict[str, tuple[Decision, list, float, float, float]] = {}

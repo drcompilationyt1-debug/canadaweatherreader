@@ -9,9 +9,14 @@ name: session
 # daylight-saving and standard time; `--gate-minutes` lets only the one near the open run.
 on:
   schedule:
-    - cron: "15 12 * * 1-5"      # 08:15 New York while daylight-saving time is in force (Mar-Nov)
-    - cron: "15 13 * * 1-5"      # 08:15 New York in standard time (Nov-Mar); both stay on: the gate below lets only the one near
-                                 # the open trade (the other exits in seconds - in summer it waits behind the session, then skips)
+    # GitHub starts scheduled runs late or drops them (Oct 14-16 2026: 4-5 hours late), so several slots through the trading day:
+    # the first one that starts while the market is open (or shortly before) trades; the others see today's session and exit
+    - cron: "15 12 * * 1-5"      # 08:15 New York in summer (07:15 in winter: waits for the open)
+    - cron: "15 13 * * 1-5"      # 08:15 New York in winter
+    - cron: "37 14 * * 1-5"      # backups: 10:37 / 09:37 New York
+    - cron: "37 15 * * 1-5"
+    - cron: "37 16 * * 1-5"
+    - cron: "37 17 * * 1-5"      # last backup: 13:37 / 12:37 New York (a later start could not decide before the close)
   workflow_dispatch:
     inputs:
       mode:
@@ -67,14 +72,24 @@ jobs:
         id: gate
         if: ${{ github.event_name == 'schedule' || inputs.gate == true }}
         run: |
-          # cheap pre-install check: proceed only between 07:55 and 10:00 New York on a weekday
+          # cheap pre-install check: a weekday between 07:55 and 13:45 New York (the session waits for the open or trades at once),
+          # and no session has run today yet (its log on the state branch) - the backup slots exit here in seconds
           python3 - <<'EOF' >> "$GITHUB_OUTPUT"
+          import urllib.request
           from datetime import datetime
           from zoneinfo import ZoneInfo
           now = datetime.now(ZoneInfo("America/New_York"))
-          ok = now.weekday() < 5 and (7, 55) <= (now.hour, now.minute) <= (10, 0)
-          print(f"proceed={'true' if ok else 'false'}")
+          ok = now.weekday() < 5 and (7, 55) <= (now.hour, now.minute) <= (13, 45)
+          done = False
+          if ok:
+              url = f"https://raw.githubusercontent.com/${{ github.repository }}/state/data/paper/sessions/session_{now:%Y-%m-%d}.json"
+              try:
+                  done = urllib.request.urlopen(urllib.request.Request(url, method="HEAD"), timeout=20).status == 200
+              except Exception:
+                  done = False
+          print(f"proceed={'true' if ok and not done else 'false'}")
           print(f"now={now:%a %Y-%m-%d %H:%M %Z}")
+          print(f"already_traded={'true' if done else 'false'}")
           EOF
           cat "$GITHUB_OUTPUT"
       - name: job clock (everything below plans around this deadline, 340 min after the job started)

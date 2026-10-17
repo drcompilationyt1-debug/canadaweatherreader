@@ -697,7 +697,8 @@ execution:
   # 0.3% under the 10:00 price fills on 74% of days but the days it misses cost as much as it saves (mean 0 bps, median
   # -30): buy_limit_discount stays 0 unless you want that lottery; > 0 places the limit at the cycle and sends whatever is
   # unfilled at market at buy_at
-  buy_at: "13:15"
+  buy_at: ""                  # owner 2026-10-16: trade at once whenever the market is open (no waiting for 13:15; the time of day
+                              # is worth ~0 bps for ordinary days - research 2026-10-09); orders are DAY orders, never carried over
   buy_limit_discount: 0.0
   # Real brokers (alpaca / moomoo / live) only get orders while the exchange is open, so every fill
   # happens at a live price and the move after it can be watched.  `stockbot trade --allow-closed`
