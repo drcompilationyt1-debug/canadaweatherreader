@@ -72,14 +72,14 @@ jobs:
         id: gate
         if: ${{ github.event_name == 'schedule' || inputs.gate == true }}
         run: |
-          # cheap pre-install check: a weekday between 07:55 and 13:45 New York (the session waits for the open or trades at once),
+          # cheap pre-install check: a weekday before the 16:00 New York close (no cutoff: a late start trades at once; if its decision lands after the close nothing is sent),
           # and no session has run today yet (its log on the state branch) - the backup slots exit here in seconds
           python3 - <<'EOF' >> "$GITHUB_OUTPUT"
           import urllib.request
           from datetime import datetime
           from zoneinfo import ZoneInfo
           now = datetime.now(ZoneInfo("America/New_York"))
-          ok = now.weekday() < 5 and (7, 55) <= (now.hour, now.minute) <= (13, 45)
+          ok = now.weekday() < 5 and (6, 30) <= (now.hour, now.minute) < (16, 0)
           done = False
           if ok:
               url = f"https://raw.githubusercontent.com/${{ github.repository }}/state/data/paper/sessions/session_{now:%Y-%m-%d}.json"
@@ -194,7 +194,7 @@ jobs:
         run: >
           timeout 338m python -m stockbot session --mode ${{ inputs.mode || 'alpaca' }} --deadline-minutes 330 --deadline-at "$JOB_DEADLINE"
           --hours ${{ inputs.hours || '4' }}
-          ${{ (github.event_name == 'schedule' || inputs.gate == true) && '--gate-minutes 90' || '' }}
+          
           ${{ inputs.dry_run == true && '--dry-run' || '' }}
           ${{ inputs.train == false && '--no-train' || '' }}
       - name: daily review (what we did vs the alternatives, every move that was available, where the regret came from)

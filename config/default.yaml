@@ -761,7 +761,7 @@ feedback:
 session:                      # `stockbot session`: the daily market-hours run (also what the GitHub workflow does)
   hours: 4                    # trade at the open, then watch the positions for this long
   after_open_minutes: 5       # let the opening auction settle before sending orders
-  max_wait_minutes: 80        # started before the open: wait at most this long for it
+  max_wait_minutes: 180       # started before the open: wait at most this long for it (the clock starts it ~08:15 New York)
   snapshot_minutes: 15        # log prices / equity / move-since-open this often
   end_margin_minutes: 15      # the background trainer must finish this long before the session ends
   deadline_minutes: 0         # 0 = no job deadline; the GitHub workflow passes ~300 so watch + review + trainer end before the 6 h kill
