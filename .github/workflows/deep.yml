@@ -31,6 +31,7 @@ jobs:
     timeout-minutes: 340
     permissions:
       contents: write
+      actions: write
     env:
       KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
       TABPFN_TOKEN: ${{ secrets.TABPFN_TOKEN }}
@@ -56,6 +57,14 @@ jobs:
           src=$(find kaggle_out -type d -path '*out/models' | head -1)
           if [ -n "$src" ]; then cp -r "$src"/. models/; echo "updated $(find "$src" -type f | wc -l) files under models/"; fi
           python scripts/ci_state.py save
+      - name: still running on Kaggle (it waited for a free GPU) - a follow-up run picks the result up and saves it
+        if: ${{ always() && steps.kaggle.outcome == 'failure' && !inputs.attach }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh workflow run deep.yml --ref ${{ github.ref_name }} -f attach=true
+          -f slug="${{ inputs.slug || 'cwr-trainer' }}"
+          -f collect="${{ inputs.collect || 'models/signals/xs_nn.joblib,models/signals/xs_nn_preds.parquet,models/signals/xs_tabpfn.joblib,models/signals/xs_tabpfn_preds.parquet' }}"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
