@@ -10,7 +10,7 @@ on:
 
 concurrency:
   group: stockbot-clock
-  cancel-in-progress: true
+  cancel-in-progress: false   # a restart waits its turn instead of cancelling the sleeping clock
 
 jobs:
   tick:
@@ -62,19 +62,19 @@ jobs:
               now = datetime.now(NY)
               if due(now):
                   if running_session():
-                      print(f"{now:%a %H:%M} a session is already running")
+                      print(f"{now:%a %H:%M} a session is already running", flush=True)
                   else:
-                      print(f"{now:%a %H:%M} starting the session")
+                      print(f"{now:%a %H:%M} starting the session", flush=True)
                       subprocess.run(["gh", "workflow", "run", "session.yml", "-R", REPO, "--ref", "main", "-f", "gate=true"], check=False)
               # today is handled (started, running, done, or not a trading day): wait for the next weekday 08:15
               now = datetime.now(NY)
               wait = (next_slot(now) - now).total_seconds()
               left = budget - (time.time() - started)
               if wait > left:
-                  print(f"{now:%a %H:%M} next session {next_slot(now):%a %H:%M}: sleeping {left / 60:.0f} min, then handing over")
+                  print(f"{now:%a %H:%M} next session {next_slot(now):%a %H:%M}: sleeping {left / 60:.0f} min, then handing over", flush=True)
                   time.sleep(max(0, left))
                   break
-              print(f"{now:%a %H:%M} sleeping {wait / 60:.0f} min until {next_slot(now):%a %H:%M}")
+              print(f"{now:%a %H:%M} sleeping {wait / 60:.0f} min until {next_slot(now):%a %H:%M}", flush=True)
               time.sleep(max(1, wait))
           EOF
       - name: hand over to a fresh clock
