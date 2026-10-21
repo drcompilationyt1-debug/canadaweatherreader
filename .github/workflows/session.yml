@@ -8,15 +8,17 @@ name: session
 # ends before GitHub's 6 h kill no matter how long the early steps take.  Two cron slots cover
 # daylight-saving and standard time; `--gate-minutes` lets only the one near the open run.
 on:
-  schedule:
-    # GitHub starts scheduled runs late or drops them (Oct 14-16 2026: 4-5 hours late), so several slots through the trading day:
-    # the first one that starts while the market is open (or shortly before) trades; the others see today's session and exit
-    - cron: "15 12 * * 1-5"      # 08:15 New York in summer (07:15 in winter: waits for the open)
-    - cron: "15 13 * * 1-5"      # 08:15 New York in winter
-    - cron: "37 14 * * 1-5"      # backups: 10:37 / 09:37 New York
-    - cron: "37 15 * * 1-5"
-    - cron: "37 16 * * 1-5"
-    - cron: "37 17 * * 1-5"      # last backup: 13:37 / 12:37 New York (a later start could not decide before the close)
+  # started by cron-job.org (POST .../actions/workflows/session.yml/dispatches, weekdays 08:15 New York) and by clock.yml as a
+  # backup - GitHub's own schedule ran 4-6 hours late (Oct 2026), so it is off:
+  # schedule:
+  #   # GitHub starts scheduled runs late or drops them (Oct 14-16 2026: 4-5 hours late), so several slots through the trading day:
+  #   # the first one that starts while the market is open (or shortly before) trades; the others see today's session and exit
+  #   - cron: "15 12 * * 1-5"      # 08:15 New York in summer (07:15 in winter: waits for the open)
+  #   - cron: "15 13 * * 1-5"      # 08:15 New York in winter
+  #   - cron: "37 14 * * 1-5"      # backups: 10:37 / 09:37 New York
+  #   - cron: "37 15 * * 1-5"
+  #   - cron: "37 16 * * 1-5"
+  #   - cron: "37 17 * * 1-5"      # last backup: 13:37 / 12:37 New York (a later start could not decide before the close)
   workflow_dispatch:
     inputs:
       mode:
