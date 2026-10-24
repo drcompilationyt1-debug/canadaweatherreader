@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 95, "reasoning": "Position unrealized PnL -10.67% exceeds the -8% stop-loss rule for stocks. Risk management mandates closing the position immediately to protect capital. Textbook strategies are neutral (+0.00), RSI 39 shows mild oversold but not enough to override the hard stop."}

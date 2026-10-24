@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 100, "reasoning": "The long position is down 8.5% from entry, exceeding the mandatory 8% single-position loss limit. It has also retraced more than 100% from its +8% peak PnL. Close the full position despite oversold RSI and bullish mean-reversion signals; capital preservation takes priority."}

@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 92, "reasoning": "The long position is at -7.6% loss, nearing the -8% stop\u2011loss rule, and has retraced more than 30% from its peak (+5.41% to -7.6%). Both risk management rules dictate closing to protect capital."}

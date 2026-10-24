@@ -1,0 +1,4842 @@
+{
+ "period": "day",
+ "start": "2026-09-29",
+ "end": "2026-09-29",
+ "generated": "2026-09-30T12:45:12.353126+00:00",
+ "actual_return": 0.00320998295854142,
+ "oracle_return": 0.03496138341514721,
+ "regret": 0.03175140045660579,
+ "captured": 0.09181510126257411,
+ "alternatives": {
+  "hold": 0.0032267462146539283,
+  "equal": -0.0016851318102583286,
+  "oracle": 0.03496138341514721,
+  "half": 0.0010996091227797407,
+  "double": 0.005948405454376923,
+  "benchmark": -0.0003012205982502181,
+  "follow:ai_hedge_fund": -0.0005270357170348755,
+  "follow:alpha101": 0.004093869217392896,
+  "follow:alpha_factors": 0.016062802597433902,
+  "follow:candles": 0.0050386123048148605,
+  "follow:chronos": 0.011545041284475735,
+  "follow:dqn_agent": 0.004268667488224752,
+  "follow:es_agent": 0.009290874005400861,
+  "follow:finbert": 0.012862395184572778,
+  "follow:kronos": 0.001951995486324769,
+  "follow:llm_trader": -0.0006021558777114579,
+  "follow:news_llm": 0.009678938481069528,
+  "follow:qlib": 0.00560692990866116,
+  "follow:sentiment": 0.010662258065004341,
+  "follow:strategy_zoo": 0.007294050954736096,
+  "follow:supertrend": 0.004503459012722424,
+  "follow:ta_keras": 0.0008974882214325361,
+  "follow:talib_candles": 0.012289391318147333,
+  "follow:timesfm": 0.012651740131419488,
+  "follow:trading_agents": -0.0005270357170348755,
+  "follow:trend": 0.0030016863468681526,
+  "follow:xs_rank": 0.008131439350901626,
+  "top_consensus": 0.0008686484425538182
+ },
+ "ranking": [
+  {
+   "name": "oracle",
+   "return": 0.03496138341514721
+  },
+  {
+   "name": "follow:alpha_factors",
+   "return": 0.016062802597433902
+  },
+  {
+   "name": "follow:finbert",
+   "return": 0.012862395184572778
+  },
+  {
+   "name": "follow:timesfm",
+   "return": 0.012651740131419488
+  },
+  {
+   "name": "follow:talib_candles",
+   "return": 0.012289391318147333
+  },
+  {
+   "name": "follow:chronos",
+   "return": 0.011545041284475735
+  },
+  {
+   "name": "follow:sentiment",
+   "return": 0.010662258065004341
+  },
+  {
+   "name": "follow:news_llm",
+   "return": 0.009678938481069528
+  },
+  {
+   "name": "follow:es_agent",
+   "return": 0.009290874005400861
+  },
+  {
+   "name": "follow:xs_rank",
+   "return": 0.008131439350901626
+  },
+  {
+   "name": "follow:strategy_zoo",
+   "return": 0.007294050954736096
+  },
+  {
+   "name": "double",
+   "return": 0.005948405454376923
+  },
+  {
+   "name": "follow:qlib",
+   "return": 0.00560692990866116
+  },
+  {
+   "name": "follow:candles",
+   "return": 0.0050386123048148605
+  },
+  {
+   "name": "follow:supertrend",
+   "return": 0.004503459012722424
+  },
+  {
+   "name": "follow:dqn_agent",
+   "return": 0.004268667488224752
+  },
+  {
+   "name": "follow:alpha101",
+   "return": 0.004093869217392896
+  },
+  {
+   "name": "hold",
+   "return": 0.0032267462146539283
+  },
+  {
+   "name": "actual",
+   "return": 0.00320998295854142
+  },
+  {
+   "name": "follow:trend",
+   "return": 0.0030016863468681526
+  },
+  {
+   "name": "follow:kronos",
+   "return": 0.001951995486324769
+  },
+  {
+   "name": "half",
+   "return": 0.0010996091227797407
+  },
+  {
+   "name": "follow:ta_keras",
+   "return": 0.0008974882214325361
+  },
+  {
+   "name": "top_consensus",
+   "return": 0.0008686484425538182
+  },
+  {
+   "name": "benchmark",
+   "return": -0.0003012205982502181
+  },
+  {
+   "name": "follow:ai_hedge_fund",
+   "return": -0.0005270357170348755
+  },
+  {
+   "name": "follow:trading_agents",
+   "return": -0.0005270357170348755
+  },
+  {
+   "name": "follow:llm_trader",
+   "return": -0.0006021558777114579
+  },
+  {
+   "name": "equal",
+   "return": -0.0016851318102583286
+  }
+ ],
+ "best_alternative": {
+  "name": "follow:alpha_factors",
+  "return": 0.016062802597433902
+ },
+ "best_model": "alpha_factors",
+ "per_name": [
+  {
+   "ticker": "ORCL",
+   "move": -0.00870597546497831,
+   "exposure": 0.28311963331393253,
+   "target": 0.27039883370111917,
+   "contribution": -0.0002464832581284752,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "dqn_agent",
+    "talib_candles",
+    "strategy_zoo",
+    "kronos",
+    "alpha101",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "llm_trader",
+    "sentiment",
+    "trend",
+    "chronos",
+    "timesfm",
+    "finbert",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.06666666666666667
+  },
+  {
+   "ticker": "TSLA",
+   "move": -0.0029095634242453094,
+   "exposure": 0.4238434889856931,
+   "target": 0.42850410511527776,
+   "contribution": -0.00012331995131572922,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "dqn_agent",
+    "ta_keras",
+    "sentiment",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "kronos",
+    "timesfm",
+    "alpha101",
+    "supertrend",
+    "momentum"
+   ],
+   "voted_down": [
+    "llm_trader",
+    "news_llm",
+    "candles",
+    "talib_candles",
+    "finbert",
+    "xs_rank"
+   ],
+   "consensus": 0.3333333333333333
+  },
+  {
+   "ticker": "INTC",
+   "move": -0.0017132088401574652,
+   "exposure": 0.2868161067529115,
+   "target": 0.28495748069765564,
+   "contribution": -4.913758895886353e-05,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "sentiment",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "candles",
+    "talib_candles",
+    "kronos",
+    "timesfm",
+    "finbert"
+   ],
+   "consensus": 0.25
+  },
+  {
+   "ticker": "SPY",
+   "move": -0.0003012205982502181,
+   "exposure": 0.38783086396482386,
+   "target": 0.3890579588278037,
+   "contribution": -1.1682264486338319e-05,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "sentiment",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "alpha101",
+    "supertrend",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "qlib",
+    "dqn_agent",
+    "kronos",
+    "timesfm",
+    "finbert",
+    "momentum"
+   ],
+   "consensus": 0.2857142857142857
+  },
+  {
+   "ticker": "AAPL",
+   "move": 0.0003161698283649095,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "dqn_agent",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "timesfm",
+    "alpha101",
+    "supertrend",
+    "momentum"
+   ],
+   "voted_down": [
+    "qlib",
+    "es_agent",
+    "news_llm",
+    "sentiment",
+    "candles",
+    "talib_candles",
+    "kronos",
+    "finbert",
+    "xs_rank"
+   ],
+   "consensus": -0.058823529411764705
+  },
+  {
+   "ticker": "ABT",
+   "move": 0.007919005613472363,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "dqn_agent",
+    "talib_candles",
+    "finbert"
+   ],
+   "voted_down": [
+    "qlib",
+    "sentiment",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "kronos",
+    "timesfm",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": -0.3333333333333333
+  },
+  {
+   "ticker": "ACN",
+   "move": 0.003353396388650065,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "news_llm",
+    "sentiment",
+    "candles",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "timesfm",
+    "finbert",
+    "alpha101",
+    "supertrend"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "chronos",
+    "kronos",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.5294117647058824
+  },
+  {
+   "ticker": "ADBE",
+   "move": -0.0070164800658336635,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "dqn_agent",
+    "sentiment",
+    "candles",
+    "talib_candles",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "kronos",
+    "timesfm",
+    "finbert",
+    "alpha101",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.0
+  },
+  {
+   "ticker": "AIG",
+   "move": 0.0012095961292923896,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "sentiment",
+    "chronos",
+    "timesfm",
+    "finbert",
+    "alpha101"
+   ],
+   "voted_down": [
+    "qlib",
+    "dqn_agent",
+    "candles",
+    "talib_candles",
+    "trend",
+    "kronos",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": -0.06666666666666667
+  },
+  {
+   "ticker": "AMAT",
+   "move": 0.00478660151292587,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "es_agent",
+    "talib_candles",
+    "chronos",
+    "timesfm",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "voted_down": [
+    "alpha_factors",
+    "qlib",
+    "dqn_agent",
+    "news_llm",
+    "sentiment",
+    "candles",
+    "strategy_zoo",
+    "trend",
+    "kronos",
+    "finbert",
+    "alpha101"
+   ],
+   "consensus": -0.29411764705882354
+  },
+  {
+   "ticker": "AMD",
+   "move": -0.0034500758527314934,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "llm_trader",
+    "news_llm",
+    "sentiment",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "timesfm",
+    "finbert",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "candles",
+    "trading_agents",
+    "kronos"
+   ],
+   "consensus": 0.5789473684210527
+  },
+  {
+   "ticker": "AMGN",
+   "move": 0.005799741168575956,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "dqn_agent",
+    "news_llm",
+    "sentiment",
+    "talib_candles",
+    "chronos",
+    "finbert",
+    "supertrend"
+   ],
+   "voted_down": [
+    "qlib",
+    "ta_keras",
+    "trend",
+    "kronos",
+    "timesfm",
+    "alpha101",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.125
+  },
+  {
+   "ticker": "AMZN",
+   "move": 0.002618917108228258,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "dqn_agent",
+    "sentiment",
+    "talib_candles",
+    "kronos"
+   ],
+   "voted_down": [
+    "news_llm",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "timesfm",
+    "finbert",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": -0.125
+  },
+  {
+   "ticker": "APA",
+   "move": -0.0056791292001892035,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "ta_keras",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "timesfm",
+    "finbert",
+    "alpha101",
+    "supertrend"
+   ],
+   "voted_down": [
+    "es_agent",
+    "talib_candles",
+    "kronos",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.42857142857142855
+  },
+  {
+   "ticker": "ATD.TO",
+   "move": 0.0,
+   "exposure": 0.006183384541076234,
+   "target": 0.00618139214460883,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "sentiment",
+    "talib_candles",
+    "chronos",
+    "kronos",
+    "finbert"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "strategy_zoo",
+    "trend",
+    "timesfm",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.06666666666666667
+  },
+  {
+   "ticker": "AVGO",
+   "move": -0.008335776819000551,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "sentiment",
+    "talib_candles",
+    "chronos",
+    "alpha101",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "qlib",
+    "dqn_agent",
+    "candles",
+    "strategy_zoo",
+    "trend",
+    "kronos",
+    "timesfm",
+    "finbert",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": -0.125
+  },
+  {
+   "ticker": "AXP",
+   "move": 0.0012476606363069909,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "dqn_agent",
+    "sentiment",
+    "talib_candles",
+    "kronos",
+    "timesfm",
+    "alpha101",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "qlib",
+    "es_agent",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "finbert",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.06666666666666667
+  },
+  {
+   "ticker": "BA",
+   "move": 0.0014872257927445176,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "dqn_agent",
+    "ta_keras",
+    "sentiment",
+    "strategy_zoo",
+    "kronos",
+    "timesfm",
+    "alpha101"
+   ],
+   "voted_down": [
+    "es_agent",
+    "news_llm",
+    "candles",
+    "talib_candles",
+    "trend",
+    "chronos",
+    "finbert",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.0
+  },
+  {
+   "ticker": "BABA",
+   "move": -4.638218923924686e-05,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "dqn_agent",
+    "sentiment",
+    "kronos",
+    "finbert",
+    "supertrend",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "qlib",
+    "candles",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "timesfm",
+    "alpha101",
+    "momentum"
+   ],
+   "consensus": 0.0
+  },
+  {
+   "ticker": "BAC",
+   "move": 0.0011828935395814533,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "dqn_agent",
+    "ta_keras",
+    "news_llm",
+    "sentiment",
+    "candles",
+    "strategy_zoo",
+    "chronos",
+    "kronos",
+    "timesfm",
+    "finbert",
+    "alpha101"
+   ],
+   "voted_down": [
+    "es_agent",
+    "talib_candles",
+    "trend",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.4444444444444444
+  },
+  {
+   "ticker": "BAX",
+   "move": -0.0055591190934360935,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "dqn_agent",
+    "sentiment",
+    "candles",
+    "talib_candles",
+    "strategy_zoo",
+    "chronos",
+    "timesfm",
+    "finbert"
+   ],
+   "voted_down": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "trend",
+    "kronos",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.0
+  },
+  {
+   "ticker": "BBY",
+   "move": 0.002093115347626684,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "dqn_agent",
+    "sentiment",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "timesfm",
+    "supertrend",
+    "momentum"
+   ],
+   "voted_down": [
+    "kronos",
+    "finbert",
+    "alpha101",
+    "xs_rank"
+   ],
+   "consensus": 0.4666666666666667
+  },
+  {
+   "ticker": "BMO.TO",
+   "move": -0.0024170252903378264,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "chronos",
+    "timesfm",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "strategy_zoo",
+    "trend",
+    "kronos",
+    "alpha101"
+   ],
+   "consensus": 0.16666666666666666
+  },
+  {
+   "ticker": "BNS.TO",
+   "move": 0.00021715526601528978,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "dqn_agent",
+    "llm_trader",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "timesfm",
+    "alpha101",
+    "supertrend",
+    "momentum"
+   ],
+   "voted_down": [
+    "candles",
+    "kronos",
+    "xs_rank"
+   ],
+   "consensus": 0.6
+  },
+  {
+   "ticker": "BNY",
+   "move": 0.0036037261168151424,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "ta_keras",
+    "news_llm",
+    "talib_candles",
+    "strategy_zoo",
+    "chronos",
+    "timesfm",
+    "finbert"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "trend",
+    "kronos",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.25
+  },
+  {
+   "ticker": "BRK-B",
+   "move": 0.00033874663744137834,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "ta_keras",
+    "news_llm",
+    "sentiment",
+    "candles",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "finbert",
+    "alpha101"
+   ],
+   "voted_down": [
+    "es_agent",
+    "dqn_agent",
+    "kronos",
+    "timesfm",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.3333333333333333
+  },
+  {
+   "ticker": "CF",
+   "move": -0.006484641638225264,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "sentiment",
+    "strategy_zoo",
+    "kronos",
+    "finbert",
+    "alpha101",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "talib_candles",
+    "trend",
+    "chronos",
+    "timesfm",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.2
+  },
+  {
+   "ticker": "CL",
+   "move": 0.00482951239380891,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "dqn_agent",
+    "sentiment",
+    "candles",
+    "talib_candles",
+    "chronos"
+   ],
+   "voted_down": [
+    "qlib",
+    "trend",
+    "kronos",
+    "timesfm",
+    "finbert",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": -0.06666666666666667
+  },
+  {
+   "ticker": "CLF",
+   "move": -0.0009029345372459918,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "ta_keras",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "kronos",
+    "alpha101",
+    "supertrend",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "news_llm",
+    "sentiment",
+    "candles",
+    "talib_candles",
+    "timesfm",
+    "finbert",
+    "momentum"
+   ],
+   "consensus": 0.29411764705882354
+  },
+  {
+   "ticker": "CMCSA",
+   "move": 0.0009289363678588458,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "dqn_agent",
+    "ta_keras",
+    "candles",
+    "strategy_zoo",
+    "kronos",
+    "alpha101",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "news_llm",
+    "sentiment",
+    "talib_candles",
+    "trend",
+    "chronos",
+    "timesfm",
+    "finbert",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.1111111111111111
+  },
+  {
+   "ticker": "CMG",
+   "move": -0.0014016508332034272,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "dqn_agent",
+    "news_llm",
+    "sentiment",
+    "candles",
+    "chronos",
+    "kronos",
+    "timesfm",
+    "finbert",
+    "alpha101"
+   ],
+   "voted_down": [
+    "es_agent",
+    "trend",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.4666666666666667
+  },
+  {
+   "ticker": "CMI",
+   "move": 0.007772844167477366,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "talib_candles",
+    "strategy_zoo",
+    "kronos",
+    "alpha101"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "sentiment",
+    "trend",
+    "chronos",
+    "timesfm",
+    "finbert",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": -0.06666666666666667
+  },
+  {
+   "ticker": "CNQ.TO",
+   "move": -0.004440215667618208,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "ta_keras",
+    "talib_candles",
+    "strategy_zoo",
+    "chronos",
+    "supertrend",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "trend",
+    "kronos",
+    "timesfm",
+    "alpha101",
+    "momentum"
+   ],
+   "consensus": 0.2857142857142857
+  },
+  {
+   "ticker": "CNR.TO",
+   "move": -0.003282775815499628,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "chronos",
+    "timesfm"
+   ],
+   "voted_down": [
+    "qlib",
+    "dqn_agent",
+    "ta_keras",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "kronos",
+    "finbert",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": -0.4666666666666667
+  },
+  {
+   "ticker": "COF",
+   "move": 0.003012048192771122,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "ta_keras",
+    "news_llm",
+    "sentiment",
+    "candles",
+    "timesfm",
+    "finbert",
+    "alpha101",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "kronos",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.29411764705882354
+  },
+  {
+   "ticker": "COP",
+   "move": -0.0015484178345972488,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "ta_keras",
+    "news_llm",
+    "strategy_zoo",
+    "chronos",
+    "kronos",
+    "finbert",
+    "alpha101"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "candles",
+    "talib_candles",
+    "trend",
+    "timesfm",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.17647058823529413
+  },
+  {
+   "ticker": "COST",
+   "move": 0.0065107569027087475,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "dqn_agent",
+    "sentiment",
+    "candles",
+    "chronos",
+    "timesfm"
+   ],
+   "voted_down": [
+    "qlib",
+    "ta_keras",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "kronos",
+    "finbert",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": -0.17647058823529413
+  },
+  {
+   "ticker": "CP.TO",
+   "move": 0.0017957481318426893,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "strategy_zoo",
+    "chronos",
+    "alpha101"
+   ],
+   "voted_down": [
+    "qlib",
+    "es_agent",
+    "dqn_agent",
+    "candles",
+    "talib_candles",
+    "trend",
+    "kronos",
+    "timesfm",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": -0.42857142857142855
+  },
+  {
+   "ticker": "CRM",
+   "move": -0.013984018264840192,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "dqn_agent",
+    "sentiment",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "kronos"
+   ],
+   "voted_down": [
+    "qlib",
+    "talib_candles",
+    "timesfm",
+    "finbert",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.06666666666666667
+  },
+  {
+   "ticker": "CSX",
+   "move": 0.0034272250187425968,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "sentiment",
+    "candles",
+    "talib_candles",
+    "strategy_zoo",
+    "chronos",
+    "kronos",
+    "finbert",
+    "alpha101"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "trend",
+    "timesfm",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.375
+  },
+  {
+   "ticker": "CTSH",
+   "move": -0.004174067495559486,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "ta_keras",
+    "news_llm",
+    "sentiment",
+    "candles",
+    "talib_candles",
+    "strategy_zoo",
+    "kronos"
+   ],
+   "voted_down": [
+    "es_agent",
+    "dqn_agent",
+    "trend",
+    "chronos",
+    "timesfm",
+    "finbert",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.0
+  },
+  {
+   "ticker": "CVS",
+   "move": -0.0024732543425745046,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "ta_keras",
+    "sentiment",
+    "strategy_zoo",
+    "kronos",
+    "timesfm",
+    "alpha101"
+   ],
+   "voted_down": [
+    "qlib",
+    "dqn_agent",
+    "talib_candles",
+    "trend",
+    "chronos",
+    "finbert",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.0
+  },
+  {
+   "ticker": "CVX",
+   "move": -0.002731973851107461,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "ta_keras",
+    "news_llm",
+    "sentiment",
+    "candles",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "timesfm",
+    "finbert",
+    "supertrend",
+    "momentum"
+   ],
+   "voted_down": [
+    "es_agent",
+    "dqn_agent",
+    "talib_candles",
+    "kronos",
+    "alpha101",
+    "xs_rank"
+   ],
+   "consensus": 0.3333333333333333
+  },
+  {
+   "ticker": "DD",
+   "move": -0.0008459586249328632,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "talib_candles",
+    "strategy_zoo",
+    "chronos",
+    "kronos",
+    "timesfm",
+    "finbert",
+    "alpha101"
+   ],
+   "voted_down": [
+    "qlib",
+    "es_agent",
+    "sentiment",
+    "candles",
+    "trend",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.06666666666666667
+  },
+  {
+   "ticker": "DE",
+   "move": 0.0007193927737729755,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "sentiment",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "timesfm",
+    "supertrend",
+    "momentum"
+   ],
+   "voted_down": [
+    "qlib",
+    "dqn_agent",
+    "candles",
+    "talib_candles",
+    "kronos",
+    "finbert",
+    "alpha101",
+    "xs_rank"
+   ],
+   "consensus": 0.0
+  },
+  {
+   "ticker": "DIS",
+   "move": 0.0007124198527663772,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "dqn_agent",
+    "sentiment",
+    "candles",
+    "talib_candles",
+    "strategy_zoo",
+    "kronos",
+    "finbert"
+   ],
+   "voted_down": [
+    "trend",
+    "chronos",
+    "timesfm",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.2
+  },
+  {
+   "ticker": "DUK",
+   "move": 0.007508170656302493,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "talib_candles",
+    "strategy_zoo",
+    "chronos",
+    "kronos",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "sentiment",
+    "trend",
+    "timesfm",
+    "finbert",
+    "alpha101",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.06666666666666667
+  },
+  {
+   "ticker": "DVN",
+   "move": -0.002467281699206181,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "ta_keras",
+    "sentiment",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "kronos",
+    "timesfm",
+    "supertrend",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "es_agent",
+    "dqn_agent",
+    "news_llm",
+    "talib_candles",
+    "finbert",
+    "alpha101",
+    "momentum"
+   ],
+   "consensus": 0.29411764705882354
+  },
+  {
+   "ticker": "EBAY",
+   "move": 0.004403826119897758,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "finbert",
+    "supertrend",
+    "momentum"
+   ],
+   "voted_down": [
+    "qlib",
+    "dqn_agent",
+    "sentiment",
+    "kronos",
+    "timesfm",
+    "alpha101",
+    "xs_rank"
+   ],
+   "consensus": 0.06666666666666667
+  },
+  {
+   "ticker": "ELV",
+   "move": 0.00804906094289004,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "ta_keras",
+    "sentiment",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "kronos",
+    "timesfm",
+    "alpha101",
+    "supertrend",
+    "momentum"
+   ],
+   "voted_down": [
+    "qlib",
+    "dqn_agent",
+    "candles",
+    "talib_candles",
+    "finbert",
+    "xs_rank"
+   ],
+   "consensus": 0.29411764705882354
+  },
+  {
+   "ticker": "EMR",
+   "move": 0.0038523989939189818,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "sentiment",
+    "talib_candles",
+    "chronos",
+    "finbert",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "voted_down": [
+    "qlib",
+    "dqn_agent",
+    "ta_keras",
+    "strategy_zoo",
+    "trend",
+    "kronos",
+    "timesfm"
+   ],
+   "consensus": 0.06666666666666667
+  },
+  {
+   "ticker": "ENB.TO",
+   "move": 0.00021503064186645382,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "sentiment",
+    "talib_candles",
+    "strategy_zoo",
+    "chronos",
+    "timesfm",
+    "finbert",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "qlib",
+    "trend",
+    "kronos",
+    "alpha101",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.2857142857142857
+  },
+  {
+   "ticker": "EOG",
+   "move": -0.00336146474038046,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "ta_keras",
+    "strategy_zoo",
+    "chronos",
+    "kronos",
+    "timesfm",
+    "alpha101"
+   ],
+   "voted_down": [
+    "qlib",
+    "es_agent",
+    "dqn_agent",
+    "talib_candles",
+    "trend",
+    "finbert",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": -0.06666666666666667
+  },
+  {
+   "ticker": "EXC",
+   "move": 0.0014888337468983437,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "ta_keras",
+    "talib_candles",
+    "strategy_zoo",
+    "kronos",
+    "finbert",
+    "alpha101",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "qlib",
+    "dqn_agent",
+    "sentiment",
+    "trend",
+    "chronos",
+    "timesfm",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.125
+  },
+  {
+   "ticker": "FCX",
+   "move": 0.0024826216484610253,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "talib_candles",
+    "strategy_zoo",
+    "chronos",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "qlib",
+    "dqn_agent",
+    "trend",
+    "kronos",
+    "timesfm",
+    "finbert",
+    "alpha101",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": -0.23076923076923078
+  },
+  {
+   "ticker": "FDX",
+   "move": 0.0047207749064586135,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "dqn_agent",
+    "news_llm",
+    "sentiment",
+    "candles",
+    "strategy_zoo",
+    "kronos",
+    "timesfm",
+    "finbert",
+    "alpha101",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "qlib",
+    "es_agent",
+    "talib_candles",
+    "trend",
+    "chronos",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.29411764705882354
+  },
+  {
+   "ticker": "FFIV",
+   "move": 0.011163200891199487,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "llm_trader",
+    "sentiment",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "timesfm",
+    "finbert",
+    "alpha101",
+    "supertrend",
+    "momentum"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "kronos",
+    "xs_rank"
+   ],
+   "consensus": 0.6
+  },
+  {
+   "ticker": "FSLR",
+   "move": -0.002758462157347208,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "ta_keras",
+    "news_llm",
+    "kronos",
+    "timesfm",
+    "alpha101",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "sentiment",
+    "candles",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "finbert",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.0
+  },
+  {
+   "ticker": "GILD",
+   "move": 0.010959914197613552,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "sentiment",
+    "candles",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "timesfm",
+    "finbert",
+    "supertrend",
+    "momentum"
+   ],
+   "voted_down": [
+    "qlib",
+    "es_agent",
+    "dqn_agent",
+    "kronos",
+    "alpha101",
+    "xs_rank"
+   ],
+   "consensus": 0.25
+  },
+  {
+   "ticker": "GLW",
+   "move": 0.001809121782460954,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "news_llm",
+    "sentiment",
+    "talib_candles",
+    "trend",
+    "chronos",
+    "kronos",
+    "timesfm",
+    "alpha101",
+    "xs_rank",
+    "momentum"
+   ],
+   "voted_down": [
+    "es_agent",
+    "dqn_agent",
+    "candles",
+    "finbert",
+    "supertrend"
+   ],
+   "consensus": 0.375
+  },
+  {
+   "ticker": "GOOGL",
+   "move": -0.0005160034793376678,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "sentiment",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "kronos",
+    "timesfm",
+    "supertrend"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "finbert",
+    "alpha101",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.4666666666666667
+  },
+  {
+   "ticker": "HD",
+   "move": 0.00027703708834025953,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "candles",
+    "talib_candles",
+    "strategy_zoo",
+    "kronos",
+    "alpha101"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "sentiment",
+    "trend",
+    "chronos",
+    "timesfm",
+    "finbert",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.0
+  },
+  {
+   "ticker": "HON",
+   "move": 0.0008586147681739487,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "dqn_agent",
+    "sentiment",
+    "talib_candles",
+    "strategy_zoo",
+    "finbert",
+    "alpha101",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "qlib",
+    "ta_keras",
+    "trend",
+    "chronos",
+    "kronos",
+    "timesfm",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.125
+  },
+  {
+   "ticker": "HPQ",
+   "move": -0.0033969589129732025,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "ta_keras",
+    "sentiment",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "timesfm",
+    "supertrend",
+    "momentum"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "news_llm",
+    "kronos",
+    "finbert",
+    "alpha101",
+    "xs_rank"
+   ],
+   "consensus": 0.29411764705882354
+  },
+  {
+   "ticker": "IBM",
+   "move": -0.002953976593681684,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "dqn_agent",
+    "ta_keras",
+    "candles",
+    "talib_candles",
+    "strategy_zoo",
+    "chronos",
+    "kronos",
+    "timesfm",
+    "alpha101",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "news_llm",
+    "sentiment",
+    "trend",
+    "finbert",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.4117647058823529
+  },
+  {
+   "ticker": "JCI",
+   "move": 0.005804589987920883,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "voted_down": [
+    "qlib",
+    "dqn_agent",
+    "candles",
+    "talib_candles",
+    "kronos",
+    "timesfm",
+    "finbert"
+   ],
+   "consensus": 0.06666666666666667
+  },
+  {
+   "ticker": "JNJ",
+   "move": 0.00069235231376652,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "news_llm",
+    "candles",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "timesfm",
+    "finbert",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "voted_down": [
+    "qlib",
+    "dqn_agent",
+    "sentiment",
+    "kronos",
+    "alpha101"
+   ],
+   "consensus": 0.4117647058823529
+  },
+  {
+   "ticker": "JPM",
+   "move": 0.002330793366203565,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "ta_keras",
+    "sentiment",
+    "chronos",
+    "timesfm",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "candles",
+    "talib_candles",
+    "trend",
+    "kronos",
+    "finbert",
+    "alpha101",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.0
+  },
+  {
+   "ticker": "KO",
+   "move": 0.0017804836023203041,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "ta_keras",
+    "news_llm",
+    "sentiment",
+    "strategy_zoo",
+    "chronos",
+    "finbert",
+    "alpha101",
+    "supertrend",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "qlib",
+    "dqn_agent",
+    "talib_candles",
+    "trend",
+    "kronos",
+    "timesfm",
+    "momentum"
+   ],
+   "consensus": 0.29411764705882354
+  },
+  {
+   "ticker": "KSS",
+   "move": -0.001371742112482921,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "news_llm",
+    "candles",
+    "talib_candles",
+    "chronos",
+    "kronos",
+    "momentum"
+   ],
+   "voted_down": [
+    "strategy_zoo",
+    "trend",
+    "timesfm",
+    "finbert",
+    "alpha101",
+    "supertrend",
+    "xs_rank"
+   ],
+   "consensus": 0.06666666666666667
+  },
+  {
+   "ticker": "M",
+   "move": 0.00021533161068054696,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "dqn_agent",
+    "news_llm",
+    "sentiment",
+    "talib_candles",
+    "chronos",
+    "kronos",
+    "finbert",
+    "alpha101",
+    "supertrend",
+    "momentum"
+   ],
+   "voted_down": [
+    "qlib",
+    "ta_keras",
+    "strategy_zoo",
+    "trend",
+    "timesfm",
+    "xs_rank"
+   ],
+   "consensus": 0.29411764705882354
+  },
+  {
+   "ticker": "MA",
+   "move": 0.000443054238699947,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "dqn_agent",
+    "news_llm",
+    "sentiment",
+    "talib_candles",
+    "kronos",
+    "finbert"
+   ],
+   "voted_down": [
+    "trend",
+    "chronos",
+    "timesfm",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.2
+  },
+  {
+   "ticker": "MCD",
+   "move": -0.002764663349070662,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "dqn_agent",
+    "ta_keras",
+    "sentiment",
+    "talib_candles",
+    "strategy_zoo",
+    "chronos",
+    "kronos",
+    "timesfm",
+    "finbert",
+    "alpha101"
+   ],
+   "voted_down": [
+    "qlib",
+    "news_llm",
+    "trend",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.4117647058823529
+  },
+  {
+   "ticker": "MDLZ",
+   "move": -0.0017672304973490593,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "news_llm",
+    "sentiment",
+    "talib_candles",
+    "chronos",
+    "kronos",
+    "finbert",
+    "alpha101"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "trend",
+    "timesfm",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.3333333333333333
+  },
+  {
+   "ticker": "MDT",
+   "move": -0.004572473708276292,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "dqn_agent",
+    "llm_trader",
+    "sentiment",
+    "candles",
+    "talib_candles",
+    "strategy_zoo",
+    "chronos",
+    "kronos",
+    "finbert",
+    "alpha101",
+    "supertrend"
+   ],
+   "voted_down": [
+    "qlib",
+    "trend",
+    "timesfm",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.5294117647058824
+  },
+  {
+   "ticker": "MET",
+   "move": 0.0032086686655092844,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "news_llm",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "timesfm",
+    "alpha101",
+    "supertrend",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "qlib",
+    "es_agent",
+    "dqn_agent",
+    "sentiment",
+    "kronos",
+    "finbert",
+    "momentum"
+   ],
+   "consensus": 0.25
+  },
+  {
+   "ticker": "MFC.TO",
+   "move": -0.0009252833680314376,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "dqn_agent",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "timesfm",
+    "supertrend",
+    "momentum"
+   ],
+   "voted_down": [
+    "kronos",
+    "finbert",
+    "alpha101",
+    "xs_rank"
+   ],
+   "consensus": 0.42857142857142855
+  },
+  {
+   "ticker": "MGM",
+   "move": -0.0012580594433088121,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "qlib",
+    "es_agent",
+    "dqn_agent",
+    "ta_keras",
+    "strategy_zoo",
+    "kronos",
+    "alpha101",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "alpha_factors",
+    "news_llm",
+    "talib_candles",
+    "trend",
+    "chronos",
+    "timesfm",
+    "finbert",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.0
+  },
+  {
+   "ticker": "MMM",
+   "move": 0.0008915834522109645,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "candles",
+    "talib_candles",
+    "chronos",
+    "timesfm",
+    "alpha101",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "qlib",
+    "es_agent",
+    "dqn_agent",
+    "ta_keras",
+    "sentiment",
+    "strategy_zoo",
+    "trend",
+    "kronos",
+    "finbert",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": -0.17647058823529413
+  },
+  {
+   "ticker": "MO",
+   "move": 0.0008031542056072816,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "llm_trader",
+    "sentiment",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "timesfm",
+    "finbert",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "voted_down": [
+    "ai_hedge_fund",
+    "kronos",
+    "alpha101"
+   ],
+   "consensus": 0.625
+  },
+  {
+   "ticker": "MOS",
+   "move": -0.0002239641657334479,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "dqn_agent",
+    "ta_keras",
+    "sentiment",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "timesfm",
+    "alpha101"
+   ],
+   "voted_down": [
+    "qlib",
+    "es_agent",
+    "news_llm",
+    "talib_candles",
+    "kronos",
+    "finbert",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.058823529411764705
+  },
+  {
+   "ticker": "MRVL",
+   "move": 0.00190905272803632,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "sentiment",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "talib_candles",
+    "kronos",
+    "timesfm",
+    "finbert"
+   ],
+   "consensus": 0.3333333333333333
+  },
+  {
+   "ticker": "MSFT",
+   "move": -0.006472650840266048,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "dqn_agent",
+    "news_llm",
+    "sentiment",
+    "strategy_zoo",
+    "trend",
+    "kronos",
+    "finbert",
+    "supertrend"
+   ],
+   "voted_down": [
+    "talib_candles",
+    "chronos",
+    "timesfm",
+    "alpha101",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.375
+  },
+  {
+   "ticker": "MU",
+   "move": 0.003072535287246936,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "sentiment",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "kronos",
+    "timesfm",
+    "finbert"
+   ],
+   "consensus": 0.4666666666666667
+  },
+  {
+   "ticker": "NFLX",
+   "move": -0.0020541153137839663,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "ta_keras",
+    "candles",
+    "talib_candles",
+    "strategy_zoo",
+    "kronos",
+    "alpha101",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "sentiment",
+    "trend",
+    "chronos",
+    "timesfm",
+    "finbert",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.125
+  },
+  {
+   "ticker": "NKE",
+   "move": -0.004863137418368635,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "dqn_agent",
+    "talib_candles",
+    "kronos",
+    "timesfm",
+    "alpha101"
+   ],
+   "voted_down": [
+    "qlib",
+    "sentiment",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "finbert",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": -0.14285714285714285
+  },
+  {
+   "ticker": "NOV",
+   "move": 0.009765109527579696,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "ta_keras",
+    "news_llm",
+    "chronos",
+    "kronos",
+    "timesfm",
+    "finbert",
+    "alpha101",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "candles",
+    "talib_candles",
+    "trend",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.3333333333333333
+  },
+  {
+   "ticker": "NTAP",
+   "move": 0.008392905067460488,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "sentiment",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "timesfm",
+    "finbert",
+    "supertrend",
+    "momentum"
+   ],
+   "voted_down": [
+    "qlib",
+    "dqn_agent",
+    "news_llm",
+    "candles",
+    "kronos",
+    "alpha101",
+    "xs_rank"
+   ],
+   "consensus": 0.125
+  },
+  {
+   "ticker": "NTES",
+   "move": 0.001156833581226202,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "sentiment",
+    "candles",
+    "talib_candles",
+    "finbert"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "ta_keras",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "kronos",
+    "timesfm",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": -0.17647058823529413
+  },
+  {
+   "ticker": "NVDA",
+   "move": -0.007661421595225093,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "llm_trader",
+    "news_llm",
+    "sentiment",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "finbert",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "kronos",
+    "timesfm",
+    "alpha101"
+   ],
+   "consensus": 0.5294117647058824
+  },
+  {
+   "ticker": "OXY",
+   "move": -0.008111031002162816,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "ta_keras",
+    "strategy_zoo",
+    "chronos",
+    "alpha101",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "es_agent",
+    "dqn_agent",
+    "sentiment",
+    "talib_candles",
+    "trend",
+    "kronos",
+    "timesfm",
+    "finbert",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": -0.125
+  },
+  {
+   "ticker": "PDD",
+   "move": 0.0037538023428904665,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "dqn_agent",
+    "candles",
+    "talib_candles",
+    "kronos",
+    "timesfm"
+   ],
+   "voted_down": [
+    "qlib",
+    "news_llm",
+    "sentiment",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "finbert",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": -0.17647058823529413
+  },
+  {
+   "ticker": "PEP",
+   "move": 0.002619029004768958,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "strategy_zoo",
+    "timesfm"
+   ],
+   "voted_down": [
+    "qlib",
+    "es_agent",
+    "news_llm",
+    "sentiment",
+    "candles",
+    "talib_candles",
+    "trend",
+    "chronos",
+    "kronos",
+    "finbert",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": -0.625
+  },
+  {
+   "ticker": "PFE",
+   "move": 0.005290072297654769,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "news_llm",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "finbert",
+    "alpha101",
+    "supertrend",
+    "momentum"
+   ],
+   "voted_down": [
+    "qlib",
+    "es_agent",
+    "dqn_agent",
+    "sentiment",
+    "candles",
+    "kronos",
+    "timesfm",
+    "xs_rank"
+   ],
+   "consensus": 0.058823529411764705
+  },
+  {
+   "ticker": "PG",
+   "move": 0.004734528238079294,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "candles",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "supertrend",
+    "momentum"
+   ],
+   "voted_down": [
+    "qlib",
+    "dqn_agent",
+    "ta_keras",
+    "sentiment",
+    "chronos",
+    "kronos",
+    "timesfm",
+    "finbert",
+    "alpha101",
+    "xs_rank"
+   ],
+   "consensus": -0.17647058823529413
+  },
+  {
+   "ticker": "PM",
+   "move": 0.005109222668265412,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "sentiment",
+    "candles",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "finbert",
+    "alpha101",
+    "momentum"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "ta_keras",
+    "kronos",
+    "timesfm",
+    "supertrend",
+    "xs_rank"
+   ],
+   "consensus": 0.29411764705882354
+  },
+  {
+   "ticker": "PNC",
+   "move": 0.0028959931220162716,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "ta_keras",
+    "news_llm",
+    "sentiment",
+    "candles",
+    "strategy_zoo",
+    "kronos",
+    "finbert",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "talib_candles",
+    "trend",
+    "chronos",
+    "timesfm",
+    "alpha101",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.2222222222222222
+  },
+  {
+   "ticker": "PRU",
+   "move": -0.0038134858727681964,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "sentiment",
+    "chronos",
+    "timesfm",
+    "alpha101",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "candles",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "kronos",
+    "finbert",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.06666666666666667
+  },
+  {
+   "ticker": "PSKY",
+   "move": -0.004513540621865597,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "dqn_agent",
+    "news_llm",
+    "sentiment",
+    "candles",
+    "talib_candles",
+    "strategy_zoo",
+    "timesfm",
+    "finbert",
+    "supertrend"
+   ],
+   "voted_down": [
+    "es_agent",
+    "trend",
+    "chronos",
+    "kronos",
+    "alpha101",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.29411764705882354
+  },
+  {
+   "ticker": "QCOM",
+   "move": -0.013823159808561303,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "timesfm",
+    "alpha101",
+    "supertrend",
+    "momentum"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "sentiment",
+    "candles",
+    "talib_candles",
+    "kronos",
+    "finbert",
+    "xs_rank"
+   ],
+   "consensus": 0.06666666666666667
+  },
+  {
+   "ticker": "QQQ",
+   "move": -0.0009358216242608686,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "dqn_agent",
+    "sentiment",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "voted_down": [
+    "qlib",
+    "candles",
+    "kronos",
+    "timesfm",
+    "finbert"
+   ],
+   "consensus": 0.375
+  },
+  {
+   "ticker": "RTX",
+   "move": 0.00685151482710622,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "dqn_agent",
+    "news_llm",
+    "sentiment",
+    "talib_candles",
+    "strategy_zoo",
+    "kronos",
+    "timesfm",
+    "finbert"
+   ],
+   "voted_down": [
+    "trend",
+    "chronos",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.375
+  },
+  {
+   "ticker": "RY.TO",
+   "move": 0.0008774568792619952,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "talib_candles",
+    "chronos",
+    "timesfm",
+    "alpha101",
+    "momentum"
+   ],
+   "voted_down": [
+    "qlib",
+    "dqn_agent",
+    "strategy_zoo",
+    "trend",
+    "kronos",
+    "finbert",
+    "supertrend",
+    "xs_rank"
+   ],
+   "consensus": -0.14285714285714285
+  },
+  {
+   "ticker": "SBUX",
+   "move": 0.0007336372687731796,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "dqn_agent",
+    "strategy_zoo",
+    "kronos",
+    "timesfm"
+   ],
+   "voted_down": [
+    "qlib",
+    "news_llm",
+    "sentiment",
+    "trend",
+    "chronos",
+    "finbert",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": -0.2
+  },
+  {
+   "ticker": "SCHW",
+   "move": 0.005624872161996253,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "dqn_agent",
+    "ta_keras",
+    "talib_candles",
+    "strategy_zoo",
+    "chronos",
+    "kronos",
+    "timesfm",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "trend",
+    "finbert",
+    "alpha101",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.4666666666666667
+  },
+  {
+   "ticker": "SHOP.TO",
+   "move": 0.004504197092745521,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "dqn_agent",
+    "sentiment",
+    "talib_candles",
+    "strategy_zoo",
+    "kronos",
+    "timesfm",
+    "finbert",
+    "supertrend"
+   ],
+   "voted_down": [
+    "qlib",
+    "ta_keras",
+    "candles",
+    "trend",
+    "chronos",
+    "alpha101",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.17647058823529413
+  },
+  {
+   "ticker": "SLB",
+   "move": 0.014576374126935798,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "ta_keras",
+    "news_llm",
+    "sentiment",
+    "strategy_zoo",
+    "chronos",
+    "finbert"
+   ],
+   "voted_down": [
+    "es_agent",
+    "dqn_agent",
+    "talib_candles",
+    "trend",
+    "kronos",
+    "timesfm",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": -0.058823529411764705
+  },
+  {
+   "ticker": "SPG",
+   "move": 0.0009080423098630774,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "talib_candles",
+    "kronos",
+    "timesfm",
+    "finbert",
+    "alpha101"
+   ],
+   "voted_down": [
+    "qlib",
+    "dqn_agent",
+    "sentiment",
+    "candles",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": -0.2
+  },
+  {
+   "ticker": "SU.TO",
+   "move": -0.001258047805816509,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "llm_trader",
+    "sentiment",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "timesfm",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "kronos",
+    "finbert"
+   ],
+   "consensus": 0.6
+  },
+  {
+   "ticker": "T",
+   "move": -0.0022222222222222365,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "dqn_agent",
+    "ta_keras",
+    "news_llm",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "kronos",
+    "alpha101"
+   ],
+   "voted_down": [
+    "qlib",
+    "sentiment",
+    "candles",
+    "talib_candles",
+    "timesfm",
+    "finbert",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.1111111111111111
+  },
+  {
+   "ticker": "TCOM",
+   "move": 0.0002590002590001639,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "kronos",
+    "timesfm"
+   ],
+   "voted_down": [
+    "qlib",
+    "sentiment",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "finbert",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": -0.42857142857142855
+  },
+  {
+   "ticker": "TD.TO",
+   "move": 0.001222133254667357,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "timesfm",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "voted_down": [
+    "qlib",
+    "dqn_agent",
+    "kronos",
+    "finbert"
+   ],
+   "consensus": 0.42857142857142855
+  },
+  {
+   "ticker": "TGT",
+   "move": 0.010742313135211567,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "dqn_agent",
+    "news_llm",
+    "sentiment",
+    "talib_candles",
+    "strategy_zoo",
+    "chronos",
+    "timesfm",
+    "supertrend",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "trend",
+    "kronos",
+    "finbert",
+    "alpha101",
+    "momentum"
+   ],
+   "consensus": 0.4666666666666667
+  },
+  {
+   "ticker": "TPR",
+   "move": 0.0036425017768300094,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "sentiment",
+    "candles",
+    "talib_candles",
+    "timesfm",
+    "finbert",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "es_agent",
+    "dqn_agent",
+    "trend",
+    "chronos",
+    "kronos",
+    "alpha101",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.06666666666666667
+  },
+  {
+   "ticker": "TRV",
+   "move": 0.003109038418831922,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "candles",
+    "talib_candles",
+    "trend",
+    "chronos"
+   ],
+   "voted_down": [
+    "qlib",
+    "dqn_agent",
+    "kronos",
+    "timesfm",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": -0.16666666666666666
+  },
+  {
+   "ticker": "TXN",
+   "move": 0.0004966300106421517,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "dqn_agent",
+    "llm_trader",
+    "news_llm",
+    "sentiment",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "timesfm",
+    "finbert",
+    "alpha101",
+    "supertrend",
+    "momentum"
+   ],
+   "voted_down": [
+    "ta_keras",
+    "kronos",
+    "xs_rank"
+   ],
+   "consensus": 0.6666666666666666
+  },
+  {
+   "ticker": "UNH",
+   "move": 0.004079496504247215,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "news_llm",
+    "talib_candles",
+    "kronos",
+    "finbert"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "sentiment",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "timesfm",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": -0.125
+  },
+  {
+   "ticker": "UNP",
+   "move": 0.0028011204481792618,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "dqn_agent",
+    "news_llm",
+    "sentiment",
+    "candles",
+    "talib_candles",
+    "strategy_zoo",
+    "chronos",
+    "timesfm"
+   ],
+   "voted_down": [
+    "trend",
+    "kronos",
+    "finbert",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.29411764705882354
+  },
+  {
+   "ticker": "UPS",
+   "move": 0.003258547008547108,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "dqn_agent",
+    "candles",
+    "strategy_zoo",
+    "kronos",
+    "timesfm"
+   ],
+   "voted_down": [
+    "qlib",
+    "news_llm",
+    "sentiment",
+    "talib_candles",
+    "trend",
+    "chronos",
+    "finbert",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": -0.17647058823529413
+  },
+  {
+   "ticker": "USB",
+   "move": 0.0027533987265531135,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "dqn_agent",
+    "news_llm",
+    "sentiment",
+    "chronos",
+    "kronos",
+    "timesfm",
+    "finbert",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "candles",
+    "talib_candles",
+    "trend",
+    "alpha101",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.3333333333333333
+  },
+  {
+   "ticker": "V",
+   "move": 0.0002181381905437263,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "dqn_agent",
+    "candles",
+    "talib_candles",
+    "strategy_zoo",
+    "chronos"
+   ],
+   "voted_down": [
+    "sentiment",
+    "trend",
+    "kronos",
+    "timesfm",
+    "finbert",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.0
+  },
+  {
+   "ticker": "VLO",
+   "move": 0.005318733907253792,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "dqn_agent",
+    "llm_trader",
+    "news_llm",
+    "sentiment",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "timesfm",
+    "finbert",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "voted_down": [
+    "kronos"
+   ],
+   "consensus": 0.8823529411764706
+  },
+  {
+   "ticker": "VZ",
+   "move": -0.0028026301606122184,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "ta_keras",
+    "news_llm",
+    "sentiment",
+    "candles",
+    "strategy_zoo",
+    "chronos",
+    "kronos",
+    "finbert"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "trend",
+    "timesfm",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.25
+  },
+  {
+   "ticker": "WFC",
+   "move": 0.004409663996025159,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "dqn_agent",
+    "ta_keras",
+    "sentiment",
+    "strategy_zoo",
+    "chronos",
+    "kronos",
+    "timesfm",
+    "alpha101",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "es_agent",
+    "talib_candles",
+    "trend",
+    "finbert",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.375
+  },
+  {
+   "ticker": "WMB",
+   "move": 0.003958944281524879,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "news_llm",
+    "sentiment",
+    "strategy_zoo",
+    "chronos",
+    "kronos",
+    "timesfm",
+    "finbert",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "talib_candles",
+    "trend",
+    "alpha101",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.375
+  },
+  {
+   "ticker": "WMT",
+   "move": 0.003589646703192839,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "news_llm",
+    "sentiment",
+    "trend",
+    "chronos",
+    "timesfm",
+    "momentum"
+   ],
+   "voted_down": [
+    "qlib",
+    "es_agent",
+    "ta_keras",
+    "candles",
+    "talib_candles",
+    "strategy_zoo",
+    "kronos",
+    "finbert",
+    "alpha101",
+    "supertrend",
+    "xs_rank"
+   ],
+   "consensus": -0.29411764705882354
+  },
+  {
+   "ticker": "WYNN",
+   "move": 0.001655523718560925,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "dqn_agent",
+    "candles",
+    "talib_candles",
+    "strategy_zoo",
+    "kronos",
+    "timesfm",
+    "alpha101"
+   ],
+   "voted_down": [
+    "sentiment",
+    "trend",
+    "chronos",
+    "finbert",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.25
+  },
+  {
+   "ticker": "XOM",
+   "move": -0.0015477480266212762,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "ta_keras",
+    "news_llm",
+    "sentiment",
+    "talib_candles",
+    "strategy_zoo",
+    "chronos",
+    "kronos",
+    "finbert",
+    "supertrend",
+    "momentum"
+   ],
+   "voted_down": [
+    "qlib",
+    "es_agent",
+    "dqn_agent",
+    "trend",
+    "timesfm",
+    "alpha101",
+    "xs_rank"
+   ],
+   "consensus": 0.17647058823529413
+  },
+  {
+   "ticker": "YUM",
+   "move": -0.0028688673421215505,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": -0.0,
+   "oracle_exposure": 0.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "news_llm",
+    "sentiment",
+    "strategy_zoo",
+    "chronos",
+    "kronos",
+    "timesfm",
+    "finbert",
+    "alpha101",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "talib_candles",
+    "trend",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.5
+  },
+  {
+   "ticker": "YUMC",
+   "move": 0.0029615004935834577,
+   "exposure": 0.0,
+   "target": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "sentiment",
+    "candles",
+    "talib_candles",
+    "strategy_zoo",
+    "kronos",
+    "timesfm",
+    "finbert"
+   ],
+   "voted_down": [
+    "trend",
+    "chronos",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.3333333333333333
+  },
+  {
+   "ticker": "BIDU",
+   "move": 5.79441418471216e-05,
+   "exposure": 0.42447175006032384,
+   "target": 0.42776784755324954,
+   "contribution": 2.459565129559135e-06,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "dqn_agent",
+    "chronos",
+    "kronos",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "qlib",
+    "es_agent",
+    "llm_trader",
+    "sentiment",
+    "candles",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "timesfm",
+    "finbert",
+    "alpha101",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": -0.4117647058823529
+  },
+  {
+   "ticker": "F",
+   "move": 0.0008146639511201759,
+   "exposure": 0.28646604641106505,
+   "target": 0.2888385983133606,
+   "contribution": 2.333735612310139e-05,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "ta_keras",
+    "sentiment",
+    "candles",
+    "strategy_zoo",
+    "chronos",
+    "kronos",
+    "timesfm",
+    "alpha101",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "llm_trader",
+    "news_llm",
+    "trend",
+    "finbert",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.3333333333333333
+  },
+  {
+   "ticker": "HAL",
+   "move": 0.002051443900899619,
+   "exposure": 0.3247782060464892,
+   "target": 0.33185476926296337,
+   "contribution": 6.6626426993919e-05,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "ta_keras",
+    "sentiment",
+    "strategy_zoo",
+    "chronos",
+    "kronos",
+    "alpha101",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "es_agent",
+    "dqn_agent",
+    "llm_trader",
+    "news_llm",
+    "talib_candles",
+    "trend",
+    "timesfm",
+    "finbert",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.0
+  },
+  {
+   "ticker": "CSCO",
+   "move": 0.0024449877750609694,
+   "exposure": 0.34850451810497524,
+   "target": 0.3495242050955258,
+   "contribution": 8.520892863201787e-05,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "dqn_agent",
+    "news_llm",
+    "sentiment",
+    "candles",
+    "talib_candles",
+    "strategy_zoo",
+    "chronos",
+    "timesfm",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "qlib",
+    "trend",
+    "kronos",
+    "finbert",
+    "alpha101",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.29411764705882354
+  },
+  {
+   "ticker": "LOW",
+   "move": 0.002697937813868956,
+   "exposure": 0.34430277043456603,
+   "target": 0.3456559936824134,
+   "contribution": 9.289074637752581e-05,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "news_llm",
+    "candles",
+    "talib_candles",
+    "chronos",
+    "kronos",
+    "timesfm",
+    "alpha101"
+   ],
+   "voted_down": [
+    "qlib",
+    "dqn_agent",
+    "llm_trader",
+    "sentiment",
+    "strategy_zoo",
+    "trend",
+    "finbert",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.0
+  },
+  {
+   "ticker": "HSBC",
+   "move": 0.0034539720678781194,
+   "exposure": 0.34769999345967884,
+   "target": 0.3520297166519055,
+   "contribution": 0.00012009460654111354,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "dqn_agent",
+    "news_llm",
+    "sentiment",
+    "candles",
+    "talib_candles",
+    "chronos",
+    "timesfm",
+    "finbert",
+    "alpha101",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "qlib",
+    "trend",
+    "kronos",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.4666666666666667
+  },
+  {
+   "ticker": "GE",
+   "move": 0.003933786505538661,
+   "exposure": 0.3247577346814689,
+   "target": 0.32565281830388126,
+   "contribution": 0.00012775275942592673,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "sentiment",
+    "talib_candles",
+    "chronos",
+    "kronos",
+    "timesfm",
+    "alpha101",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "qlib",
+    "dqn_agent",
+    "strategy_zoo",
+    "trend",
+    "finbert",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.14285714285714285
+  },
+  {
+   "ticker": "LVS",
+   "move": 0.0039236201935655135,
+   "exposure": 0.33648270899682514,
+   "target": 0.3412714992123532,
+   "contribution": 0.00013202303518055714,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "dqn_agent",
+    "talib_candles",
+    "strategy_zoo",
+    "kronos",
+    "finbert",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "es_agent",
+    "llm_trader",
+    "trend",
+    "chronos",
+    "timesfm",
+    "alpha101",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.06666666666666667
+  },
+  {
+   "ticker": "MS",
+   "move": 0.004197080291970634,
+   "exposure": 0.33384036755683455,
+   "target": 0.3368568408397431,
+   "contribution": 0.0001401154827337023,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "ta_keras",
+    "news_llm",
+    "sentiment",
+    "strategy_zoo",
+    "chronos",
+    "kronos",
+    "finbert",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "llm_trader",
+    "talib_candles",
+    "trend",
+    "timesfm",
+    "alpha101",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.2222222222222222
+  },
+  {
+   "ticker": "JD",
+   "move": 0.003249856623972258,
+   "exposure": 0.4414754833544085,
+   "target": 0.44909173986221285,
+   "contribution": 0.0001434732023900679,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "dqn_agent",
+    "sentiment",
+    "kronos",
+    "timesfm",
+    "finbert",
+    "alpha101"
+   ],
+   "voted_down": [
+    "qlib",
+    "llm_trader",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.0
+  },
+  {
+   "ticker": "GS",
+   "move": 0.003997813350708812,
+   "exposure": 0.3707916932025367,
+   "target": 0.3750452583638622,
+   "contribution": 0.0001482355981417027,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "ta_keras",
+    "news_llm",
+    "sentiment",
+    "candles",
+    "timesfm",
+    "alpha101",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "dqn_agent",
+    "llm_trader",
+    "talib_candles",
+    "trend",
+    "chronos",
+    "kronos",
+    "finbert",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.1111111111111111
+  },
+  {
+   "ticker": "LLY",
+   "move": 0.004349635972848764,
+   "exposure": 0.3860191430426892,
+   "target": 0.38832406741924896,
+   "contribution": 0.00016790427507867338,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "news_llm",
+    "sentiment",
+    "chronos",
+    "finbert",
+    "xs_rank",
+    "momentum"
+   ],
+   "voted_down": [
+    "es_agent",
+    "dqn_agent",
+    "ta_keras",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "kronos",
+    "timesfm",
+    "alpha101",
+    "supertrend"
+   ],
+   "consensus": -0.17647058823529413
+  },
+  {
+   "ticker": "BMY",
+   "move": 0.005539727761949997,
+   "exposure": 0.34280017224207865,
+   "target": 0.34644606182004745,
+   "contribution": 0.0001899019630970684,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "news_llm",
+    "candles",
+    "talib_candles",
+    "chronos",
+    "timesfm",
+    "finbert",
+    "alpha101",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "qlib",
+    "dqn_agent",
+    "sentiment",
+    "trend",
+    "kronos",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.25
+  },
+  {
+   "ticker": "C",
+   "move": 0.0060227098358141,
+   "exposure": 0.34727009479425336,
+   "target": 0.34935718086471546,
+   "contribution": 0.00020915070156014447,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "ta_keras",
+    "news_llm",
+    "sentiment",
+    "chronos",
+    "timesfm",
+    "finbert",
+    "alpha101",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "qlib",
+    "es_agent",
+    "dqn_agent",
+    "talib_candles",
+    "trend",
+    "kronos",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.125
+  },
+  {
+   "ticker": "BKR",
+   "move": 0.006237747282124451,
+   "exposure": 0.3565251989199147,
+   "target": 0.3623892098079312,
+   "contribution": 0.00022239140905715767,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "dqn_agent",
+    "news_llm",
+    "sentiment",
+    "strategy_zoo",
+    "chronos",
+    "kronos",
+    "timesfm",
+    "finbert",
+    "alpha101"
+   ],
+   "voted_down": [
+    "qlib",
+    "candles",
+    "talib_candles",
+    "trend",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.25
+  },
+  {
+   "ticker": "CAT",
+   "move": 0.007248992175982183,
+   "exposure": 0.33408858285770526,
+   "target": 0.33561531313088494,
+   "contribution": 0.00024218055232204806,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "es_agent",
+    "news_llm",
+    "sentiment",
+    "talib_candles",
+    "chronos",
+    "timesfm",
+    "alpha101",
+    "xs_rank",
+    "momentum"
+   ],
+   "voted_down": [
+    "qlib",
+    "dqn_agent",
+    "strategy_zoo",
+    "trend",
+    "kronos",
+    "finbert",
+    "supertrend"
+   ],
+   "consensus": 0.125
+  },
+  {
+   "ticker": "NEM",
+   "move": 0.006020469596628608,
+   "exposure": 0.4277553135079234,
+   "target": 0.42751188224011527,
+   "contribution": 0.00025752878597707913,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "dqn_agent",
+    "ta_keras",
+    "sentiment",
+    "talib_candles",
+    "strategy_zoo",
+    "chronos",
+    "xs_rank"
+   ],
+   "voted_down": [
+    "llm_trader",
+    "trend",
+    "kronos",
+    "timesfm",
+    "finbert",
+    "alpha101",
+    "supertrend",
+    "momentum"
+   ],
+   "consensus": 0.17647058823529413
+  },
+  {
+   "ticker": "BKNG",
+   "move": 0.00831453033721763,
+   "exposure": 0.44640984488263913,
+   "target": 0.45275832947559136,
+   "contribution": 0.00037116881981093193,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "es_agent",
+    "sentiment",
+    "candles",
+    "talib_candles",
+    "chronos",
+    "timesfm",
+    "finbert"
+   ],
+   "voted_down": [
+    "strategy_zoo",
+    "trend",
+    "kronos",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "consensus": 0.2
+  },
+  {
+   "ticker": "META",
+   "move": 0.010422601759335182,
+   "exposure": 0.433599517689502,
+   "target": 0.430876026108914,
+   "contribution": 0.000451923509591749,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "dqn_agent",
+    "strategy_zoo",
+    "trend",
+    "alpha101",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "voted_down": [
+    "es_agent",
+    "llm_trader",
+    "news_llm",
+    "sentiment",
+    "candles",
+    "talib_candles",
+    "chronos",
+    "kronos",
+    "timesfm",
+    "finbert"
+   ],
+   "consensus": -0.1111111111111111
+  },
+  {
+   "ticker": "MRK",
+   "move": 0.01027141010815602,
+   "exposure": 0.4516247951283835,
+   "target": 0.456418402628194,
+   "contribution": 0.000463882348577557,
+   "oracle_exposure": 1.0,
+   "action": "HOLD",
+   "voted_up": [
+    "alpha_factors",
+    "qlib",
+    "news_llm",
+    "talib_candles",
+    "strategy_zoo",
+    "trend",
+    "chronos",
+    "timesfm",
+    "finbert",
+    "supertrend",
+    "xs_rank",
+    "momentum"
+   ],
+   "voted_down": [
+    "es_agent",
+    "dqn_agent",
+    "llm_trader",
+    "sentiment",
+    "candles",
+    "kronos",
+    "alpha101"
+   ],
+   "consensus": 0.2222222222222222
+  }
+ ],
+ "lessons": [
+  "day 2026-09-29 to 2026-09-29: actual +0.32%, oracle +3.50%, regret +3.18%, captured 9% of what was available",
+  "'follow:alpha_factors' would have done better: +1.61% vs actual +0.32%",
+  "most useful input this day: alpha_factors (+1.61% if followed alone)",
+  "mistake: ORCL HOLD cost -0.02% (move -0.87%; llm_trader, sentiment, trend, chronos had voted down)",
+  "mistake: TSLA HOLD cost -0.01% (move -0.29%; llm_trader, news_llm, candles, talib_candles had voted down)",
+  "mistake: INTC HOLD cost -0.00% (move -0.17%; dqn_agent, candles, talib_candles, kronos had voted down)",
+  "missed: SLB +1.46%, FFIV +1.12%, GILD +1.10%, TGT +1.07%, NOV +0.98% (not held)",
+  "regret came mostly from missed: missed +2.77%, wrong side +0.04%, under-sized +0.59%, fees +0.00%"
+ ],
+ "session_file": "/home/runner/work/canadaweatherreader/canadaweatherreader/data/paper/sessions/session_2026-09-29.jsonl",
+ "equity_open": 97697.4421598293,
+ "n_names": 150,
+ "attribution": {
+  "missed": 0.027709296208049364,
+  "wrong_side": 0.00043062306288940634,
+  "under_sized": 0.005866843071907174,
+  "cost": 0.0,
+  "total": 0.03400676234284594,
+  "biggest": "missed"
+ },
+ "regime": {
+  "benchmark_return": -0.0003012205982502181,
+  "label": "flat"
+ }
+}
