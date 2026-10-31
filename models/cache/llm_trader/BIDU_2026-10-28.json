@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 100, "confidence": 95, "reasoning": "Current long position is at -13.55% unrealised loss, exceeding the mandatory -8% stop\u2011loss rule. Capital protection requires closing the position entirely."}

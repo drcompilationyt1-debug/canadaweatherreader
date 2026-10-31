@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 95, "reasoning": "The position is down -9.63%, exceeding the -8% loss rule which mandates closing any position that falls beyond that threshold. Immediate full close is required to protect capital."}

@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 95, "reasoning": "The long position is down -23% which exceeds the -8% loss limit requiring closure. The peak PnL was only -9.82% and the position has retraced far beyond the 30% profit retracement rule. Immediate full exit is needed to protect capital."}

@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 98, "reasoning": "The long position is down -15.24% unrealised, exceeding the -8% loss rule which requires immediate closure. Capital preservation overrides any profit considerations."}

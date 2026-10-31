@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 96, "reasoning": "The long position is down -9.38%, exceeding the -8% loss limit. Capital protection rule requires closing positions that breach this threshold."}
