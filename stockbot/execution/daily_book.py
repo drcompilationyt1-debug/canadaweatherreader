@@ -69,6 +69,9 @@ class DailyRules:
     conv_floor: float = 0.5      # a position is between conv_floor and conv_cap slots
     conv_cap: float = 2.0
     resize_band: float = 0.4     # a held position is topped up / trimmed only when its target differs by this many slots
+    add_in_profit: bool = False  # top up only a position in profit (buy more of winners, never average down a loser)
+    buy_above_ma: int = 0        # buy a new name only above its own N-day average (0 = off): no falling knives
+    max_per_sector: int = 0      # at most this many names from one sector (0 = off; needs the sectors map)
     premium: float = 0.005       # what 20 days in stocks instead of idle cash is worth (~6.5%/yr): counted for a buy into an
                                  # open slot, not for a swap (both sides are stocks)
 
@@ -142,8 +145,8 @@ def market_activity(bench, agreement: float | None, rules: DailyRules) -> tuple[
 def plan_day(*, weights: dict[str, float], book: dict[str, dict], age: dict[str, int], pct: dict[str, float],
              stats: dict[str, Stats], agree: dict[str, float], level: str, slot: float, capacity: float, cash_w: float,
              cost_rt: dict[str, float], min_w: dict[str, float], ic: float, disp: float, bad_news: set[str] | None = None,
-             sold_high: dict[str, dict] | None = None, max_w: float = 1.0, equity: float | None = None, rules: DailyRules
-             ) -> tuple[dict[str, float], list[tuple], dict[str, dict]]:
+             sold_high: dict[str, dict] | None = None, max_w: float = 1.0, equity: float | None = None,
+             sectors: dict[str, str] | None = None, rules: DailyRules) -> tuple[dict[str, float], list[tuple], dict[str, dict]]:
     """One day's plan.
 
     ``weights`` the current weights (fraction of equity) of the held names; ``book`` their records (entry price, date, highest
@@ -288,7 +291,7 @@ def plan_day(*, weights: dict[str, float], book: dict[str, dict], age: dict[str,
             w = w_now(t)
             diff = target(t) - w
             band = max(rules.resize_band * slot, min_w.get(t, 0.0))
-            if diff >= band:
+            if diff >= band and (not rules.add_in_profit or stats[t].price > float(book[t]["entry"]) * (1.0 + cost_rt.get(t, 0.0))):
                 add = min(diff, room, max_w - w)
                 cost_add = cost_rt.get(t, 0.0) * slot / max(2.0 * add, 1e-9)        # one more order (the exit is one order anyway)
                 if add >= min_w.get(t, 0.0) and shares_ok(t, add) and exp.get(t, 0.0) + rules.premium >= hurdle * cost_add:
@@ -305,10 +308,18 @@ def plan_day(*, weights: dict[str, float], book: dict[str, dict], age: dict[str,
     held_after = [t for t in weights if w_now(t) > 1e-6] + [t for t in out if t not in weights and out[t] > 1e-6]
     open_slots = rules.k - len(held_after)
 
+    def sector_full(t: str) -> bool:
+        if rules.max_per_sector <= 0 or not sectors or not sectors.get(t):
+            return False
+        held_now = [x for x in weights if w_now(x) > 1e-6] + [x for x in out if x not in weights and out[x] > 1e-6]
+        return sum(1 for x in held_now if sectors.get(x) == sectors[t]) >= rules.max_per_sector
+
     def buyable(t: str) -> bool:
         s = stats[t]
         if not shares_ok(t, slot):
             return False                                          # one share costs more than a slot (whole shares only)
+        if rules.buy_above_ma > 0 and len(s.closes) >= rules.buy_above_ma and s.price < float(np.mean(s.closes[-rules.buy_above_ma:])):
+            return False                                          # below its own average: a falling knife
         if t in sold_high and sold_high[t].get("bad"):
             return False                                          # sold as really bad: cooling off
         if t in sold_high and s.price > float(sold_high[t]["price"]) * (1.0 - rules.rebuy_z * s.vol * sqrt(10.0)):
@@ -331,6 +342,8 @@ def plan_day(*, weights: dict[str, float], book: dict[str, dict], age: dict[str,
         if open_slots <= 0:
             break
         gain = exp[t] + rules.premium                                 # cash put to work earns the market too
+        if sector_full(t):
+            continue
         superdeal = is_super(t, gain)
         extra = bought >= allowed
         if extra and not (superdeal and not super_used):
@@ -363,7 +376,9 @@ def plan_day(*, weights: dict[str, float], book: dict[str, dict], age: dict[str,
         for t_out in weakest:
             if not cands:
                 break
-            t_in = cands[0]
+            t_in = next((c for c in cands if not sector_full(c) or (sectors or {}).get(c) == (sectors or {}).get(t_out)), None)
+            if t_in is None:
+                break
             gap = exp[t_in] - exp.get(t_out, 0.0)
             superdeal = is_super(t_in, gap) and not super_used
             if swaps <= 0 and not superdeal:
@@ -372,7 +387,7 @@ def plan_day(*, weights: dict[str, float], book: dict[str, dict], age: dict[str,
                 break
             out[t_out] = 0.0
             out[t_in] = target(t_in)
-            cands.pop(0)
+            cands.remove(t_in)
             if swaps <= 0:
                 super_used = True
             swaps -= 1

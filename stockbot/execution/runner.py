@@ -909,7 +909,8 @@ class TradingRunner:
         changes, events, book = plan_day(weights=weights, book=book, age=age, pct=pct, stats=stats, agree=agree, level=level, slot=slot,
                                          capacity=satellite, cash_w=cash_w, cost_rt=cost_rt, min_w=min_w, ic=ic, disp=disp,
                                          bad_news=bad_news, sold_high=sold_high, max_w=self.max_position,
-                                         equity=equity if self.whole_shares else None, rules=rules)
+                                         equity=equity if self.whole_shares else None,
+                                         sectors=self._daily_sectors(universe) if rules.max_per_sector > 0 else None, rules=rules)
         for r in book.values():
             if r.pop("date_new", False) or "date" not in r:
                 r["date"] = as_of
@@ -935,6 +936,18 @@ class TradingRunner:
             if e[0] in ("wait", "kept_loss", "armed"):
                 log.info("daily book: %s", describe([e]))
         return weights
+
+    def _daily_sectors(self, universe: list[str]) -> dict[str, str]:
+        """Yahoo sectors for the daily book's sector cap (fetched once per process, cached weekly on disk)."""
+        if self._sectors is None:
+            try:
+                from ..data.sectors import load_sectors
+
+                self._sectors = load_sectors(self.cfg, universe, refresh=not self.offline)
+            except Exception as e:  # noqa: BLE001
+                log.warning("sectors unavailable (%s) - no sector cap this cycle", e)
+                self._sectors = {}
+        return {t: v for t, v in (self._sectors or {}).items() if v and v not in ("Unknown", "Index")}
 
     def _measured_spread(self, assumed: float) -> float:
         """The cost per side beyond the fees: the assumed half-spread until 30 fills are logged, then what the fills really cost

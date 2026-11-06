@@ -678,6 +678,14 @@ execution:
       conv_floor: 0.5
       conv_cap: 2.0
       resize_band: 0.4
+      # tested 2026-11-06 after the October AI-hardware pile-up (replay 2019-26, next-day fills; 100k / 10k book): current rules
+      # 31.7 / 48.8 %/yr; a sector cap of 3/2 names 23.3 / 37.3, of 6/3 names 27.4 / 36.0; top-ups only in profit 26.5 / 43.2;
+      # buys only above the 50-day average 25.1 / 31.7; limit orders half a day's move away 28.5 / 48.1 - all OFF.  Kept: no
+      # buy-back for bad_cooldown days after a really-bad sale (LRCX was sold at $230 and bought back at $241 four days later)
+      add_in_profit: false
+      buy_above_ma: 0
+      max_per_sector: 0
+      bad_cooldown: 20
     portfolio_rl: { enabled: true }   # the portfolio agent (stockbot portfolio-rl: PPO over rebalance timing + exposure, walk-forward vs this
                                       # rule) takes over the cadence and the volatility targeting only once its report says accepted
     vol_target:               # volatility targeting on the whole book (Moreira & Muir 2017): gross exposure is scaled so the book's
