@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 100, "reasoning": "Position unrealized PnL -10.01% exceeds the -8% hard stop-loss rule for stocks. Mandatory full exit to protect capital. Technicals also bearish: 20d -10.3%, 120d -19.4%, price -53.8% from 52w high, strategy vote -0.12."}

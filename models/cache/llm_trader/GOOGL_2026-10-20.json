@@ -1,0 +1,1 @@
+{"action": "WAIT", "direction": "none", "position_size_pct": 0, "confidence": 68, "reasoning": "Trend signals are mixed: 5d, 20d, and 120d returns are negative while 60d is positive, RSI is neutral at 48, and the strategy vote is only weakly long at +0.38. There is no sufficiently aligned multi-horizon entry, so remain flat until momentum confirms."}

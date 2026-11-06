@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 95, "reasoning": "The long position is down -42.17%, far exceeding the -8% loss threshold that mandates closure. Protecting capital overrides any potential recovery. The position also retraced more than 30% from its peak, confirming the need to exit fully."}

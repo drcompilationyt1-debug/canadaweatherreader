@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 100, "confidence": 95, "reasoning": "The long position is down -29.95%, far exceeding the -8% loss threshold that mandates closure. The peak PnL was only -1.62%, so the position never became profitable. To protect capital, the position must be fully closed."}

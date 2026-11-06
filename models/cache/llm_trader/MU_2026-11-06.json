@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 95, "reasoning": "The long position is down -31.7% unrealised, far exceeding the -8% loss limit that mandates closure. Stop\u2011loss rule overrides all other considerations; therefore the position must be fully exited."}
