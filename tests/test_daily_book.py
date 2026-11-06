@@ -237,3 +237,17 @@ def test_conviction_sizing_adds_to_a_stronger_case_and_trims_a_weaker_one_in_pro
     losing = dict(book, N08={"entry": 120.0, "high": 120.0, "pct0": 0.99})
     out, _, _ = _plan({"N00": 0.15, "N08": 0.3}, losing, pct, stats, cash_w=0.3, rules=rules)
     assert "N08" not in out                                                     # under water: never trimmed
+
+
+def test_a_name_sold_as_really_bad_is_not_bought_back_during_the_cooldown():
+    names, pct = _universe()
+    stats = {t: _stats(_walk()) for t in names}
+    book = {"N00": {"entry": 120.0, "high": 120.0, "pct0": 0.9}}
+    sold = {}
+    out, events, _ = _plan({"N00": 0.3}, book, dict(pct, N00=0.2), stats, sold_high=sold)
+    assert out["N00"] == 0.0 and sold["N00"]["bad"]                           # sold as really bad
+    out, _, _ = _plan({}, {}, pct, stats, cash_w=0.9, sold_high=sold)          # next day it ranks #1 again
+    assert "N00" not in out and set(out) == {"N01", "N02"}                     # ... but is not bought back
+    for _ in range(25):
+        _plan({}, {}, {}, {}, sold_high=sold)                                  # the cooldown runs out
+    assert "N00" not in sold

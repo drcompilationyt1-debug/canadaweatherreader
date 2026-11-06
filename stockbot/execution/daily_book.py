@@ -52,6 +52,8 @@ class DailyRules:
     trail_atr: float = 2.5       # trailing stop: the highest close since entry minus this many average daily moves
     bad_drop_z: float = 2.5      # really bad: a 10-day stock-specific drop of this many volatilities
     bad_rank_pct: float = 0.3    # really bad: the ranking puts it in the bottom 30% of the universe
+    bad_cooldown: int = 20       # a name sold as really bad is not bought again for this many days (LRCX, Oct 2026: sold at $230
+                                 # on bad news, bought back 4 days later at $241 because it ranked #6 again, then fell to $200)
     news_drop_z: float = 2.0     # really bad: bad news confirmed by a stock-specific drop of this many volatilities
     chase_z: float = 2.0         # a candidate that rose this many volatilities in 5 days waits for a pullback (no chasing)
     rebuy_z: float = 1.0         # a name sold high is bought back only after falling this many 10-day volatilities under the sale
@@ -210,6 +212,7 @@ def plan_day(*, weights: dict[str, float], book: dict[str, dict], age: dict[str,
         if why:
             out[t] = 0.0
             events.append(("bad", t, gain, why))
+            sold_high[t] = {"price": s.price, "left": rules.bad_cooldown, "bad": True}
             continue
         n = int(np.clip(min(a, rules.spike_window), 3, rules.spike_window))
         c = s.closes
@@ -248,6 +251,8 @@ def plan_day(*, weights: dict[str, float], book: dict[str, dict], age: dict[str,
     invested = sum(w_now(t) for t in weights)
     room = min(capacity * lv["invest"] - invested, cash_w)
     for t, rec in list(sold_high.items()):
+        if rec.get("bad"):
+            continue                                              # sold as really bad: no buy-back during the cooldown
         s = stats.get(t)
         if s is None or rank.get(t, 10 ** 6) > rules.hold_rank or t in out:
             continue
@@ -304,6 +309,8 @@ def plan_day(*, weights: dict[str, float], book: dict[str, dict], age: dict[str,
         s = stats[t]
         if not shares_ok(t, slot):
             return False                                          # one share costs more than a slot (whole shares only)
+        if t in sold_high and sold_high[t].get("bad"):
+            return False                                          # sold as really bad: cooling off
         if t in sold_high and s.price > float(sold_high[t]["price"]) * (1.0 - rules.rebuy_z * s.vol * sqrt(10.0)):
             return False                                          # sold high recently: only back in cheaper
         z5 = np.log(1.0 + s.ret5) / (s.vol * sqrt(5.0))
