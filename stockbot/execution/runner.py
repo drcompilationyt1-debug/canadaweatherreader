@@ -874,11 +874,28 @@ class TradingRunner:
         forced = str(self.daily_cfg.get("level", "auto") or "auto").lower()
         if forced != "auto":
             level = forced
+        # the held names are judged at today's live price, not yesterday's close (the bars stop at the last finished session):
+        # an exit decided on Nov 11 from Nov 10's close called NVDA -18.3% when the shares really sold at -14.2%
+        pos_ctx = self.ctx.extra.get("positions") or {}
+        today = datetime.now().strftime("%Y-%m-%d")
+        bench_live = bench
+        if bench is not None and bench_t in self.frames and str(self.frames[bench_t].index[-1].date()) < today:
+            try:
+                bp = float(self.price(bench_t))
+                if np.isfinite(bp) and bp > 0:
+                    bench_live = np.append(bench, bp)
+            except Exception:  # noqa: BLE001
+                pass
         stats = {}
         for t in universe:
             f = self.frames.get(t)
             if f is not None and len(f) > 12:
-                st = name_stats(f["close"].astype(float).to_numpy()[-260:], bench[-260:] if bench is not None else None)
+                closes = f["close"].astype(float).to_numpy()
+                b = bench
+                live = float((pos_ctx.get(t) or {}).get("price") or 0.0)
+                if t in pos_ctx and live > 0 and str(f.index[-1].date()) < today:
+                    closes, b = np.append(closes, live), bench_live
+                st = name_stats(closes[-260:], b[-260:] if b is not None else None)
                 if st is not None:
                     stats[t] = st
         slot = min(satellite / max(rules.k, 1), self.max_position)
@@ -891,7 +908,6 @@ class TradingRunner:
         bad_news = self._news(obs_by, universe, as_of, prices)
         # the book's records: entry price and date (the broker's average price for names held before the switch), highest close since
         book = {t: dict(r) for t, r in (self.state.get("daily_book") or {}).items()}
-        pos_ctx = self.ctx.extra.get("positions") or {}
         age = {}
         for t, w in weights.items():
             if w <= 0 or t not in stats:
@@ -904,6 +920,9 @@ class TradingRunner:
                 closes = self.frames[t]["close"].astype(float)
                 book[t] = {"entry": float(ctx.get("avg_price") or stats[t].price), "date": str(d0.date()), "pct0": pct.get(t, 0.5),
                            "high": float(closes[closes.index >= d0].max())}
+            avg = float((pos_ctx.get(t) or {}).get("avg_price") or 0.0)
+            if avg > 0:
+                book[t]["entry"] = avg                           # what the shares really cost (the fills, top-ups included)
             age[t] = int(bars_since(ix, book[t].get("date"), as_of) or 0)
         sold_high = dict(self.state.get("sold_high") or {})
         changes, events, book = plan_day(weights=weights, book=book, age=age, pct=pct, stats=stats, agree=agree, level=level, slot=slot,

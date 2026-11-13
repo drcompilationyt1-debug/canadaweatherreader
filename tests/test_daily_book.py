@@ -176,6 +176,8 @@ def test_runner_trades_the_daily_book_and_keeps_the_shadow(cfg, frames):
     assert r.state["shadow"]["start"] == str(frames["AAA"].index[-1].date())
     r.cycle(dry_run=False, refresh=False)                                        # same day again: nothing new, nothing sold
     assert set(r.state["daily_book"]) == {d.ticker for d in bought}
+    for tk, rec in r.state["daily_book"].items():                               # the entry is what the fills cost
+        assert rec["entry"] == pytest.approx(r.broker.position(tk).avg_price)
 
 
 def test_news_scorecard_settles_verdicts_against_what_followed(tmp_path):
