@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 100, "reasoning": "Unrealised PnL -10.53% exceeds the -8% stop-loss threshold; risk rules require closing the position."}

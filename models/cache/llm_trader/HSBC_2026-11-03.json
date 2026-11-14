@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 100, "reasoning": "Position violates hard stop-loss rule: unrealized PnL -11.98% exceeds -8% maximum loss threshold. Mandatory exit to protect capital. Multi-timeframe downtrend (5d -5.8%, 20d -11.1%, 60d -16.8%) confirms risk-off stance. Exposure at 60% also exceeds 50% initial entry guideline."}

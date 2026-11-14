@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 85, "reasoning": "Position at -7.86% unrealized PnL, essentially at the -8% stop-loss threshold. Stock down 24.5% from 52-week high, 60-day return -16.6%, strategy vote slightly negative (-0.06). Never achieved positive PnL (peak -1.87%). Capital protection rule triggers exit."}

@@ -1,0 +1,222 @@
+{
+ "updated": "2026-11-14",
+ "days": 126,
+ "thresholds": {
+  "mask_t": 1.0,
+  "mask_gain": 0.01,
+  "unmask_t": 1.5,
+  "unmask_gain": 0.02
+ },
+ "masked": {},
+ "newly_masked": [],
+ "unmasked": [],
+ "protected_without_value": [
+  "qlib"
+ ],
+ "values": {
+  "technical": {
+   "max_abs_t": 9.055528347926876,
+   "gain_share": 0.14840653551883892,
+   "features_scored": 22,
+   "best_feature": "technical.ret_60"
+  },
+  "candles": {
+   "max_abs_t": 1.8491004474000934,
+   "gain_share": 0.0026351983821119264,
+   "features_scored": 6,
+   "best_feature": "candles.edge_20"
+  },
+  "trend": {
+   "max_abs_t": 8.777096444744764,
+   "gain_share": 0.08178813918662763,
+   "features_scored": 8,
+   "best_feature": "trend.r2_90"
+  },
+  "alpha_factors": {
+   "max_abs_t": 5.897967646745658,
+   "gain_share": 0.018593602416885607,
+   "features_scored": 2,
+   "best_feature": "alpha_factors.af_pred"
+  },
+  "market_regime": {
+   "max_abs_t": null,
+   "gain_share": 0.10302541749358395,
+   "features_scored": 0,
+   "best_feature": null
+  },
+  "talib_candles": {
+   "max_abs_t": 3.6204384238625105,
+   "gain_share": 0.0046720900000343,
+   "features_scored": 27,
+   "best_feature": "talib_candles.cdlhikkakemod"
+  },
+  "trendet": {
+   "max_abs_t": 6.406349318409168,
+   "gain_share": 0.009930582955157993,
+   "features_scored": 2,
+   "best_feature": "trendet.tt_down_len"
+  },
+  "sentiment": {
+   "max_abs_t": 2.5206218923778043,
+   "gain_share": 0.0032910949318400674,
+   "features_scored": 4,
+   "best_feature": "sentiment.vader_n"
+  },
+  "news_llm": {
+   "max_abs_t": 4.79447020084181,
+   "gain_share": 0.0031234942464466345,
+   "features_scored": 6,
+   "best_feature": "news_llm.llm_n_items"
+  },
+  "qlib": {
+   "max_abs_t": 0.7802781444757448,
+   "gain_share": 0.0053281096718631495,
+   "features_scored": 2,
+   "best_feature": "qlib.qlib_rank"
+  },
+  "qlib_tra": {
+   "max_abs_t": 6.139977090255807,
+   "gain_share": 0.0037257053298654324,
+   "features_scored": 2,
+   "best_feature": "qlib_tra.tra_rank"
+  },
+  "freqtrade": {
+   "max_abs_t": 3.745211318015707,
+   "gain_share": 0.004839684467110927,
+   "features_scored": 3,
+   "best_feature": "freqtrade.vwap_ratio"
+  },
+  "trading_agents": {
+   "max_abs_t": null,
+   "gain_share": null,
+   "features_scored": 0,
+   "best_feature": null
+  },
+  "ai_hedge_fund": {
+   "max_abs_t": null,
+   "gain_share": null,
+   "features_scored": 0,
+   "best_feature": null
+  },
+  "strategy_zoo": {
+   "max_abs_t": 4.4615516477264965,
+   "gain_share": 0.006248054193404969,
+   "features_scored": 11,
+   "best_feature": "strategy_zoo.ak_rsi"
+  },
+  "es_agent": {
+   "max_abs_t": 2.4841803720207616,
+   "gain_share": 0.004752530317863207,
+   "features_scored": 3,
+   "best_feature": "es_agent.es_buy"
+  },
+  "dl_forecast": {
+   "max_abs_t": 2.1788090603111807,
+   "gain_share": 0.007695503612424209,
+   "features_scored": 2,
+   "best_feature": "dl_forecast.dl_pred"
+  },
+  "dqn_agent": {
+   "max_abs_t": 5.416523750794805,
+   "gain_share": 0.005116385709656771,
+   "features_scored": 3,
+   "best_feature": "dqn_agent.dqn_buy_pref"
+  },
+  "llm_trader": {
+   "max_abs_t": null,
+   "gain_share": null,
+   "features_scored": 0,
+   "best_feature": null
+  },
+  "ta_keras": {
+   "max_abs_t": 3.968453469936646,
+   "gain_share": 0.038429601140104706,
+   "features_scored": 4,
+   "best_feature": "ta_keras.akm_price_chg"
+  },
+  "pandas_ta": {
+   "max_abs_t": 5.829152206150888,
+   "gain_share": 0.03541196249054639,
+   "features_scored": 9,
+   "best_feature": "pandas_ta.pta_tsi"
+  },
+  "pypfopt": {
+   "max_abs_t": 2.0260624419422744,
+   "gain_share": 0.12002604265402342,
+   "features_scored": 4,
+   "best_feature": "pypfopt.po_invvol_w"
+  },
+  "alpha101": {
+   "max_abs_t": 3.30667169718292,
+   "gain_share": 0.036988890623132986,
+   "features_scored": 13,
+   "best_feature": "alpha101.a003"
+  },
+  "finbert": {
+   "max_abs_t": 2.908400082751812,
+   "gain_share": 0.005057754584877981,
+   "features_scored": 4,
+   "best_feature": "finbert.fb_n"
+  },
+  "chronos": {
+   "max_abs_t": 1.7763661728268232,
+   "gain_share": 0.03996844463364854,
+   "features_scored": 4,
+   "best_feature": "chronos.chr_spread_5"
+  },
+  "chronos2": {
+   "max_abs_t": 2.813697060754513,
+   "gain_share": 0.025379725404030964,
+   "features_scored": 4,
+   "best_feature": "chronos2.c2_ret_5"
+  },
+  "kronos": {
+   "max_abs_t": 7.3958766942329115,
+   "gain_share": 0.015610600821652157,
+   "features_scored": 3,
+   "best_feature": "kronos.kr_ret_5"
+  },
+  "timesfm": {
+   "max_abs_t": 4.201087502629563,
+   "gain_share": 0.02327541255566763,
+   "features_scored": 3,
+   "best_feature": "timesfm.tfm_ret_5"
+  },
+  "factors": {
+   "max_abs_t": 8.628171354434336,
+   "gain_share": 0.16049212441963775,
+   "features_scored": 10,
+   "best_feature": "factors.sec_rel_3m"
+  },
+  "fundamentals": {
+   "max_abs_t": 7.949583411122479,
+   "gain_share": 0.08618731223896178,
+   "features_scored": 8,
+   "best_feature": "fundamentals.f_growth"
+  },
+  "xs_rank": {
+   "max_abs_t": 7.229635486977823,
+   "gain_share": null,
+   "features_scored": 2,
+   "best_feature": "xs_rank.xs_score"
+  },
+  "xs_nn": {
+   "max_abs_t": null,
+   "gain_share": null,
+   "features_scored": 0,
+   "best_feature": null
+  },
+  "xs_tabpfn": {
+   "max_abs_t": null,
+   "gain_share": null,
+   "features_scored": 0,
+   "best_feature": null
+  },
+  "reliability": {
+   "max_abs_t": 13.638251325284546,
+   "gain_share": null,
+   "features_scored": 22,
+   "best_feature": "reliability.rel_dqn_agent"
+  }
+ }
+}

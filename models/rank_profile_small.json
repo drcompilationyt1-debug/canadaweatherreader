@@ -1,0 +1,304 @@
+{
+ "account": "small",
+ "tuned_at": "2026-10-04",
+ "guard_passed": false,
+ "proposal": null,
+ "streak": 0,
+ "accepted": false,
+ "profile": {
+  "top_k": 5,
+  "every_bars": 21,
+  "hysteresis": 8,
+  "core_share": 0.0,
+  "core_ticker": "SPY",
+  "deals": null
+ },
+ "config_base": {
+  "top_k": 5,
+  "every_bars": 21,
+  "hysteresis": 8,
+  "core_share": 0.0,
+  "deals": null
+ },
+ "current": {
+  "top_k": 5,
+  "every_bars": 21,
+  "hysteresis": 8,
+  "core_share": 0.0,
+  "deals": null
+ },
+ "current_result": {
+  "1y": {
+   "total": 0.568541651163307,
+   "sharpe": 2.465944642370925,
+   "max_drawdown": -0.09981786816589033,
+   "turnover_per_year": 13.943346303501944,
+   "days": 257
+  },
+  "10y": {
+   "total": 12.89725285251002,
+   "sharpe": 1.036065217602186,
+   "max_drawdown": -0.32478050344955767,
+   "turnover_per_year": 11.171803278688525,
+   "days": 2562
+  }
+ },
+ "best_result": {
+  "1y": {
+   "total": 0.568541651163307,
+   "sharpe": 2.465944642370925,
+   "max_drawdown": -0.09981786816589033,
+   "turnover_per_year": 13.943346303501944,
+   "days": 257
+  },
+  "10y": {
+   "total": 12.89725285251002,
+   "sharpe": 1.036065217602186,
+   "max_drawdown": -0.32478050344955767,
+   "turnover_per_year": 11.171803278688525,
+   "days": 2562
+  }
+ },
+ "best": {
+  "top_k": 5,
+  "every_bars": 21,
+  "hysteresis": 8,
+  "core_share": 0.0,
+  "deals": null
+ },
+ "reason": "the current structure is as good or the best one fails the long-window guard - kept",
+ "candidates": [
+  {
+   "top_k": 5,
+   "every_bars": 21,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "deals": null,
+   "1y_sharpe": 2.0089449571033438,
+   "1y_total": 0.4240535439052937,
+   "10y_sharpe": 1.011836002493268,
+   "10y_total": 12.65708869910388,
+   "1y_maxdd": -0.10886924807751652
+  },
+  {
+   "top_k": 5,
+   "every_bars": 21,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "deals": {
+    "enter_pct": 0.98,
+    "exit_pct": 0.0,
+    "max_swaps": 1,
+    "min_gap": 0.0
+   },
+   "1y_sharpe": 0.856174043420314,
+   "1y_total": 0.16673106310065156,
+   "10y_sharpe": 0.7946721042071007,
+   "10y_total": 6.410425314829119,
+   "1y_maxdd": -0.14743951869879957
+  },
+  {
+   "top_k": 5,
+   "every_bars": 21,
+   "hysteresis": 8,
+   "core_share": 0.0,
+   "deals": null,
+   "1y_sharpe": 2.465944642370925,
+   "1y_total": 0.568541651163307,
+   "10y_sharpe": 1.036065217602186,
+   "10y_total": 12.89725285251002,
+   "1y_maxdd": -0.09981786816589033
+  },
+  {
+   "top_k": 5,
+   "every_bars": 21,
+   "hysteresis": 8,
+   "core_share": 0.0,
+   "deals": {
+    "enter_pct": 0.98,
+    "exit_pct": 0.0,
+    "max_swaps": 1,
+    "min_gap": 0.0
+   },
+   "1y_sharpe": 1.039106829926148,
+   "1y_total": 0.21386224754981997,
+   "10y_sharpe": 0.7697424196121445,
+   "10y_total": 5.845951800684293,
+   "1y_maxdd": -0.14571391636396924
+  },
+  {
+   "top_k": 5,
+   "every_bars": 42,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "deals": null,
+   "1y_sharpe": 1.2452218789351912,
+   "1y_total": 0.23006449030539033,
+   "10y_sharpe": 1.0507131331338901,
+   "10y_total": 13.69021584820618,
+   "1y_maxdd": -0.10244220786453129
+  },
+  {
+   "top_k": 5,
+   "every_bars": 42,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "deals": {
+    "enter_pct": 0.98,
+    "exit_pct": 0.0,
+    "max_swaps": 1,
+    "min_gap": 0.0
+   },
+   "1y_sharpe": 0.9587056872808501,
+   "1y_total": 0.1936127378302701,
+   "10y_sharpe": 0.7890517523824074,
+   "10y_total": 6.270700731063486,
+   "1y_maxdd": -0.14571391636396924
+  },
+  {
+   "top_k": 5,
+   "every_bars": 42,
+   "hysteresis": 8,
+   "core_share": 0.0,
+   "deals": null,
+   "1y_sharpe": 1.234231187631398,
+   "1y_total": 0.22489538069821213,
+   "10y_sharpe": 1.1480683025189067,
+   "10y_total": 18.026811994566398,
+   "1y_maxdd": -0.10244220786453129
+  },
+  {
+   "top_k": 5,
+   "every_bars": 42,
+   "hysteresis": 8,
+   "core_share": 0.0,
+   "deals": {
+    "enter_pct": 0.98,
+    "exit_pct": 0.0,
+    "max_swaps": 1,
+    "min_gap": 0.0
+   },
+   "1y_sharpe": 0.9943471279714299,
+   "1y_total": 0.2026138452458368,
+   "10y_sharpe": 0.7774336176350766,
+   "10y_total": 6.00822947758334,
+   "1y_maxdd": -0.14571391636396924
+  },
+  {
+   "top_k": 8,
+   "every_bars": 21,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "deals": null,
+   "1y_sharpe": 1.5229234098237454,
+   "1y_total": 0.2810777980724124,
+   "10y_sharpe": 0.9860879841789122,
+   "10y_total": 9.592524467797817,
+   "1y_maxdd": -0.11091418347158699
+  },
+  {
+   "top_k": 8,
+   "every_bars": 21,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "deals": {
+    "enter_pct": 0.98,
+    "exit_pct": 0.0,
+    "max_swaps": 1,
+    "min_gap": 0.0
+   },
+   "1y_sharpe": 1.3592888569543458,
+   "1y_total": 0.2623243115262155,
+   "10y_sharpe": 0.8110899184106537,
+   "10y_total": 5.710660304618629,
+   "1y_maxdd": -0.12629716980226324
+  },
+  {
+   "top_k": 8,
+   "every_bars": 21,
+   "hysteresis": 8,
+   "core_share": 0.0,
+   "deals": null,
+   "1y_sharpe": 1.9252286399308536,
+   "1y_total": 0.36908401421410386,
+   "10y_sharpe": 1.001510864581094,
+   "10y_total": 10.00536128775024,
+   "1y_maxdd": -0.09824677916509161
+  },
+  {
+   "top_k": 8,
+   "every_bars": 21,
+   "hysteresis": 8,
+   "core_share": 0.0,
+   "deals": {
+    "enter_pct": 0.98,
+    "exit_pct": 0.0,
+    "max_swaps": 1,
+    "min_gap": 0.0
+   },
+   "1y_sharpe": 1.3415520418029598,
+   "1y_total": 0.2550279927706438,
+   "10y_sharpe": 0.8293405268651336,
+   "10y_total": 6.114243342308925,
+   "1y_maxdd": -0.1267889008532067
+  },
+  {
+   "top_k": 8,
+   "every_bars": 42,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "deals": null,
+   "1y_sharpe": 1.3458658444063472,
+   "1y_total": 0.2351324237373078,
+   "10y_sharpe": 1.0536479473860716,
+   "10y_total": 11.434622124949556,
+   "1y_maxdd": -0.08065955642042089
+  },
+  {
+   "top_k": 8,
+   "every_bars": 42,
+   "hysteresis": 3,
+   "core_share": 0.0,
+   "deals": {
+    "enter_pct": 0.98,
+    "exit_pct": 0.0,
+    "max_swaps": 1,
+    "min_gap": 0.0
+   },
+   "1y_sharpe": 1.444259324205858,
+   "1y_total": 0.2815574155829361,
+   "10y_sharpe": 0.8435447717265461,
+   "10y_total": 6.385082912589767,
+   "1y_maxdd": -0.12294371639304735
+  },
+  {
+   "top_k": 8,
+   "every_bars": 42,
+   "hysteresis": 8,
+   "core_share": 0.0,
+   "deals": null,
+   "1y_sharpe": 1.3577014060298012,
+   "1y_total": 0.2403291276911519,
+   "10y_sharpe": 1.0533269198972826,
+   "10y_total": 11.63666205466086,
+   "1y_maxdd": -0.09655311994182181
+  },
+  {
+   "top_k": 8,
+   "every_bars": 42,
+   "hysteresis": 8,
+   "core_share": 0.0,
+   "deals": {
+    "enter_pct": 0.98,
+    "exit_pct": 0.0,
+    "max_swaps": 1,
+    "min_gap": 0.0
+   },
+   "1y_sharpe": 1.464901141103587,
+   "1y_total": 0.2824950370671435,
+   "10y_sharpe": 0.8473015117274294,
+   "10y_total": 6.524552674050974,
+   "1y_maxdd": -0.12600105745631185
+  }
+ ]
+}

@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 100, "reasoning": "The current position has reached an unrealized PnL of -8.18%, which breaches the strict risk management rule requiring the closure of any position losing -8% from entry. Capital protection is the primary priority."}

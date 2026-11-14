@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "long", "position_size_pct": 0, "confidence": 95, "reasoning": "The position is down -14.07%, exceeding the -8% loss rule requiring a full exit to protect capital. Additionally, it has retraced far beyond the 30% peak drawdown threshold, confirming the need to close."}

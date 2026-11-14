@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 95, "reasoning": "The long position is at -17.81% unrealized loss, far exceeding the -8% loss threshold that mandates closure. Capital protection overrides any potential upside, so the position must be fully closed."}

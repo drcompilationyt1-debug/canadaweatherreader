@@ -1,0 +1,74 @@
+{
+ "verdicts": 6201,
+ "days": 21,
+ "first": "2026-10-09",
+ "last": "2026-11-12",
+ "llm_full_close": {
+  "calls": 205,
+  "excess_5d": -0.026748101945524724,
+  "t_5d": -2.1768422088881496,
+  "days_5d": 16,
+  "excess_20d": NaN,
+  "t_20d": NaN,
+  "days_20d": 2
+ },
+ "llm_open_or_add": {
+  "calls": 38,
+  "excess_5d": -0.041523112671150206,
+  "t_5d": -2.2771132806561187,
+  "days_5d": 9,
+  "excess_20d": NaN,
+  "t_20d": NaN,
+  "days_20d": 1
+ },
+ "news_llm_negative": {
+  "calls": 33,
+  "excess_5d": -0.03988623864816123,
+  "t_5d": -2.1573178846842733,
+  "days_5d": 15,
+  "excess_20d": NaN,
+  "t_20d": NaN,
+  "days_20d": 2
+ },
+ "finbert_negative": {
+  "calls": 0,
+  "excess_5d": NaN,
+  "t_5d": NaN,
+  "days_5d": 0,
+  "excess_20d": NaN,
+  "t_20d": NaN,
+  "days_20d": 0
+ },
+ "llm_full_close_by_confidence": {
+  "0.00-0.70": {
+   "calls": 0,
+   "hit_rate_20d": NaN
+  },
+  "0.70-0.85": {
+   "calls": 22,
+   "hit_rate_20d": 0.22727272727272727
+  },
+  "0.85-1.00": {
+   "calls": 183,
+   "hit_rate_20d": 0.04918032786885246
+  }
+ },
+ "rank_ic": {
+  "llm_trader": {
+   "ic_20d": NaN,
+   "t": NaN,
+   "days": 2
+  },
+  "news_llm": {
+   "ic_20d": NaN,
+   "t": NaN,
+   "days": 2
+  },
+  "finbert": {
+   "ic_20d": NaN,
+   "t": NaN,
+   "days": 2
+  }
+ },
+ "llm_close_proven": false
+}
