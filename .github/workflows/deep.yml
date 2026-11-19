@@ -42,7 +42,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: kaggle client
-        run: pip install -q kaggle
+        run: pip install -q kaggle six   # kaggle's Nov 2026 release imports six without declaring it (both Saturdays failed at import)
       - name: train on the Kaggle GPU (push the kernel, wait, download)
         id: kaggle
         run: >
@@ -58,7 +58,7 @@ jobs:
           if [ -n "$src" ]; then cp -r "$src"/. models/; echo "updated $(find "$src" -type f | wc -l) files under models/"; fi
           python scripts/ci_state.py save
       - name: still running on Kaggle (it waited for a free GPU) - a follow-up run picks the result up and saves it
-        if: ${{ always() && steps.kaggle.outcome == 'failure' && !inputs.attach }}
+        if: ${{ always() && steps.kaggle.outputs.timeout == 'true' && !inputs.attach }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: >

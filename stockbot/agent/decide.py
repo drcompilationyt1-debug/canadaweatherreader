@@ -32,7 +32,10 @@ def decide(ticker: str, target: float, current: float, capital: float, price: fl
         target = max(0.0, target)
     delta = target - current
     amount = delta * capital
-    if abs(delta) < deadband or abs(amount) < min_trade_usd or price <= 0:
+    # closing a position is never blocked by the band or the minimum order: a remnant under the minimum (META, Nov 2026:
+    # 0.8 of a share left by the fractional days) would otherwise stay for good while the plan "sold" it every day
+    full_exit = abs(target) < 1e-9 and abs(current * capital) >= 1.0
+    if price <= 0 or (not full_exit and (abs(delta) < deadband or abs(amount) < min_trade_usd)):
         return Decision(ticker, "HOLD", target, current, 0.0, 0.0, 0.0, price, "within deadband" if abs(delta) < deadband else "below min trade")
     if delta > 0:
         action = "COVER" if current < -1e-6 and target <= 1e-6 else ("BUY" if target > 0 else "COVER")

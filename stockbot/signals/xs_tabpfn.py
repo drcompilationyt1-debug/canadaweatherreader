@@ -23,11 +23,24 @@ log = get_logger(__name__)
 class _TabPFN:
     """fit/predict around TabPFNRegressor: a random sample of the training rows as context, predictions in chunks."""
 
+    # TabPFN refuses a context over 5000 rows on a CPU; the GPU-trained state keeps 10000, so the daily CPU session failed on
+    # every load from Oct 2026 on and the live ranking ran without this head - on a CPU the context is cut to the CPU recipe's size
+    CPU_ROWS = 4000
+
     def __init__(self, max_rows: int = 4000, chunk: int = 2000, seed: int = 0, model_cls=None, stride: int = 5):
         self.max_rows, self.chunk, self.seed, self.model_cls = int(max_rows), int(chunk), int(seed), model_cls
         self.stride = max(1, int(stride))     # CPU inference is slow: score every stride-th row and carry it (rows are per name, in date order)
         self.model = None
         self.X_ctx = self.y_ctx = None        # the sampled training rows: for TabPFN the fit *is* this context
+
+    @staticmethod
+    def _device() -> str:
+        try:
+            import torch
+
+            return "cuda" if torch.cuda.is_available() else "cpu"
+        except ImportError:
+            return "cpu"
 
     def _make(self):
         cls = self.model_cls
@@ -36,29 +49,32 @@ class _TabPFN:
 
             cls = TabPFNRegressor
         code = getattr(cls.__init__, "__code__", None)
-        dev = "cpu"
-        try:
-            import torch
+        return cls(device=self._device()) if code is not None and "device" in code.co_varnames else cls()
 
-            dev = "cuda" if torch.cuda.is_available() else "cpu"
-        except ImportError:
-            pass
-        return cls(device=dev) if code is not None and "device" in code.co_varnames else cls()
+    def _sample(self, X, y, n: int):
+        if len(X) > n:
+            keep = np.random.default_rng(self.seed).choice(len(X), n, replace=False)
+            X, y = X[keep], y[keep]
+        return X, y
+
+    def _fit_model(self, X, y):
+        if self._device() == "cpu":
+            X, y = self._sample(X, y, self.CPU_ROWS)
+        m = self._make()
+        m.fit(X, y)
+        self.model = m                        # only a finished fit is kept (a failed one left an unfitted model for the next call)
 
     def fit(self, X, y):
         X, y = np.asarray(X, dtype=np.float32), np.asarray(y, dtype=np.float32)
-        if len(X) > self.max_rows:
-            keep = np.random.default_rng(self.seed).choice(len(X), self.max_rows, replace=False)
-            X, y = X[keep], y[keep]
+        X, y = self._sample(X, y, self.max_rows)
         self.X_ctx, self.y_ctx = X, y
-        self.model = self._make()
-        self.model.fit(X, y)
+        self.model = None
+        self._fit_model(X, y)
         return self
 
     def _ensure(self):
         if self.model is None and self.X_ctx is not None:        # after a load: rebuild the fit from the saved context
-            self.model = self._make()
-            self.model.fit(self.X_ctx, self.y_ctx)
+            self._fit_model(self.X_ctx, self.y_ctx)
 
     def __getstate__(self):
         d = dict(self.__dict__)

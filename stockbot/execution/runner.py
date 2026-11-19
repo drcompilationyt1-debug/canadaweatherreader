@@ -1339,7 +1339,8 @@ class TradingRunner:
             target = weights[t] / self.max_position if self.max_position > 0 else 0.0
             band = 0.0 if t in self._no_deadband else self.deadband             # a top-up / take-profit trade is decided already
             dec = decide(t, target, current, slice_cap, price, band, allow_short, self.min_trade_for(t))
-            if self.whole_shares and dec.action != "HOLD":                     # moomoo Canada: whole shares only
+            full_exit = abs(dec.target_exposure) < 1e-9 and dec.shares < 0   # everything goes, a fractional remnant included
+            if self.whole_shares and dec.action != "HOLD" and not full_exit:  # moomoo Canada: whole shares only
                 whole = float(int(abs(dec.shares)))
                 if whole < 1.0:
                     dec = Decision(t, "HOLD", dec.target_exposure, dec.current_exposure, 0.0, 0.0, 0.0, price, "less than one share")

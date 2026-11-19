@@ -219,14 +219,21 @@ class AlpacaBroker(Broker):
         pos = self.position(order.ticker)
         signed = order.qty if order.side == "buy" else -order.qty
         new_shares = pos.shares + signed
+        # selling all of a position with a fractional remnant (left by the fractional days) while whole shares are the rule:
+        # Alpaca closes a fractional position in full even with fractional trading off - a whole-share sell would leave the
+        # remnant behind for good
+        close_all = (order.side == "sell" and not self.fractional and pos.shares > 0 and pos.shares - int(pos.shares) > 1e-6
+                     and order.qty >= pos.shares - 1e-6)
         # Alpaca does not allow fractional shorts: whole shares whenever the short side is involved
-        if self.fractional and new_shares >= 0 and pos.shares >= 0:
+        if close_all:
+            qty = float(pos.shares)
+        elif self.fractional and new_shares >= 0 and pos.shares >= 0:
             qty = round(order.qty, 3)
         else:
             qty = float(int(order.qty))
         if qty <= 0:
             return None
-        if order.limit_price:                                              # rests for the day; fees are booked when we learn what filled
+        if order.limit_price and not close_all:                            # rests for the day; fees are booked when we learn what filled
             from alpaca.trading.requests import LimitOrderRequest
 
             req = LimitOrderRequest(symbol=self._symbol(order.ticker), qty=qty, side=OrderSide.BUY if order.side == "buy" else OrderSide.SELL,
@@ -235,9 +242,12 @@ class AlpacaBroker(Broker):
             log.info("alpaca limit order %s %s %.3f %s @ %.2f -> id %s", self.name, order.side, qty, order.ticker, float(order.limit_price),
                      getattr(resp, "id", "?"))
             return None
-        req = MarketOrderRequest(symbol=self._symbol(order.ticker), qty=qty,
-                                 side=OrderSide.BUY if order.side == "buy" else OrderSide.SELL, time_in_force=TimeInForce.DAY)
-        resp = self.client.submit_order(req)
+        if close_all:
+            resp = self.client.close_position(self._symbol(order.ticker))
+        else:
+            req = MarketOrderRequest(symbol=self._symbol(order.ticker), qty=qty,
+                                     side=OrderSide.BUY if order.side == "buy" else OrderSide.SELL, time_in_force=TimeInForce.DAY)
+            resp = self.client.submit_order(req)
         price = self.price(order.ticker)
         sched = (self.fee_book.for_ticker(order.ticker) if self.fee_book is not None else None) or self.fees
         cost = float(sched.cost(qty, price, order.side)) if sched is not None else 0.0

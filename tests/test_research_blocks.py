@@ -1,5 +1,6 @@
 """The research additions: the complexity timer, the TabPFN head (with a stand-in model), the qlib TRA block, Chronos-2 inputs."""
 import numpy as np
+import pytest
 import pandas as pd
 
 import stockbot.agent  # noqa: F401
@@ -115,6 +116,32 @@ def test_tabpfn_wrapper_never_pickles_the_model_and_refits_from_its_context():
     w2 = pickle.loads(blob)
     assert w2.model is None
     assert np.allclose(w2.predict(X[:20]), before, atol=1e-4)      # rebuilt from the context on first use
+
+
+def test_tabpfn_on_a_cpu_cuts_a_gpu_sized_context_and_keeps_no_half_built_model(monkeypatch):
+    from stockbot.signals.xs_tabpfn import _TabPFN
+
+    seen = []
+
+    class Picky(_FakeReg):
+        def fit(self, X, y):                                        # TabPFN on a CPU: no context over 5000 rows
+            seen.append(len(X))
+            if len(X) > 5000:
+                raise RuntimeError("Running on CPU with more than 5000 samples is not allowed by default")
+            return super().fit(X, y)
+
+    rng = np.random.default_rng(1)
+    X = rng.normal(size=(12000, 4)).astype(np.float32)
+    y = X[:, 0].copy()
+    w = _TabPFN(max_rows=10000, chunk=500, model_cls=Picky, stride=1)
+    w.X_ctx, w.y_ctx = X[:10000], y[:10000]                         # the state the Kaggle GPU run saves
+    monkeypatch.setattr(_TabPFN, "_device", staticmethod(lambda: "cpu"))
+    assert w.predict(X[:5]).shape == (5,) and seen[-1] == _TabPFN.CPU_ROWS
+    monkeypatch.setattr(_TabPFN, "CPU_ROWS", 6000)                  # a fit that fails leaves nothing behind for the next call
+    w.model = None
+    with pytest.raises(RuntimeError):
+        w.predict(X[:5])
+    assert w.model is None
 
 
 def test_state_save_leaves_out_files_github_would_reject(tmp_path):

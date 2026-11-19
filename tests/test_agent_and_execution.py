@@ -27,6 +27,15 @@ def test_decide_mapping():
     assert decide("X", -0.5, 0.0, 10_000, 50.0, allow_short=False).action == "HOLD"
 
 
+def test_a_full_exit_is_never_blocked_by_the_band_or_the_minimum_order():
+    # META, Nov 2026: 0.8 of a share ($510, 6% of a slot) under the $796 minimum - "sold" by the plan every day, never sent
+    d = decide("META", 0.0, 0.06, 8_550.0, 612.93, 0.05, False, 796.0)
+    assert d.action == "SELL" and abs(d.shares + 0.06 * 8_550.0 / 612.93) < 1e-9
+    assert decide("X", 0.0, 0.03, 8_550.0, 100.0, 0.05, False, 796.0).action == "SELL"       # even inside the band
+    assert decide("X", 0.03, 0.06, 8_550.0, 100.0, 0.05, False, 796.0).action == "HOLD"      # a partial sale still has to pay
+    assert decide("X", 0.0, 0.0, 8_550.0, 100.0, 0.05, False, 796.0).action == "HOLD"        # nothing held, nothing to do
+
+
 def test_allocate_caps_gross_exposure():
     w = allocate({"A": 1.0, "B": 1.0, "C": -1.0, "D": 1.0, "E": 1.0, "F": 1.0}, max_position=0.25, max_gross_exposure=1.0)
     assert abs(sum(abs(x) for x in w.values()) - 1.0) < 1e-9

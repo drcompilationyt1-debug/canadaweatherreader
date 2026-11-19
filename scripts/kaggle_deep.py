@@ -155,6 +155,9 @@ def main() -> int:
             time.sleep(30)
         st = wait(kid, args.max_minutes)
         print("final status:", st)
+        if st == "TIMEOUT" and os.environ.get("GITHUB_OUTPUT"):          # only a run still going on Kaggle gets a follow-up
+            with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
+                f.write("timeout=true\n")
         if st != "COMPLETE":
             print(kaggle("kernels", "output", kid, "-p", args.out, check=False)[-3000:])
             return 1

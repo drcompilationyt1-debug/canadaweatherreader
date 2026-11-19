@@ -45,3 +45,33 @@ def test_close_dust_only_liquidates_fractional_remnants():
     out = b.close_dust(500.0)
     assert closed == ["AAPL"]                                                          # whole-share positions are never touched
     assert [(o["ticker"], o["closed"]) for o in out] == [("AAPL", True), ("BRK-B", False)] and "rejected" in out[1]["error"]
+
+
+def test_selling_everything_closes_a_fractional_remnant_under_whole_shares():
+    from stockbot.execution.alpaca import AlpacaBroker
+    from stockbot.execution.base import Position
+
+    calls = []
+
+    class Client:
+        def close_position(self, sym):
+            calls.append(("close", sym))
+
+        def submit_order(self, req):
+            calls.append(("order", req.symbol, float(req.qty)))
+
+    b = AlpacaBroker.__new__(AlpacaBroker)
+    b.client, b.fractional, b.fee_book, b.fees, b.name = Client(), False, None, None, "test"
+    b.ledger = type("L", (), {"add": lambda self, c: None, "save": lambda self: None})()
+    held = {"META": 0.83, "F": 30.0, "GLW": 3.5}
+    b.position = lambda t: Position(t, held[t], 600.0)
+    b.price = lambda t: 600.0
+    b._symbol = lambda t: t
+    f = b.submit(Order("META", "sell", 0.83))                       # all of it: Alpaca closes the remnant in one go
+    assert calls[-1] == ("close", "META") and abs(f.qty - 0.83) < 1e-9
+    b.submit(Order("GLW", "sell", 3.5))                             # 3 whole shares + a remnant: still closed in full
+    assert calls[-1] == ("close", "GLW")
+    b.submit(Order("GLW", "sell", 2.0))                             # a partial sale stays in whole shares
+    assert calls[-1] == ("order", "GLW", 2.0)
+    b.submit(Order("F", "sell", 30.0))                              # a whole position sells as an ordinary order
+    assert calls[-1] == ("order", "F", 30.0)
