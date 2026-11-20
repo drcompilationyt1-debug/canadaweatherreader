@@ -49,12 +49,33 @@ def test_gemini_probe_picks_an_answering_model(monkeypatch):
         return SimpleNamespace(status_code=code, text="high demand" if code == 503 else "ok")
 
     monkeypatch.setattr("requests.post", fake_post)
+    monkeypatch.setattr(probe, "RETRY_WAIT", 0.0)
     probe._CACHE.clear()
     assert probe.first_live_gemini(["dead-model", "live-model"], "key-123456789") == "live-model"
-    assert len(calls) == 2
-    assert probe.first_live_gemini(["dead-model", "live-model"], "key-123456789") == "live-model" and len(calls) == 2   # cached
+    assert len(calls) == probe.RETRIES + 1                                      # an overloaded model is tried again before the next
+    n = len(calls)
+    assert probe.first_live_gemini(["dead-model", "live-model"], "key-123456789") == "live-model" and len(calls) == n   # cached
     assert probe.first_live_gemini(["dead-model"], "key-123456789") is None
     assert probe.first_live_gemini(["x", "y"], None) == "x"                     # no key: nothing to probe, keep the configured model
+
+
+def test_gemini_probe_rides_out_a_passing_overload_and_skips_a_retired_model_at_once(monkeypatch):
+    from stockbot.llm import probe
+
+    calls = []
+
+    def fake_post(url, params=None, json=None, timeout=None):
+        calls.append(url)
+        if "retired" in url:
+            return SimpleNamespace(status_code=404, text="no longer available")
+        busy = sum("flaky" in u for u in calls) < 2                             # 503 once, then it answers
+        return SimpleNamespace(status_code=503 if busy else 200, text="high demand" if busy else "ok")
+
+    monkeypatch.setattr("requests.post", fake_post)
+    monkeypatch.setattr(probe, "RETRY_WAIT", 0.0)
+    probe._CACHE.clear()
+    assert probe.first_live_gemini(["retired", "flaky", "other"], "key-123456789") == "flaky"
+    assert [u.split("/models/")[1].split(":")[0] for u in calls] == ["retired", "flaky", "flaky"]
 
 
 class Hold:
