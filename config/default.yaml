@@ -363,12 +363,15 @@ signals:
   # Groq's free tier (8K tokens/min on gpt-oss-120b) throttled it past the timeout; an OpenAI-compatible
   # backend_url containing "groq" / "openrouter" / "generativelanguage" picks the matching key pool.
   trading_agents: { enabled: true, python: null, llm_provider: google, backend_url: null,
-                    deep_think_llm: gemini-3.8-flash, quick_think_llm: gemini-3.5-flash-lite, max_debate_rounds: 1, timeout: 900,
-                    deep_think_fallbacks: [gemini-3.5-flash, gemini-flash-latest], quick_think_fallbacks: [gemini-flash-lite-latest, gemini-flash-latest] }
+                    deep_think_llm: gemini-flash-latest, quick_think_llm: gemini-flash-lite-latest, max_debate_rounds: 1, timeout: 900,
+                    deep_think_fallbacks: [gemini-3.8-flash, gemini-3.5-flash, gemini-flash-lite-latest], quick_think_fallbacks: [gemini-3.5-flash-lite, gemini-flash-latest] }
   # ai-hedge-fund on Gemini flash (registered at runtime by our runner script) with free Yahoo data; GEMINI_API_KEY pool.
-  ai_hedge_fund:  { enabled: true, python: null, mandate: null, llm_model: gemini-3.8-flash, data: yfinance, timeout: 600,
-                    llm_fallbacks: [gemini-3.5-flash, gemini-flash-latest] }   # each model is probed first; a 503 costs seconds, not minutes
-                    # (gemini-2.5-flash was retired for new keys in Nov 2026: 404 - the -latest aliases follow Google's current flash)
+  ai_hedge_fund:  { enabled: true, python: null, mandate: null, llm_model: gemini-flash-latest, data: yfinance, timeout: 600,
+                    llm_fallbacks: [gemini-3.8-flash, gemini-3.5-flash, gemini-flash-lite-latest] }   # each model is probed first; a 503 costs seconds, not minutes
+                    # Gemini everywhere: Google's -latest aliases first (they always point at the current flash, so a retired
+                    # version - gemini-2.5-flash, Nov 2026: 404 - can never take the block down); numbered versions only as
+                    # fallbacks, where a retired one is skipped in seconds, and the lite alias last (Nov 20: flash-latest 503,
+                    # 3.8-flash ok, flash-lite-latest ok in 0.5 s - the mornings it was the only one left, it was not in the list)
   # Ports of the reference repos (Lean algorithms, huseinzol05 agents, akurgat indications,
   # the LSTM-style forecasters) - cheap extra opinions for the policy ------------------
   strategy_zoo:  { enabled: true }
@@ -510,8 +513,8 @@ llm:
     max_tokens: 1024
   gemini:
     # Google AI Studio free tier; quotas are per model, so the fallbacks are real extra budget.
-    model: gemini-3.8-flash
-    fallback_models: [gemini-3.5-flash, gemini-flash-latest, gemini-flash-lite-latest]
+    model: gemini-flash-latest          # the alias, not a version: it follows Google's current flash and is never retired
+    fallback_models: [gemini-3.8-flash, gemini-3.5-flash, gemini-flash-lite-latest]
     cooldown_seconds: 900
     max_tokens: 1024
   ollama:

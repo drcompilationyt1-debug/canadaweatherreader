@@ -211,7 +211,7 @@ class GeminiBackend(OpenAIBackend):
     DEFAULTS = {
         "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
         "api_key_env": "GEMINI_API_KEY",
-        "model": "gemini-3.8-flash",
-        "fallback_models": ["gemini-3.5-flash", "gemini-flash-latest", "gemini-flash-lite-latest"],
+        "model": "gemini-flash-latest",
+        "fallback_models": ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-flash-lite-latest"],
         "require_key": True,
     }
