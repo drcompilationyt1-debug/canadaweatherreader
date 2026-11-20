@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 98, "reasoning": "The long position is down -44.46% unrealised, far exceeding the -8% loss rule which mandates closing. The peak gain of +24.34% has been fully retraced, so to protect capital the position must be exited immediately."}

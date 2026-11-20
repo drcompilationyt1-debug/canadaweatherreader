@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 95, "reasoning": "Unrealised loss of -17.18% far exceeds the -8% stop\u2011loss rule; position has never been profitable (peak PnL -2.17%). To protect capital the position must be fully closed."}

@@ -1,0 +1,1 @@
+{"action": "HOLD", "direction": "none", "position_size_pct": 0, "confidence": 70, "reasoning": "Multi-horizon returns are positive, textbook vote shows slight long bias, position is profitable (+5.42%) with no drawdown, no trigger for stop-loss (-8%) or profit-taking (30% retracement from peak), thus maintaining current exposure is appropriate."}

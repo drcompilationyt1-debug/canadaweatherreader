@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 95, "reasoning": "Position shows -11.57% unrealized PnL, breaching the -8% stop-loss rule. Risk management mandates immediate closure to protect capital. Despite oversold RSI (35) and some bullish strategy signals, the loss threshold is absolute for stocks without leverage."}

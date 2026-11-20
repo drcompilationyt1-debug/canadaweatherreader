@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 96, "reasoning": "The position is down -11.99% from entry, breaching the -8% capital-protection stop. Trend is severely negative (20d -22.5%, 60d -32.8%, 120d -33.8%), volatility is high at 7.8% ATR, and strategy votes are mixed with no clear edge. Exit to preserve capital."}

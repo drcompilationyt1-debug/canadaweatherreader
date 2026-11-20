@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 95, "reasoning": "Unrealised loss is -8.69% which exceeds the -8% stop\u2011loss rule; the position has also retraced more than 30% from its peak PnL. Risk management dictates exiting the position immediately."}

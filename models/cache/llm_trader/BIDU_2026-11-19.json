@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 95, "reasoning": "Position violates the -8% stop-loss rule (currently -23.85% unrealized PnL). Risk management mandates immediate exit regardless of oversold RSI (26) or 52-week low. Capital preservation takes precedence; the trend remains strongly negative across all horizons (120d -48.9%)."}

@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 92, "reasoning": "Close the losing position immediately. Unrealised PnL is -29.37%, breaching the -8% capital-protection stop. The trade also retraced more than 30% from its +2.33% peak, so remaining risk is unacceptable."}

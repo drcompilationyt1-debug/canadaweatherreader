@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 95, "reasoning": "The position is down 22.49% from entry, exceeding the -8% stop loss rule, and the drawdown far exceeds the 30% retracement from its peak, indicating a clear need to protect capital by closing the entire position."}

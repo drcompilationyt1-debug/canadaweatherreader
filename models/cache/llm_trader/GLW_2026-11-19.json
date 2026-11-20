@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 95, "reasoning": "Position violates the -8% stop-loss rule with -15.15% unrealized loss. Risk management requires immediate exit to protect capital. All return horizons negative, high volatility (ATR 7.4%), and mixed technical signals confirm downtrend. No basis to hold or add."}

@@ -1,0 +1,1 @@
+{"action": "PARTIAL_CLOSE", "direction": "long", "position_size_pct": 20, "confidence": 65, "reasoning": "Unrealised loss at -6.13% below the -8% stop rule but trending down on longer horizons (60d,120d) and neutral strategy signals. Mixed short-term upside does not justify full hold. A partial close of ~20% of capital slice reduces risk while preserving upside potential."}

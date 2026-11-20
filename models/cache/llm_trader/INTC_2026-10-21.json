@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 95, "reasoning": "The long position is down -14.37%, well beyond the -8% loss threshold that mandates closure. Additionally, the drawdown exceeds a 30% retracement from its peak (+24.34% to -14.37%). To protect capital, the position must be fully closed."}

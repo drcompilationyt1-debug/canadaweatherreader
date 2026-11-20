@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 95, "reasoning": "The long position is down -12.6%, exceeding the -8% loss limit which mandates closing to protect capital. No further risk management considerations needed."}

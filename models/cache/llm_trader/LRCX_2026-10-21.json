@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 95, "reasoning": "Position is down -9.82% from entry, exceeding the -8% stop-loss rule for stocks. Must close immediately to protect capital. No ADD_POSITION or HOLD as loss threshold breached."}

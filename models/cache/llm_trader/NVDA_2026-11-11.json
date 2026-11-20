@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 95, "reasoning": "The position is down 14.36%, exceeding the -8% loss threshold that mandates closing. Protecting capital overrides any potential upside. No partial close is allowed because the rule requires a full exit when loss exceeds -8%."}

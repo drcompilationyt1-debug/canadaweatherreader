@@ -1,0 +1,137 @@
+{
+ "tuned_at": "2026-10-04",
+ "inputs": {
+  "xs_rank.xs_score": 1.0,
+  "timesfm.tfm_ret_20": 0.5
+ },
+ "tuned": {
+  "xs_rank.xs_score": 1.0,
+  "timesfm.tfm_ret_20": 0.1093,
+  "fundamentals.f_ey": 0.1862,
+  "xs_nn.nn_score": 0.1505,
+  "xs_tabpfn.pfn_score": 0.554
+ },
+ "static": {
+  "xs_rank.xs_score": 1.0,
+  "timesfm.tfm_ret_20": 0.5
+ },
+ "ic": {
+  "xs_rank.xs_score": {
+   "ic": 0.056125845744719134,
+   "t": 6.8568267671263605,
+   "days": 240
+  },
+  "timesfm.tfm_ret_20": {
+   "ic": 0.014976699156962125,
+   "t": 2.2563186084071125,
+   "days": 240
+  },
+  "es_agent.es_action": {
+   "ic": -0.004043598154255202,
+   "t": -0.6732994075912851,
+   "days": 240
+  },
+  "qlib.qlib_score": {
+   "ic": -0.0018247317136940852,
+   "t": -0.2257042104029068,
+   "days": 240
+  },
+  "kronos.kr_ret_5": {
+   "ic": 0.00614368709870237,
+   "t": 0.5436762364058931,
+   "days": 240
+  },
+  "chronos.chr_ret_20": {
+   "ic": 0.013025893026793679,
+   "t": 1.7007170715480509,
+   "days": 240
+  },
+  "dl_forecast.dl_pred": {
+   "ic": 0.002255665664195916,
+   "t": 0.2096543311866745,
+   "days": 240
+  },
+  "alpha_factors.af_pred": {
+   "ic": 0.011895899387942721,
+   "t": 1.3246033367145424,
+   "days": 240
+  },
+  "technical.ret_20": {
+   "ic": -0.0025292431147640976,
+   "t": -0.2343389332270164,
+   "days": 240
+  },
+  "fundamentals.f_ey": {
+   "ic": 0.02552073411007615,
+   "t": 2.167732797744125,
+   "days": 240
+  },
+  "dqn_agent.dqn_buy_pref": {
+   "ic": -0.024166156398226907,
+   "t": -3.9473609143354764,
+   "days": 240
+  },
+  "trend.slope_30": {
+   "ic": 0.0012058462134261797,
+   "t": 0.11144779308013877,
+   "days": 240
+  },
+  "factors.mom_12_1": {
+   "ic": 0.0034622230858286085,
+   "t": 0.2811908621203098,
+   "days": 240
+  },
+  "factors.hi_52w": {
+   "ic": -0.009737478941280742,
+   "t": -0.7833388408486103,
+   "days": 240
+  },
+  "factors.sec_rel_3m": {
+   "ic": -0.03500721428648544,
+   "t": -3.2574544502066596,
+   "days": 240
+  },
+  "xs_nn.nn_score": {
+   "ic": 0.020629582747731863,
+   "t": 3.2025065423925008,
+   "days": 240
+  },
+  "xs_tabpfn.pfn_score": {
+   "ic": 0.07594415495306965,
+   "t": 7.584248832601214,
+   "days": 240
+  },
+  "chronos2.c2_ret_20": {
+   "ic": 0.009474554992457548,
+   "t": 1.2628135118742205,
+   "days": 240
+  }
+ },
+ "backtest_last_year": {
+  "static": {
+   "total": 0.29978467040380985,
+   "sharpe": 1.7656910757621007,
+   "max_drawdown": -0.08325575368988314,
+   "turnover_per_year": 16.571206225680935,
+   "days": 257
+  },
+  "tuned": {
+   "total": 0.3015426047347951,
+   "sharpe": 1.8722948097509546,
+   "max_drawdown": -0.075457058788862,
+   "turnover_per_year": 16.473151750972765,
+   "days": 257
+  }
+ },
+ "guard_passed": true,
+ "proposal": [
+  "fundamentals.f_ey",
+  "timesfm.tfm_ret_20",
+  "xs_nn.nn_score",
+  "xs_rank.xs_score",
+  "xs_tabpfn.pfn_score"
+ ],
+ "streak": 1,
+ "accepted": false,
+ "reason": "tuned blend passed this week - in use if it passes again next week"
+}

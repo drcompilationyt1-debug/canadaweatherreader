@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 95, "reasoning": "Position violates mandatory -8% stop-loss rule with -10.33% unrealized loss. Technicals remain bearish: all return horizons negative, textbook vote slightly negative (-0.06), price 17.8% below 52w high. No recovery signal justifies holding past risk limit."}

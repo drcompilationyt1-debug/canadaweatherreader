@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 90, "reasoning": "Current unrealised PnL is -8.43%, breaching the -8% hard stop required to close a single position. Capital protection takes priority, so the losing position should be fully closed."}
