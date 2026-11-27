@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 95, "reasoning": "Unrealised PnL is -10.24%, exceeding the -8% loss limit; risk rule mandates closing any position beyond this loss to protect capital."}

@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "long", "position_size_pct": 0, "confidence": 95, "reasoning": "Unrealised loss is -14.68%, far exceeding the -8% stop\u2011loss rule; position has retraced far below its peak and violates risk management limits, so the position must be fully exited."}

@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "long", "position_size_pct": 0, "confidence": 95, "reasoning": "The position is losing 14.12% unrealised PnL, exceeding the -8% stop\u2011loss threshold, so it must be fully closed to protect capital. No partial exit is needed; the trade should be terminated immediately."}

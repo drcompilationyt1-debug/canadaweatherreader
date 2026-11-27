@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 95, "reasoning": "The position is down 8.22% from entry, exceeding the -8% stop\u2011loss threshold, so the rule requires immediate full closure to protect capital."}

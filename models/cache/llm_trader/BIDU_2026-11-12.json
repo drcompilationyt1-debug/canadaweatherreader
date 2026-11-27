@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 95, "reasoning": "Unrealized PnL is -14.82%, breaching the -8% stop-loss rule. Additionally, the position has retraced significantly from its peak of +2.61%, triggering the take-profit rule. Risk management dictates closing the position."}

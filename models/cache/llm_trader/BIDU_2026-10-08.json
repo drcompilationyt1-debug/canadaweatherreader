@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 85, "reasoning": "Unrealized PnL -7.62% approaches the -8% stop-loss threshold; longer-term returns are negative across all horizons, indicating a downtrend. Protecting capital takes precedence, so the long position should be closed entirely."}

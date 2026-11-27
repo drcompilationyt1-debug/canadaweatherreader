@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 95, "reasoning": "The long position is down -42.72% (far beyond the -8% loss limit) and has already retraced well past the 30% drawdown from its peak. Risk rules require closing any position exceeding an 8% loss to protect capital. Hence a full exit is mandated."}

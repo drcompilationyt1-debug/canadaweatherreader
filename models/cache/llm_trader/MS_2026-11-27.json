@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 95, "reasoning": "The position is down -16% from entry, exceeding the mandatory -8% stop\u2011loss rule. The recent price action shows a strong downtrend (20d -11.3%, 60d -20.1%) and RSI is only 35, indicating weakness. Risk management requires closing the losing position immediately."}

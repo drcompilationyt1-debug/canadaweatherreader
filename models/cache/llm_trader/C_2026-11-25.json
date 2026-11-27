@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 97, "reasoning": "The position is down -17.64% from entry, well beyond the mandatory -8% stop-loss rule. Momentum is weak across 1d, 5d, 20d, 60d, and 120d, and strategy signals are mixed, so capital preservation requires exiting immediately."}

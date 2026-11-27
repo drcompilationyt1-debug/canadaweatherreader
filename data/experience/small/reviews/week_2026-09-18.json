@@ -1,0 +1,5673 @@
+{
+ "period": "week",
+ "start": "2026-09-14",
+ "end": "2026-09-18",
+ "generated": "2026-09-20T11:55:50.124722+00:00",
+ "actual_return": 0.011676199343432003,
+ "oracle_return": 0.0422223255568237,
+ "regret": 0.0305461262133917,
+ "captured": 0.27654088659133486,
+ "alternatives": {
+  "hold": 0.0,
+  "equal": -0.013917174077192285,
+  "benchmark": -0.0009270593988092157,
+  "oracle": 0.0422223255568237,
+  "period_oracle": 0.019913821754496963,
+  "half": 0.005737057324614714,
+  "double": 0.01401192123919981,
+  "follow:ai_hedge_fund": 0.0,
+  "follow:alpha101": -0.01151727978938899,
+  "follow:alpha_factors": -0.0136094909078327,
+  "follow:candles": -0.016304914076240684,
+  "follow:chronos": -0.01516362700986229,
+  "follow:dqn_agent": -0.011008649954657446,
+  "follow:es_agent": -0.012650198253544409,
+  "follow:finbert": -0.013517120762452262,
+  "follow:kronos": -0.016177096818478343,
+  "follow:llm_trader": -0.0021377101426299783,
+  "follow:news_llm": -0.014207234755655107,
+  "follow:qlib": -0.010701482790766104,
+  "follow:sentiment": -0.014759473108242216,
+  "follow:strategy_zoo": -0.013845594321610033,
+  "follow:supertrend": -0.01599108551749384,
+  "follow:ta_keras": -0.006335428827327294,
+  "follow:talib_candles": -0.017566714371717307,
+  "follow:timesfm": -0.014580793473364384,
+  "follow:trading_agents": 0.0,
+  "follow:trend": -0.021495136749985377,
+  "follow:xs_rank": -0.012721260906533804,
+  "path_oracle": 0.10953525190098334
+ },
+ "ranking": [
+  {
+   "name": "path_oracle",
+   "return": 0.10953525190098334
+  },
+  {
+   "name": "oracle",
+   "return": 0.0422223255568237
+  },
+  {
+   "name": "period_oracle",
+   "return": 0.019913821754496963
+  },
+  {
+   "name": "double",
+   "return": 0.01401192123919981
+  },
+  {
+   "name": "actual",
+   "return": 0.011676199343432003
+  },
+  {
+   "name": "half",
+   "return": 0.005737057324614714
+  },
+  {
+   "name": "hold",
+   "return": 0.0
+  },
+  {
+   "name": "follow:ai_hedge_fund",
+   "return": 0.0
+  },
+  {
+   "name": "follow:trading_agents",
+   "return": 0.0
+  },
+  {
+   "name": "benchmark",
+   "return": -0.0009270593988092157
+  },
+  {
+   "name": "follow:llm_trader",
+   "return": -0.0021377101426299783
+  },
+  {
+   "name": "follow:ta_keras",
+   "return": -0.006335428827327294
+  },
+  {
+   "name": "follow:qlib",
+   "return": -0.010701482790766104
+  },
+  {
+   "name": "follow:dqn_agent",
+   "return": -0.011008649954657446
+  },
+  {
+   "name": "follow:alpha101",
+   "return": -0.01151727978938899
+  },
+  {
+   "name": "follow:es_agent",
+   "return": -0.012650198253544409
+  },
+  {
+   "name": "follow:xs_rank",
+   "return": -0.012721260906533804
+  },
+  {
+   "name": "follow:finbert",
+   "return": -0.013517120762452262
+  },
+  {
+   "name": "follow:alpha_factors",
+   "return": -0.0136094909078327
+  },
+  {
+   "name": "follow:strategy_zoo",
+   "return": -0.013845594321610033
+  },
+  {
+   "name": "equal",
+   "return": -0.013917174077192285
+  },
+  {
+   "name": "follow:news_llm",
+   "return": -0.014207234755655107
+  },
+  {
+   "name": "follow:timesfm",
+   "return": -0.014580793473364384
+  },
+  {
+   "name": "follow:sentiment",
+   "return": -0.014759473108242216
+  },
+  {
+   "name": "follow:chronos",
+   "return": -0.01516362700986229
+  },
+  {
+   "name": "follow:supertrend",
+   "return": -0.01599108551749384
+  },
+  {
+   "name": "follow:kronos",
+   "return": -0.016177096818478343
+  },
+  {
+   "name": "follow:candles",
+   "return": -0.016304914076240684
+  },
+  {
+   "name": "follow:talib_candles",
+   "return": -0.017566714371717307
+  },
+  {
+   "name": "follow:trend",
+   "return": -0.021495136749985377
+  }
+ ],
+ "best_alternative": {
+  "name": "double",
+  "return": 0.01401192123919981
+ },
+ "best_model": "ai_hedge_fund",
+ "per_name": [
+  {
+   "ticker": "C",
+   "move": -0.05078520875807402,
+   "avg_weight": 0.13942528785547215,
+   "contribution": -0.005789476147426857,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "LVS",
+   "move": -0.06654219395227567,
+   "avg_weight": 0.14111451277141102,
+   "contribution": -0.005552562488892906,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "HSBC",
+   "move": -0.03295347692437878,
+   "avg_weight": 0.14007784309151727,
+   "contribution": -0.0007673167262724808,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "AAPL",
+   "move": 0.011617106560237067,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "ABT",
+   "move": 0.0064737977622935095,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "ACN",
+   "move": -0.014192499711667694,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "ADBE",
+   "move": -0.013122933888359611,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "AIG",
+   "move": 0.0066242355367118755,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "AMAT",
+   "move": -0.02611225473758172,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "AMD",
+   "move": 0.08464922021211696,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "AMGN",
+   "move": 0.02199546219350501,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "AMZN",
+   "move": -0.011955728950946654,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "APA",
+   "move": 0.0031298768406256006,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "ATD.TO",
+   "move": -0.018385134868740383,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "AVGO",
+   "move": -0.012099795577155792,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "AXP",
+   "move": -0.040438586910855,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "BA",
+   "move": -0.05820860146181295,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "BABA",
+   "move": 0.03604752700826541,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "BAC",
+   "move": -0.07911946391971125,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "BAX",
+   "move": -0.04201680806959174,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "BBY",
+   "move": 0.033306856867034496,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "BIDU",
+   "move": -0.016083164071795886,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "BKNG",
+   "move": -0.03461364038546699,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "BKR",
+   "move": -0.03064682240440253,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "BMO.TO",
+   "move": 0.007588552516299751,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "BMY",
+   "move": -0.009113733845380168,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "BNS.TO",
+   "move": 0.015428526765913997,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "BNY",
+   "move": -0.05453098596015071,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "BRK-B",
+   "move": -0.0011756296593766757,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "CAT",
+   "move": -0.011703357078961862,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "CF",
+   "move": -0.040354776286235405,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "CL",
+   "move": 0.0077188726427321885,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "CLF",
+   "move": 0.03648420937594676,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "CMCSA",
+   "move": -0.09761908402158104,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "CMG",
+   "move": -0.07651934804928306,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "CMI",
+   "move": -0.04404134626178724,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "CNQ.TO",
+   "move": 0.0007213365836404861,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "CNR.TO",
+   "move": -0.017217059685435077,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "COF",
+   "move": -0.028180558281211687,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "COP",
+   "move": -0.0401893267358191,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "COST",
+   "move": -0.010455719982363498,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "CP.TO",
+   "move": -0.011547098821608315,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "CRM",
+   "move": -0.03787112567163886,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "CSCO",
+   "move": -0.023365693225392836,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "CSX",
+   "move": -0.03779371317638491,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "CTSH",
+   "move": -0.0021666844685868103,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "CVS",
+   "move": -0.061483278037822386,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "CVX",
+   "move": -0.02125573719355167,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "DD",
+   "move": 0.015906738145104793,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "DE",
+   "move": 0.012208837895088198,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "DIS",
+   "move": -0.03641487350242256,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "DUK",
+   "move": -0.01582648985620172,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "DVN",
+   "move": -0.02598411161433456,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "EBAY",
+   "move": 0.037958202671839025,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "ELV",
+   "move": -0.018556527013326107,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "EMR",
+   "move": -0.014915593902660507,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "ENB.TO",
+   "move": 0.028838833397324404,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "EOG",
+   "move": -0.02124053250439939,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "EXC",
+   "move": -0.02525486924099818,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "F",
+   "move": -0.05440230596670381,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "FCX",
+   "move": 0.006613215459706057,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "FDX",
+   "move": -0.02291081947708351,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "FFIV",
+   "move": 0.049355147424047674,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "FSLR",
+   "move": -0.06252687241906163,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "GILD",
+   "move": 0.05034410332943895,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "GLW",
+   "move": -0.09777637987050192,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "GOOGL",
+   "move": 0.032614500871261276,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "GS",
+   "move": -0.08470826207386217,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "HAL",
+   "move": -0.061383949597461185,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "HD",
+   "move": -0.028373322294260706,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "HON",
+   "move": 0.020260951231218183,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "HPQ",
+   "move": -0.030439628813178632,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "IBM",
+   "move": -0.056475772179480854,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "JCI",
+   "move": -0.01869732093861043,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "JD",
+   "move": -0.005173665647134951,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "JNJ",
+   "move": 0.01660518068032002,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "JPM",
+   "move": -0.01841506149476424,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "KO",
+   "move": 0.005511355778222038,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "KSS",
+   "move": -0.039466066351822926,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "LLY",
+   "move": 0.03336927863083439,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "LOW",
+   "move": -0.02199980525314127,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "M",
+   "move": 0.002181071446774263,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "MA",
+   "move": -0.006939707637324211,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "MCD",
+   "move": -0.016988054119788543,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "MDLZ",
+   "move": -0.025464448871844847,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "MDT",
+   "move": 0.012862776832910372,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "MET",
+   "move": -0.0010294263408419102,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "META",
+   "move": 0.027344366621947058,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "MFC.TO",
+   "move": 0.02952890892568316,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "MGM",
+   "move": -0.0521433454044421,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "MMM",
+   "move": 0.005576760393633418,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "MO",
+   "move": 0.023924467054176723,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "MOS",
+   "move": -0.028185826787154977,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "MRK",
+   "move": 0.026449988930649537,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "MRVL",
+   "move": 0.034519244751358036,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "MS",
+   "move": -0.05504246097115306,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "MSFT",
+   "move": -0.003732635404010809,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "MU",
+   "move": 0.04156837932592583,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "NEM",
+   "move": -0.02681171801863158,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "NFLX",
+   "move": -0.07248062661182053,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "NKE",
+   "move": -0.03505437343129647,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "NOV",
+   "move": -0.04881519753668173,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "NTAP",
+   "move": -0.007476944511698114,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "NTES",
+   "move": 0.005016882864740113,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "NVDA",
+   "move": 0.018232677212606685,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "ORCL",
+   "move": -0.017766823200913717,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "OXY",
+   "move": -0.04262933568032978,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "PDD",
+   "move": 0.014008533626599151,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "PEP",
+   "move": -0.0481954736738891,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "PFE",
+   "move": -0.002164482951970359,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "PG",
+   "move": 0.007709747946912149,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "PM",
+   "move": -0.012770870263713374,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "PNC",
+   "move": -0.04532430017705924,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "PRU",
+   "move": -0.007044585314822882,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "PSKY",
+   "move": -0.03234147822895972,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "QCOM",
+   "move": -0.02335549800236225,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "QQQ",
+   "move": 0.009190363808392998,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "RTX",
+   "move": -0.018615908600406073,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "RY.TO",
+   "move": -0.002629733407779833,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "SBUX",
+   "move": -0.029471299328259648,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "SCHW",
+   "move": -0.01864801864801857,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "SHOP.TO",
+   "move": 0.00521267113217827,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "SLB",
+   "move": -0.08811991295740207,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "SPG",
+   "move": 0.0023922544977967863,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "SU.TO",
+   "move": 0.01878272013444393,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "T",
+   "move": -0.025326165039821324,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "TCOM",
+   "move": 0.042542281597585996,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "TD.TO",
+   "move": 0.022418283326197663,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "TGT",
+   "move": 0.015144712716554931,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "TPR",
+   "move": -0.02945394486192876,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "TRV",
+   "move": -0.001545887715812988,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "TSLA",
+   "move": -0.003201656687603527,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "TXN",
+   "move": -0.007666533178295909,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "UNH",
+   "move": 0.00034505105662163693,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "UNP",
+   "move": -0.01768635333068147,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "UPS",
+   "move": -0.012165947701975766,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "USB",
+   "move": -0.044239318468276445,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "V",
+   "move": -0.005830756082961797,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "VLO",
+   "move": 0.05855228872839002,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 1.0
+  },
+  {
+   "ticker": "VZ",
+   "move": -0.04979253956476415,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "WFC",
+   "move": -0.04618449580974793,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "WMB",
+   "move": -0.01098140616499066,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "WMT",
+   "move": -0.003919721539564103,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "WYNN",
+   "move": -0.06864306559348243,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "XOM",
+   "move": -0.014759998349009762,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "YUM",
+   "move": -0.020444308396742827,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "YUMC",
+   "move": -0.028355405755974505,
+   "avg_weight": 0.0,
+   "contribution": 0.0,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "GE",
+   "move": -0.02901197102574471,
+   "avg_weight": 0.12985151941875728,
+   "contribution": 0.004113080398734207,
+   "oracle_exposure": 0.0
+  },
+  {
+   "ticker": "INTC",
+   "move": 0.05498344568173619,
+   "avg_weight": 0.14420012826075473,
+   "contribution": 0.020005187338262106,
+   "oracle_exposure": 1.0
+  }
+ ],
+ "lessons": [
+  "week 2026-09-14 to 2026-09-18: actual +1.17%, oracle +4.22%, regret +3.05%, captured 28% of what was available",
+  "'double' would have done better: +1.40% vs actual +1.17%",
+  "most useful input this week: ai_hedge_fund (+0.00% if followed alone)",
+  "mistake: C  cost -0.58% (move -5.08%)",
+  "mistake: LVS  cost -0.56% (move -6.65%)",
+  "mistake: HSBC  cost -0.08% (move -3.30%)",
+  "missed: AMD +8.46%, VLO +5.86%, GILD +5.03%, FFIV +4.94%, TCOM +4.25% (not held)",
+  "fee-aware best path this week: +10.95% with 9 switches across 5 names, vs +4.22% if every day were played perfectly - the best week is not the best days strung together",
+  "regret came mostly from missed: missed +86.53%, wrong side +1.58%, under-sized +0.42%, fees +0.03%",
+  "inputs by information coefficient - useful: alpha101 +0.11, dqn_agent +0.10, es_agent +0.08, llm_trader +0.07, finbert +0.07; harmful: talib_candles -0.07, kronos -0.14, trend -0.14",
+  "350 decisions this week: 188 right, 152 missed, 10 wrong side, 0 under-sized, 0 over-sized - hit rate 54%, regret +44.03%",
+  "worse move: AMD HOLD on 2026-09-17 (+2.04% to the week's end, missed) - better: hold 100% of a slot",
+  "worse move: HPQ HOLD on 2026-09-17 (+1.42% to the week's end, missed) - better: hold 100% of a slot, sell on 2026-09-18",
+  "worse move: MU HOLD on 2026-09-17 (+2.22% to the week's end, missed) - better: hold 100% of a slot",
+  "market context: flat-calm (SPY -0.09%, vol 11%)"
+ ],
+ "days": 5,
+ "n_names": 149,
+ "stats": {
+  "return": 0.011676199343432003,
+  "volatility": 0.12076477543488351,
+  "max_drawdown": -0.005837306770007489,
+  "win_days": 0.4,
+  "sharpe": 4.898360692853855,
+  "benchmark_return": -0.0009270593988092157,
+  "excess_return": 0.012603258742241219
+ },
+ "path_oracle": {
+  "return": 0.10953525190098334,
+  "names": [
+   "AMD",
+   "INTC",
+   "MRVL",
+   "MU",
+   "CLF"
+  ],
+  "switches": 9,
+  "per_name": {
+   "AMD": {
+    "pnl_per_slice": 0.1288437568199398,
+    "switches": 1,
+    "avg_level": 0.8
+   },
+   "CLF": {
+    "pnl_per_slice": 0.0925583324971036,
+    "switches": 2,
+    "avg_level": 0.6
+   },
+   "INTC": {
+    "pnl_per_slice": 0.11674692508562462,
+    "switches": 2,
+    "avg_level": 0.4
+   },
+   "MRVL": {
+    "pnl_per_slice": 0.11179176788153447,
+    "switches": 1,
+    "avg_level": 0.8
+   },
+   "MU": {
+    "pnl_per_slice": 0.09773547722071416,
+    "switches": 3,
+    "avg_level": 0.6
+   }
+  }
+ },
+ "attribution": {
+  "missed": 0.865330930895762,
+  "wrong_side": 0.015830634193791368,
+  "under_sized": 0.004201523153376044,
+  "cost": 0.00027182052774621097,
+  "total": 0.8856349087706756,
+  "biggest": "missed"
+ },
+ "execution": {
+  "fills": 5,
+  "traded_notional": 8567.205,
+  "fees": 9.95,
+  "shortfall_bps": 1.120780013394107,
+  "fees_bps": 11.61405615950593
+ },
+ "ic": {
+  "alpha101": {
+   "ic": 0.11349700319576278,
+   "ir": 0.9926998829295091,
+   "days": 3
+  },
+  "dqn_agent": {
+   "ic": 0.0973956729717621,
+   "ir": 1.253711062994658,
+   "days": 3
+  },
+  "es_agent": {
+   "ic": 0.08146457843081596,
+   "ir": 0.6335191992340915,
+   "days": 3
+  },
+  "llm_trader": {
+   "ic": 0.07058080925269318,
+   "ir": 0.819823746587903,
+   "days": 3
+  },
+  "finbert": {
+   "ic": 0.07024431112638208,
+   "ir": 0.4949524594931708,
+   "days": 3
+  },
+  "ta_keras": {
+   "ic": 0.06725294173485874,
+   "ir": 0.49690047753256156,
+   "days": 3
+  },
+  "chronos": {
+   "ic": 0.041717015116774565,
+   "ir": 0.40494123937256693,
+   "days": 3
+  },
+  "xs_rank": {
+   "ic": 0.03231774299702071,
+   "ir": 0.817225326542033,
+   "days": 3
+  },
+  "news_llm": {
+   "ic": 0.02794228774866041,
+   "ir": 0.1659317103410288,
+   "days": 3
+  },
+  "strategy_zoo": {
+   "ic": 0.008300323422737307,
+   "ir": 0.07302188261558229,
+   "days": 3
+  },
+  "alpha_factors": {
+   "ic": 0.005192748241840912,
+   "ir": 0.046079493996829424,
+   "days": 3
+  },
+  "timesfm": {
+   "ic": 0.0010508689430656938,
+   "ir": 0.009919300860738958,
+   "days": 3
+  },
+  "qlib": {
+   "ic": -0.0013403515728571264,
+   "ir": -0.025427967349778185,
+   "days": 3
+  },
+  "candles": {
+   "ic": -0.03797027349936246,
+   "ir": -0.6734286347602266,
+   "days": 3
+  },
+  "supertrend": {
+   "ic": -0.04393234245984634,
+   "ir": -0.24561265859363132,
+   "days": 3
+  },
+  "sentiment": {
+   "ic": -0.06369709094700965,
+   "ir": -0.7634233868295948,
+   "days": 3
+  },
+  "talib_candles": {
+   "ic": -0.07322891284594484,
+   "ir": -0.39848701377924217,
+   "days": 3
+  },
+  "kronos": {
+   "ic": -0.1359319487124274,
+   "ir": -1.0507791772982116,
+   "days": 3
+  },
+  "trend": {
+   "ic": -0.13832720149209463,
+   "ir": -0.5443429989900228,
+   "days": 3
+  }
+ },
+ "decisions": {
+  "n": 350,
+  "counts": {
+   "right": 188,
+   "missed": 152,
+   "wrong side": 10,
+   "under-sized": 0,
+   "over-sized": 0
+  },
+  "hit_rate": 0.5371428571428571,
+  "regret": 0.4402524698514748,
+  "worst": [
+   {
+    "ticker": "AMD",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.06359029630335367,
+    "r_to_end": 0.020377674475464458,
+    "regret": 0.012718059260670734
+   },
+   {
+    "ticker": "HPQ",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.05993880852425004,
+    "r_to_end": 0.014150988380863927,
+    "regret": 0.01198776170485001
+   },
+   {
+    "ticker": "MU",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.05498895135533233,
+    "r_to_end": 0.022178380889720684,
+    "regret": 0.010997790271066466
+   },
+   {
+    "ticker": "APA",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-16",
+    "r_day": 0.05285367827301535,
+    "r_to_end": -0.013087013485433618,
+    "regret": 0.010570735654603071
+   },
+   {
+    "ticker": "FSLR",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.05280785027013324,
+    "r_to_end": 0.0044337718233025125,
+    "regret": 0.010561570054026649
+   }
+  ],
+  "ledger": [
+   {
+    "ticker": "AMD",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.06359029630335367,
+    "r_to_end": 0.020377674475464458,
+    "regret": 0.012718059260670734
+   },
+   {
+    "ticker": "HPQ",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.05993880852425004,
+    "r_to_end": 0.014150988380863927,
+    "regret": 0.01198776170485001
+   },
+   {
+    "ticker": "MU",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.05498895135533233,
+    "r_to_end": 0.022178380889720684,
+    "regret": 0.010997790271066466
+   },
+   {
+    "ticker": "APA",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-16",
+    "r_day": 0.05285367827301535,
+    "r_to_end": -0.013087013485433618,
+    "regret": 0.010570735654603071
+   },
+   {
+    "ticker": "FSLR",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.05280785027013324,
+    "r_to_end": 0.0044337718233025125,
+    "regret": 0.010561570054026649
+   },
+   {
+    "ticker": "ORCL",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.05189991957053697,
+    "r_to_end": 0.018386288663641892,
+    "regret": 0.010379983914107395
+   },
+   {
+    "ticker": "CLF",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.050205813127865095,
+    "r_to_end": -0.006754072308303605,
+    "regret": 0.01004116262557302
+   },
+   {
+    "ticker": "MRVL",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.04810407674896333,
+    "r_to_end": 0.01830234303343614,
+    "regret": 0.009620815349792667
+   },
+   {
+    "ticker": "SU.TO",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-16",
+    "r_day": 0.046139317307294814,
+    "r_to_end": -0.02900291616997519,
+    "regret": 0.009227863461458962
+   },
+   {
+    "ticker": "QCOM",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-16",
+    "r_day": 0.042464665081638486,
+    "r_to_end": -0.06605706437173198,
+    "regret": 0.008492933016327697
+   },
+   {
+    "ticker": "EBAY",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.0341669269899707,
+    "r_to_end": -0.00639662102087224,
+    "regret": 0.006833385397994141
+   },
+   {
+    "ticker": "BBY",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.03355557729267322,
+    "r_to_end": -0.007270410840146568,
+    "regret": 0.006711115458534644
+   },
+   {
+    "ticker": "TGT",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.033294604338831135,
+    "r_to_end": 0.004636113561579114,
+    "regret": 0.006658920867766227
+   },
+   {
+    "ticker": "COP",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-16",
+    "r_day": 0.03329189370540053,
+    "r_to_end": -0.030376567879856764,
+    "regret": 0.0066583787410801065
+   },
+   {
+    "ticker": "CF",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-16",
+    "r_day": 0.032764306712808944,
+    "r_to_end": -0.042513331721960035,
+    "regret": 0.006552861342561789
+   },
+   {
+    "ticker": "TCOM",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.03006370204269504,
+    "r_to_end": 0.007928649781362207,
+    "regret": 0.006012740408539008
+   },
+   {
+    "ticker": "GE",
+    "date": "2026-09-15",
+    "action": "BUY",
+    "level_ours": 0.9,
+    "level_best": 0.0,
+    "verdict": "wrong side",
+    "better": "stay out until 2026-09-16",
+    "r_day": -0.033096138828650035,
+    "r_to_end": 0.003720761449583554,
+    "regret": 0.005957304989157006
+   },
+   {
+    "ticker": "NTAP",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.028356533082741553,
+    "r_to_end": 0.017490577118847828,
+    "regret": 0.005671306616548311
+   },
+   {
+    "ticker": "OXY",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-16",
+    "r_day": 0.028164482240972344,
+    "r_to_end": -0.035567937180988496,
+    "regret": 0.0056328964481944695
+   },
+   {
+    "ticker": "CVX",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-16",
+    "r_day": 0.026393958391122352,
+    "r_to_end": -0.021575703979657468,
+    "regret": 0.005278791678224471
+   },
+   {
+    "ticker": "FFIV",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.026039327827984016,
+    "r_to_end": 0.011803552259530337,
+    "regret": 0.005207865565596804
+   },
+   {
+    "ticker": "XOM",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-16",
+    "r_day": 0.02568454958889177,
+    "r_to_end": -0.014284893700603818,
+    "regret": 0.0051369099177783544
+   },
+   {
+    "ticker": "NVDA",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.025432457207263504,
+    "r_to_end": 0.011582679587943678,
+    "regret": 0.005086491441452701
+   },
+   {
+    "ticker": "GLW",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.025249717655252635,
+    "r_to_end": 0.003140484316534131,
+    "regret": 0.005049943531050528
+   },
+   {
+    "ticker": "CNQ.TO",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-16",
+    "r_day": 0.025164347231906525,
+    "r_to_end": -0.03249643376333888,
+    "regret": 0.005032869446381306
+   },
+   {
+    "ticker": "MOS",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.024203245339345036,
+    "r_to_end": -0.012106556003376623,
+    "regret": 0.004840649067869008
+   },
+   {
+    "ticker": "DE",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.02413854972869811,
+    "r_to_end": 0.002388754080507427,
+    "regret": 0.004827709945739622
+   },
+   {
+    "ticker": "LVS",
+    "date": "2026-09-15",
+    "action": "BUY",
+    "level_ours": 0.9,
+    "level_best": 0.0,
+    "verdict": "wrong side",
+    "better": "stay out for the whole unit",
+    "r_day": -0.026650967628516153,
+    "r_to_end": -0.0352316712780808,
+    "regret": 0.004797174173132909
+   },
+   {
+    "ticker": "FCX",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.02325246476060361,
+    "r_to_end": 0.010737509402759748,
+    "regret": 0.004650492952120722
+   },
+   {
+    "ticker": "CSCO",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.023204010112948925,
+    "r_to_end": 0.003390160676474796,
+    "regret": 0.004640802022589785
+   },
+   {
+    "ticker": "AVGO",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.022944766879543277,
+    "r_to_end": -0.007066442638412607,
+    "regret": 0.0045889533759086555
+   },
+   {
+    "ticker": "VLO",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.0229369173477465,
+    "r_to_end": -0.003808516657916261,
+    "regret": 0.0045873834695493
+   },
+   {
+    "ticker": "TSLA",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.02267656931205475,
+    "r_to_end": 0.002946004993590101,
+    "regret": 0.00453531386241095
+   },
+   {
+    "ticker": "AMD",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.02186824033732182,
+    "r_to_end": 0.07024806638477976,
+    "regret": 0.004373648067464364
+   },
+   {
+    "ticker": "GILD",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.021736232889139506,
+    "r_to_end": -0.005070418489799056,
+    "regret": 0.004347246577827902
+   },
+   {
+    "ticker": "NEM",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.02159984565765205,
+    "r_to_end": 0.005704536403792426,
+    "regret": 0.004319969131530411
+   },
+   {
+    "ticker": "AMZN",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.02126360214985379,
+    "r_to_end": 0.005030925027203148,
+    "regret": 0.0042527204299707575
+   },
+   {
+    "ticker": "QCOM",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.020937083167336334,
+    "r_to_end": -0.026085043726966628,
+    "regret": 0.004187416633467267
+   },
+   {
+    "ticker": "C",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.8592702654881677,
+    "level_best": 0.0,
+    "verdict": "wrong side",
+    "better": "stay out for the whole unit",
+    "r_day": -0.023646921230828566,
+    "r_to_end": 0.003273978014777912,
+    "regret": 0.00406381925679837
+   },
+   {
+    "ticker": "CAT",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.02024994533722646,
+    "r_to_end": 0.005431123057312748,
+    "regret": 0.004049989067445292
+   },
+   {
+    "ticker": "ORCL",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.02002135686778117,
+    "r_to_end": -0.007396942973898479,
+    "regret": 0.004004271373556234
+   },
+   {
+    "ticker": "F",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.0194756005826342,
+    "r_to_end": -0.007140170000227486,
+    "regret": 0.0038951201165268404
+   },
+   {
+    "ticker": "HAL",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-16",
+    "r_day": 0.018851753186351017,
+    "r_to_end": -0.04810414856682421,
+    "regret": 0.0037703506372702036
+   },
+   {
+    "ticker": "QQQ",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.0173118582049816,
+    "r_to_end": 0.006431019763170509,
+    "regret": 0.0034623716409963204
+   },
+   {
+    "ticker": "BIDU",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.016713672236397414,
+    "r_to_end": -0.0019421751825561273,
+    "regret": 0.003342734447279483
+   },
+   {
+    "ticker": "SLB",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-16",
+    "r_day": 0.016504146158137667,
+    "r_to_end": -0.046268676643940965,
+    "regret": 0.0033008292316275335
+   },
+   {
+    "ticker": "AMD",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.016461696929830127,
+    "r_to_end": 0.037520284157380734,
+    "regret": 0.0032923393859660257
+   },
+   {
+    "ticker": "MOS",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-16",
+    "r_day": 0.016367259876221008,
+    "r_to_end": -0.03431954468495757,
+    "regret": 0.0032734519752442015
+   },
+   {
+    "ticker": "MMM",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-16",
+    "r_day": 0.01635596732875033,
+    "r_to_end": 0.0034478550063419267,
+    "regret": 0.0032711934657500665
+   },
+   {
+    "ticker": "NKE",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.016210225009574142,
+    "r_to_end": -0.022436384816704735,
+    "regret": 0.0032420450019148284
+   },
+   {
+    "ticker": "MRK",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.015457802620708172,
+    "r_to_end": 0.003793152562536317,
+    "regret": 0.0030915605241416347
+   },
+   {
+    "ticker": "MSFT",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.015194803982285787,
+    "r_to_end": 0.0018056742463772313,
+    "regret": 0.0030389607964571574
+   },
+   {
+    "ticker": "APA",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.014958654950887551,
+    "r_to_end": -0.0022237284437454097,
+    "regret": 0.0029917309901775105
+   },
+   {
+    "ticker": "HSBC",
+    "date": "2026-09-15",
+    "action": "BUY",
+    "level_ours": 0.9,
+    "level_best": 0.0,
+    "verdict": "wrong side",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.016548019822038573,
+    "r_to_end": -0.0010790481552414022,
+    "regret": 0.0029786435679669434
+   },
+   {
+    "ticker": "KSS",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.014580904727582888,
+    "r_to_end": -0.0015083416554722007,
+    "regret": 0.0029161809455165778
+   },
+   {
+    "ticker": "GS",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.014381959652948417,
+    "r_to_end": -0.00636055821018322,
+    "regret": 0.0028763919305896837
+   },
+   {
+    "ticker": "UPS",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.014174360367128713,
+    "r_to_end": -0.004722218842622805,
+    "regret": 0.002834872073425743
+   },
+   {
+    "ticker": "CF",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.013864700014346587,
+    "r_to_end": -0.025228068026089123,
+    "regret": 0.0027729400028693174
+   },
+   {
+    "ticker": "AAPL",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.01380823768034456,
+    "r_to_end": 0.003747681620940746,
+    "regret": 0.0027616475360689122
+   },
+   {
+    "ticker": "FDX",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.013787629740417584,
+    "r_to_end": -0.004687315141981174,
+    "regret": 0.002757525948083517
+   },
+   {
+    "ticker": "META",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.013366799888065994,
+    "r_to_end": -0.015468567456855209,
+    "regret": 0.002673359977613199
+   },
+   {
+    "ticker": "GOOGL",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.013007820802615866,
+    "r_to_end": -0.013574125737485954,
+    "regret": 0.0026015641605231735
+   },
+   {
+    "ticker": "LLY",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.012849128866891268,
+    "r_to_end": 0.0031934059402898285,
+    "regret": 0.0025698257733782538
+   },
+   {
+    "ticker": "BNS.TO",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.012847127458834873,
+    "r_to_end": 0.4015119770316493,
+    "regret": 0.0025694254917669745
+   },
+   {
+    "ticker": "WMB",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.012834922611146826,
+    "r_to_end": 0.0011116166702489494,
+    "regret": 0.0025669845222293652
+   },
+   {
+    "ticker": "NTES",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-16",
+    "r_day": 0.01271294200489681,
+    "r_to_end": -0.018582629939975948,
+    "regret": 0.0025425884009793623
+   },
+   {
+    "ticker": "MMM",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.012665311372183963,
+    "r_to_end": 0.014276539327128024,
+    "regret": 0.0025330622744367927
+   },
+   {
+    "ticker": "BABA",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.011839324249135474,
+    "r_to_end": 0.0023899961385283053,
+    "regret": 0.002367864849827095
+   },
+   {
+    "ticker": "HSBC",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.8523556963484664,
+    "level_best": 0.0,
+    "verdict": "wrong side",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.01350034109110343,
+    "r_to_end": -0.002644448275664124,
+    "regret": 0.0023014185263298555
+   },
+   {
+    "ticker": "WFC",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-16",
+    "r_day": 0.011385437342511073,
+    "r_to_end": -0.029852396681513627,
+    "regret": 0.0022770874685022146
+   },
+   {
+    "ticker": "SPY",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.011338753705953053,
+    "r_to_end": 0.0031014011489081117,
+    "regret": 0.002267750741190611
+   },
+   {
+    "ticker": "CP.TO",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.011072218432611969,
+    "r_to_end": 0.3929222082625101,
+    "regret": 0.002214443686522394
+   },
+   {
+    "ticker": "JNJ",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.010999709872918428,
+    "r_to_end": 0.008818107963886712,
+    "regret": 0.002199941974583686
+   },
+   {
+    "ticker": "EMR",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.010765905819904775,
+    "r_to_end": 0.015442956982832046,
+    "regret": 0.0021531811639809552
+   },
+   {
+    "ticker": "CNQ.TO",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.010702054514896586,
+    "r_to_end": 0.3854604103571406,
+    "regret": 0.0021404109029793173
+   },
+   {
+    "ticker": "EBAY",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.010552618740442998,
+    "r_to_end": 0.012768236329716798,
+    "regret": 0.0021105237480885997
+   },
+   {
+    "ticker": "MFC.TO",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.009577245759661013,
+    "r_to_end": 0.01504746471748164,
+    "regret": 0.0019154491519322026
+   },
+   {
+    "ticker": "TD.TO",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.009241144370328414,
+    "r_to_end": 0.4099074674412255,
+    "regret": 0.0018482288740656828
+   },
+   {
+    "ticker": "AMGN",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.009113837173255757,
+    "r_to_end": 0.01374794673383195,
+    "regret": 0.0018227674346511513
+   },
+   {
+    "ticker": "NEM",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-16",
+    "r_day": 0.00910053424359547,
+    "r_to_end": -0.0033917171758913733,
+    "regret": 0.0018201068487190943
+   },
+   {
+    "ticker": "SU.TO",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.008811927039069634,
+    "r_to_end": 0.39597406668426505,
+    "regret": 0.0017623854078139267
+   },
+   {
+    "ticker": "PDD",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-17",
+    "r_day": 0.008709020097708686,
+    "r_to_end": 0.006313392333127998,
+    "regret": 0.0017418040195417374
+   },
+   {
+    "ticker": "USB",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.008705850690589267,
+    "r_to_end": 0.0023364715168727734,
+    "regret": 0.0017411701381178535
+   },
+   {
+    "ticker": "ADBE",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.008662667341098995,
+    "r_to_end": 0.002698884869870355,
+    "regret": 0.0017325334682197992
+   },
+   {
+    "ticker": "MFC.TO",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.008330583328389984,
+    "r_to_end": 0.41302371068513244,
+    "regret": 0.001666116665677997
+   },
+   {
+    "ticker": "LVS",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.8750489966938909,
+    "level_best": 0.0,
+    "verdict": "wrong side",
+    "better": "stay out for the whole unit",
+    "r_day": -0.009498372900674013,
+    "r_to_end": -0.010273560038709606,
+    "regret": 0.0016623083353918475
+   },
+   {
+    "ticker": "CL",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.008159121365856281,
+    "r_to_end": 0.0023491803208974815,
+    "regret": 0.0016318242731712563
+   },
+   {
+    "ticker": "NVDA",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.008153818836165172,
+    "r_to_end": 0.01567357097633404,
+    "regret": 0.0016307637672330344
+   },
+   {
+    "ticker": "T",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-16",
+    "r_day": 0.007921504438308746,
+    "r_to_end": -0.04726182976255544,
+    "regret": 0.0015843008876617493
+   },
+   {
+    "ticker": "MRK",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.007789209460131286,
+    "r_to_end": -0.0005444360858284369,
+    "regret": 0.0015578418920262572
+   },
+   {
+    "ticker": "PRU",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.007604232593015681,
+    "r_to_end": 0.014610750468134093,
+    "regret": 0.0015208465186031363
+   },
+   {
+    "ticker": "SPG",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.00753916803434862,
+    "r_to_end": 0.007853953093553745,
+    "regret": 0.001507833606869724
+   },
+   {
+    "ticker": "ENB.TO",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.00709015330237861,
+    "r_to_end": 0.40176917073952767,
+    "regret": 0.001418030660475722
+   },
+   {
+    "ticker": "DD",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.006976616925390422,
+    "r_to_end": 0.001630392133819214,
+    "regret": 0.0013953233850780844
+   },
+   {
+    "ticker": "META",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.0069711761097239755,
+    "r_to_end": -0.022601648694477672,
+    "regret": 0.0013942352219447952
+   },
+   {
+    "ticker": "RTX",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-17",
+    "r_day": 0.006803078419717057,
+    "r_to_end": -0.0012870012870013214,
+    "regret": 0.0013606156839434114
+   },
+   {
+    "ticker": "JPM",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-16",
+    "r_day": 0.006740311651817432,
+    "r_to_end": -0.0039026509009391086,
+    "regret": 0.0013480623303634865
+   },
+   {
+    "ticker": "DUK",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.006623630818166415,
+    "r_to_end": 0.002644589483849824,
+    "regret": 0.0013247261636332832
+   },
+   {
+    "ticker": "BMO.TO",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.006621445570091922,
+    "r_to_end": 0.40573662969932256,
+    "regret": 0.0013242891140183843
+   },
+   {
+    "ticker": "RY.TO",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.006606356013976855,
+    "r_to_end": 0.40667117774166717,
+    "regret": 0.0013212712027953712
+   },
+   {
+    "ticker": "PFE",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.00655500040703072,
+    "r_to_end": 0.010410953330122652,
+    "regret": 0.001311000081406144
+   },
+   {
+    "ticker": "BRK-B",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-17",
+    "r_day": 0.005882765635681686,
+    "r_to_end": -0.007495835415926466,
+    "regret": 0.0011765531271363374
+   },
+   {
+    "ticker": "INTC",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.8540501079239117,
+    "level_best": 1.0,
+    "verdict": "right",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.04025122181054952,
+    "r_to_end": -0.0034868923277565633,
+    "regret": 0.001174932295836079
+   },
+   {
+    "ticker": "DVN",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.005780400535349228,
+    "r_to_end": 0.002474749646351082,
+    "regret": 0.0011560801070698457
+   },
+   {
+    "ticker": "NVDA",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.005735643802473378,
+    "r_to_end": 0.03569267169498591,
+    "regret": 0.0011471287604946756
+   },
+   {
+    "ticker": "INTC",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.9254765492974779,
+    "level_best": 1.0,
+    "verdict": "right",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.0766947032750751,
+    "r_to_end": 0.003140573380021161,
+    "regret": 0.001143110787732924
+   },
+   {
+    "ticker": "UNP",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.0055531734444937975,
+    "r_to_end": -0.0003578376312753928,
+    "regret": 0.0011106346888987595
+   },
+   {
+    "ticker": "ENB.TO",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.005519957531258557,
+    "r_to_end": 0.010979196543273062,
+    "regret": 0.0011039915062517115
+   },
+   {
+    "ticker": "MS",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.005434275829790058,
+    "r_to_end": 0.0008151660255153459,
+    "regret": 0.0010868551659580117
+   },
+   {
+    "ticker": "SHOP.TO",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-17",
+    "r_day": 0.005365050908906488,
+    "r_to_end": -0.013368586001284877,
+    "regret": 0.0010730101817812976
+   },
+   {
+    "ticker": "DIS",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-17",
+    "r_day": 0.005356133289152298,
+    "r_to_end": -0.03469351101029228,
+    "regret": 0.0010712266578304598
+   },
+   {
+    "ticker": "COP",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.004904249194204846,
+    "r_to_end": -0.0064063775169228565,
+    "regret": 0.0009808498388409693
+   },
+   {
+    "ticker": "AMAT",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.004862990490458907,
+    "r_to_end": 0.03876351073465756,
+    "regret": 0.0009725980980917815
+   },
+   {
+    "ticker": "BAC",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.0048359027965090284,
+    "r_to_end": -0.006282820514048937,
+    "regret": 0.0009671805593018057
+   },
+   {
+    "ticker": "MET",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-16",
+    "r_day": 0.004808196631234107,
+    "r_to_end": -0.010401785483098669,
+    "regret": 0.0009616393262468215
+   },
+   {
+    "ticker": "EXC",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.004712553473401604,
+    "r_to_end": -0.002134732096199632,
+    "regret": 0.0009425106946803208
+   },
+   {
+    "ticker": "ATD.TO",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-17",
+    "r_day": 0.004644191729456404,
+    "r_to_end": -0.012743681419212227,
+    "regret": 0.0009288383458912809
+   },
+   {
+    "ticker": "META",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.004580459788955826,
+    "r_to_end": -0.0054452154557472765,
+    "regret": 0.0009160919577911653
+   },
+   {
+    "ticker": "LVS",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.8777648258974937,
+    "level_best": 0.0,
+    "verdict": "wrong side",
+    "better": "stay out for the whole unit",
+    "r_day": -0.0050884197272440534,
+    "r_to_end": -0.027487240519670886,
+    "regret": 0.0008932871711955499
+   },
+   {
+    "ticker": "MO",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-17",
+    "r_day": 0.004460396526528854,
+    "r_to_end": -0.008556807714398151,
+    "regret": 0.0008920793053057707
+   },
+   {
+    "ticker": "ENB.TO",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.004450970557442702,
+    "r_to_end": 0.006499297802666559,
+    "regret": 0.0008901941114885404
+   },
+   {
+    "ticker": "BKR",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.004438920478598174,
+    "r_to_end": 0.011573460553052417,
+    "regret": 0.0008877840957196349
+   },
+   {
+    "ticker": "TCOM",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.00435000411924813,
+    "r_to_end": 0.02006018819397637,
+    "regret": 0.000870000823849626
+   },
+   {
+    "ticker": "TD.TO",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.004338589148702665,
+    "r_to_end": 0.014734541413312874,
+    "regret": 0.0008677178297405331
+   },
+   {
+    "ticker": "GE",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.7778102438692055,
+    "level_best": 1.0,
+    "verdict": "right",
+    "better": "hold 100% of a slot",
+    "r_day": 0.01905229225236127,
+    "r_to_end": -0.004813360101105668,
+    "regret": 0.0008466448338569553
+   },
+   {
+    "ticker": "TSLA",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.004206629806734918,
+    "r_to_end": -0.011291184176989155,
+    "regret": 0.0008413259613469838
+   },
+   {
+    "ticker": "JCI",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.004200158986000346,
+    "r_to_end": 0.014443491782050843,
+    "regret": 0.0008400317972000693
+   },
+   {
+    "ticker": "MO",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-17",
+    "r_day": 0.0041541459055909336,
+    "r_to_end": -0.002725625547749022,
+    "regret": 0.0008308291811181868
+   },
+   {
+    "ticker": "ELV",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.004120642372240191,
+    "r_to_end": 0.002194884055679136,
+    "regret": 0.0008241284744480382
+   },
+   {
+    "ticker": "DE",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-16",
+    "r_day": 0.003785924297098342,
+    "r_to_end": 0.007067227483288807,
+    "regret": 0.0007571848594196684
+   },
+   {
+    "ticker": "EOG",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.003725995806333371,
+    "r_to_end": -0.003970886864824719,
+    "regret": 0.0007451991612666743
+   },
+   {
+    "ticker": "PG",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.003695293698004365,
+    "r_to_end": -0.00502956983858871,
+    "regret": 0.0007390587396008731
+   },
+   {
+    "ticker": "PG",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.0036049432995164388,
+    "r_to_end": 0.001573613777014593,
+    "regret": 0.0007209886599032878
+   },
+   {
+    "ticker": "BRK-B",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-17",
+    "r_day": 0.0035148995352698442,
+    "r_to_end": -0.018550092868432344,
+    "regret": 0.0007029799070539689
+   },
+   {
+    "ticker": "ACN",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.0034275147573104014,
+    "r_to_end": -0.009885345242311216,
+    "regret": 0.0006855029514620803
+   },
+   {
+    "ticker": "JNJ",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.0033043138277673023,
+    "r_to_end": 0.011728959882991052,
+    "regret": 0.0006608627655534605
+   },
+   {
+    "ticker": "ABT",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.0032343608252756173,
+    "r_to_end": 0.01644379009758845,
+    "regret": 0.0006468721650551235
+   },
+   {
+    "ticker": "AAPL",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.0032293334219983816,
+    "r_to_end": 0.014517701565895491,
+    "regret": 0.0006458666843996764
+   },
+   {
+    "ticker": "VZ",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-16",
+    "r_day": 0.0031195134442603134,
+    "r_to_end": -0.06055869989084017,
+    "regret": 0.0006239026888520627
+   },
+   {
+    "ticker": "HSBC",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.8747951904697323,
+    "level_best": 1.0,
+    "verdict": "right",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.0198334001649354,
+    "r_to_end": 0.000983012199495592,
+    "regret": 0.0004966474179976633
+   },
+   {
+    "ticker": "CNR.TO",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.0023903977771444485,
+    "r_to_end": 0.4026170124608175,
+    "regret": 0.0004780795554288897
+   },
+   {
+    "ticker": "PG",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.0023863510457842185,
+    "r_to_end": -0.003539586211636747,
+    "regret": 0.0004772702091568437
+   },
+   {
+    "ticker": "PNC",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.002246269823027891,
+    "r_to_end": 0.009350236651856303,
+    "regret": 0.00044925396460557824
+   },
+   {
+    "ticker": "KO",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.0021622260848184194,
+    "r_to_end": 0.0023283548185586422,
+    "regret": 0.0004324452169636839
+   },
+   {
+    "ticker": "AMGN",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.0018634692357379912,
+    "r_to_end": 0.01897110443756267,
+    "regret": 0.0003726938471475983
+   },
+   {
+    "ticker": "TGT",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.0018134636681694793,
+    "r_to_end": -0.0028051663163471963,
+    "regret": 0.0003626927336338959
+   },
+   {
+    "ticker": "C",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.8631809654493178,
+    "level_best": 0.0,
+    "verdict": "wrong side",
+    "better": "stay out for the whole unit",
+    "r_day": -0.0018804062108953579,
+    "r_to_end": -0.001591117802235531,
+    "regret": 0.0003246261697115097
+   },
+   {
+    "ticker": "LLY",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.0015051015830751524,
+    "r_to_end": -0.0010137304298262206,
+    "regret": 0.0003010203166150305
+   },
+   {
+    "ticker": "TRV",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": 0.0015042140463485953,
+    "r_to_end": 0.0016309593785928111,
+    "regret": 0.0003008428092697191
+   },
+   {
+    "ticker": "MFC.TO",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.0013085023201395707,
+    "r_to_end": 0.013721008425982006,
+    "regret": 0.00026170046402791415
+   },
+   {
+    "ticker": "JPM",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.0011176892005368977,
+    "r_to_end": 0.004827763521176864,
+    "regret": 0.00022353784010737955
+   },
+   {
+    "ticker": "V",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-16",
+    "r_day": 0.0009059804385966874,
+    "r_to_end": -0.015346339745683779,
+    "regret": 0.0001811960877193375
+   },
+   {
+    "ticker": "BNS.TO",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.0008469403004012221,
+    "r_to_end": 0.012616349875719246,
+    "regret": 0.00016938806008024443
+   },
+   {
+    "ticker": "RTX",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-17",
+    "r_day": 0.0008191034355944371,
+    "r_to_end": -0.007900994655961502,
+    "regret": 0.00016382068711888744
+   },
+   {
+    "ticker": "AVGO",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.000707462374290424,
+    "r_to_end": 0.02788073165922933,
+    "regret": 0.0001414924748580848
+   },
+   {
+    "ticker": "INTC",
+    "date": "2026-09-15",
+    "action": "BUY",
+    "level_ours": 0.9,
+    "level_best": 0.0,
+    "verdict": "wrong side",
+    "better": "stay out until 2026-09-16",
+    "r_day": -0.000514487606767533,
+    "r_to_end": 0.07090029064314263,
+    "regret": 9.260776921815594e-05
+   },
+   {
+    "ticker": "GE",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.784238870799863,
+    "level_best": 1.0,
+    "verdict": "right",
+    "better": "hold 100% of a slot",
+    "r_day": 0.0018216917076940842,
+    "r_to_end": 0.006404678687263798,
+    "regret": 7.861005198132031e-05
+   },
+   {
+    "ticker": "JNJ",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.00029935093043209626,
+    "r_to_end": 0.001558000646863622,
+    "regret": 5.987018608641926e-05
+   },
+   {
+    "ticker": "QQQ",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.000255475461144572,
+    "r_to_end": 0.00981189771993618,
+    "regret": 5.10950922289144e-05
+   },
+   {
+    "ticker": "COST",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": 0.0002125925252112193,
+    "r_to_end": -0.00040751661194760036,
+    "regret": 4.251850504224386e-05
+   },
+   {
+    "ticker": "C",
+    "date": "2026-09-15",
+    "action": "BUY",
+    "level_ours": 0.9,
+    "level_best": 0.0,
+    "verdict": "wrong side",
+    "better": "stay out for the whole unit",
+    "r_day": -7.339188848198841e-05,
+    "r_to_end": -0.027671160917496107,
+    "regret": 1.3210539926757914e-05
+   },
+   {
+    "ticker": "AAPL",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-16",
+    "r_day": -0.005223941108804753,
+    "r_to_end": 0.008158138276633808,
+    "regret": 0.0
+   },
+   {
+    "ticker": "ABT",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-16",
+    "r_day": -0.010282254304476601,
+    "r_to_end": 0.0012685461587778057,
+    "regret": 0.0
+   },
+   {
+    "ticker": "ABT",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": -0.0012700005142909365,
+    "r_to_end": 0.0058324815992898404,
+    "regret": 0.0
+   },
+   {
+    "ticker": "ADBE",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.029518057822766175,
+    "r_to_end": -0.019150452482680658,
+    "regret": 0.0
+   },
+   {
+    "ticker": "ADBE",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.028165772387370502,
+    "r_to_end": 0.006733931240805235,
+    "regret": 0.0
+   },
+   {
+    "ticker": "AIG",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.00512684883939829,
+    "r_to_end": -0.0005306908444383529,
+    "regret": 0.0
+   },
+   {
+    "ticker": "AMGN",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-16",
+    "r_day": -0.015334223076056697,
+    "r_to_end": 0.02571943692878431,
+    "regret": 0.0
+   },
+   {
+    "ticker": "AMZN",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.020194033496756192,
+    "r_to_end": 0.02166474736788615,
+    "regret": 0.0
+   },
+   {
+    "ticker": "AMZN",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.00990255000889717,
+    "r_to_end": 0.01612033848195593,
+    "regret": 0.0
+   },
+   {
+    "ticker": "APA",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.05526258047494548,
+    "r_to_end": -0.008835897241335045,
+    "regret": 0.0
+   },
+   {
+    "ticker": "ATD.TO",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-16",
+    "r_day": -0.027347154108360305,
+    "r_to_end": -0.008158673789605664,
+    "regret": 0.0
+   },
+   {
+    "ticker": "ATD.TO",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.002123915129945142,
+    "r_to_end": -0.010642369779460203,
+    "regret": 0.0
+   },
+   {
+    "ticker": "AVGO",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-16",
+    "r_day": -0.01580996805445567,
+    "r_to_end": 0.04417771943343407,
+    "regret": 0.0
+   },
+   {
+    "ticker": "AXP",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-18",
+    "r_day": -0.010220288351917683,
+    "r_to_end": -0.014721004510874658,
+    "regret": 0.0
+   },
+   {
+    "ticker": "AXP",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-18",
+    "r_day": -0.03698794892860657,
+    "r_to_end": -0.007027560248613618,
+    "regret": 0.0
+   },
+   {
+    "ticker": "AXP",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-18",
+    "r_day": -0.0040328370437674455,
+    "r_to_end": 0.006720943384366462,
+    "regret": 0.0
+   },
+   {
+    "ticker": "BA",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-18",
+    "r_day": -0.002758366953296565,
+    "r_to_end": -0.053689527330601394,
+    "regret": 0.0
+   },
+   {
+    "ticker": "BA",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-18",
+    "r_day": -0.036863921205299466,
+    "r_to_end": -0.006989168324646466,
+    "regret": 0.0
+   },
+   {
+    "ticker": "BA",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-18",
+    "r_day": -0.024559351104074922,
+    "r_to_end": 0.010760349575410277,
+    "regret": 0.0
+   },
+   {
+    "ticker": "BABA",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": 0.0010069850551739368,
+    "r_to_end": 0.05251415432446804,
+    "regret": 0.0
+   },
+   {
+    "ticker": "BABA",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.018931770295906647,
+    "r_to_end": 0.05036636549271423,
+    "regret": 0.0
+   },
+   {
+    "ticker": "BAC",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": 0.0008407472008449268,
+    "r_to_end": -0.016021824744565816,
+    "regret": 0.0
+   },
+   {
+    "ticker": "BAC",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.02721772378067,
+    "r_to_end": 0.00199600003881506,
+    "regret": 0.0
+   },
+   {
+    "ticker": "BAX",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.02167446723328348,
+    "r_to_end": 0.0013174895503094142,
+    "regret": 0.0
+   },
+   {
+    "ticker": "BIDU",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.016430926127952827,
+    "r_to_end": 0.008240375639618769,
+    "regret": 0.0
+   },
+   {
+    "ticker": "BIDU",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.02035619371960462,
+    "r_to_end": 0.00547853650688479,
+    "regret": 0.0
+   },
+   {
+    "ticker": "BKNG",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.02298259845464634,
+    "r_to_end": -0.023723724290706016,
+    "regret": 0.0
+   },
+   {
+    "ticker": "BKNG",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": 0.00046688401147587655,
+    "r_to_end": -0.006949614688839922,
+    "regret": 0.0
+   },
+   {
+    "ticker": "BKNG",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.005134128677711014,
+    "r_to_end": -0.004181406859319781,
+    "regret": 0.0
+   },
+   {
+    "ticker": "BKR",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.0010566671342661094,
+    "r_to_end": 0.0070360598065082325,
+    "regret": 0.0
+   },
+   {
+    "ticker": "BKR",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.007052212927895818,
+    "r_to_end": 0.01507092198581561,
+    "regret": 0.0
+   },
+   {
+    "ticker": "BMO.TO",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.0029701794885772514,
+    "r_to_end": 0.010840312345243408,
+    "regret": 0.0
+   },
+   {
+    "ticker": "BMO.TO",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.00020688920208822292,
+    "r_to_end": 0.011049487566997973,
+    "regret": 0.0
+   },
+   {
+    "ticker": "BMY",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-18",
+    "r_day": -0.005772214363377048,
+    "r_to_end": -0.019589530887888285,
+    "regret": 0.0
+   },
+   {
+    "ticker": "BMY",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-18",
+    "r_day": -0.002039872415644295,
+    "r_to_end": -0.010202458432098327,
+    "regret": 0.0
+   },
+   {
+    "ticker": "BMY",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-18",
+    "r_day": -0.011949659430297688,
+    "r_to_end": 0.010091324255822709,
+    "regret": 0.0
+   },
+   {
+    "ticker": "BNS.TO",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": -0.0005386076727463829,
+    "r_to_end": 0.013473975471274269,
+    "regret": 0.0
+   },
+   {
+    "ticker": "BNY",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-18",
+    "r_day": -0.0029321492452134557,
+    "r_to_end": 0.007798121141106229,
+    "regret": 0.0
+   },
+   {
+    "ticker": "BRK-B",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-18",
+    "r_day": -0.020392412148650063,
+    "r_to_end": 0.005711445649660973,
+    "regret": 0.0
+   },
+   {
+    "ticker": "CAT",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.0005867627202248427,
+    "r_to_end": 0.02826817951620586,
+    "regret": 0.0
+   },
+   {
+    "ticker": "CAT",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.0010465417811650335,
+    "r_to_end": 0.011528302179845573,
+    "regret": 0.0
+   },
+   {
+    "ticker": "CF",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.026191441410761462,
+    "r_to_end": -0.038946401142109566,
+    "regret": 0.0
+   },
+   {
+    "ticker": "CMCSA",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.018488709806631753,
+    "r_to_end": -0.06284773249049402,
+    "regret": 0.0
+   },
+   {
+    "ticker": "CMCSA",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.028255550036932475,
+    "r_to_end": -0.02944943358437202,
+    "regret": 0.0
+   },
+   {
+    "ticker": "CMCSA",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.03455540289264336,
+    "r_to_end": 0.012692040575291275,
+    "regret": 0.0
+   },
+   {
+    "ticker": "CMG",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.005047564789257275,
+    "r_to_end": 0.012263446031060887,
+    "regret": 0.0
+   },
+   {
+    "ticker": "CMI",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-18",
+    "r_day": -0.006862549985189537,
+    "r_to_end": 0.014583057815299671,
+    "regret": 0.0
+   },
+   {
+    "ticker": "CNQ.TO",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.022594075120490165,
+    "r_to_end": -0.010131265210070683,
+    "regret": 0.0
+   },
+   {
+    "ticker": "CNR.TO",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.001236625982552475,
+    "r_to_end": -0.017217059685435077,
+    "regret": 0.0
+   },
+   {
+    "ticker": "CNR.TO",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.013325528798894037,
+    "r_to_end": -0.003944087944024455,
+    "regret": 0.0
+   },
+   {
+    "ticker": "COF",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-18",
+    "r_day": -0.005659772338479474,
+    "r_to_end": 0.004665207582417175,
+    "regret": 0.0
+   },
+   {
+    "ticker": "COP",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.06146443747019181,
+    "r_to_end": -0.004568264952205303,
+    "regret": 0.0
+   },
+   {
+    "ticker": "COST",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.01910959514184296,
+    "r_to_end": -0.0024845716529694473,
+    "regret": 0.0
+   },
+   {
+    "ticker": "COST",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.008442875195747934,
+    "r_to_end": 0.006231979858270176,
+    "regret": 0.0
+   },
+   {
+    "ticker": "CP.TO",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.0088807154918219,
+    "r_to_end": -0.01186627077736746,
+    "regret": 0.0
+   },
+   {
+    "ticker": "CP.TO",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.008475907698119567,
+    "r_to_end": -0.0034193451329830316,
+    "regret": 0.0
+   },
+   {
+    "ticker": "CRM",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.014570461507931842,
+    "r_to_end": -0.06860577357573916,
+    "regret": 0.0
+   },
+   {
+    "ticker": "CRM",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.019988276130840976,
+    "r_to_end": -0.01941228137927986,
+    "regret": 0.0
+   },
+   {
+    "ticker": "CRM",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.02898834468855327,
+    "r_to_end": -0.002682770921590749,
+    "regret": 0.0
+   },
+   {
+    "ticker": "CSCO",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": 9.087894287063136e-05,
+    "r_to_end": -0.008645252919653568,
+    "regret": 0.0
+   },
+   {
+    "ticker": "CSCO",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.021168364109337312,
+    "r_to_end": -0.0011856791660846966,
+    "regret": 0.0
+   },
+   {
+    "ticker": "CSX",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": 0.0,
+    "r_to_end": -0.0033855591595197687,
+    "regret": 0.0
+   },
+   {
+    "ticker": "CTSH",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": 0.0004850864144596567,
+    "r_to_end": -0.011801618686394955,
+    "regret": 0.0
+   },
+   {
+    "ticker": "CVS",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.011093722178261989,
+    "r_to_end": -0.05639940161560675,
+    "regret": 0.0
+   },
+   {
+    "ticker": "CVS",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.029315236593189797,
+    "r_to_end": -0.025449798838409032,
+    "regret": 0.0
+   },
+   {
+    "ticker": "CVS",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.015809033562348307,
+    "r_to_end": -0.00033761294148060284,
+    "regret": 0.0
+   },
+   {
+    "ticker": "CVX",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.028608214465264514,
+    "r_to_end": -0.007907971839966277,
+    "regret": 0.0
+   },
+   {
+    "ticker": "CVX",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": 0.00014188351630206597,
+    "r_to_end": -0.00527018086204567,
+    "regret": 0.0
+   },
+   {
+    "ticker": "DE",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.02129993537254382,
+    "r_to_end": 0.01153520494886795,
+    "regret": 0.0
+   },
+   {
+    "ticker": "DIS",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-16",
+    "r_day": -0.019983407699850186,
+    "r_to_end": -0.04341751449785414,
+    "regret": 0.0
+   },
+   {
+    "ticker": "DIS",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.015328529978443917,
+    "r_to_end": -0.004749920812860409,
+    "regret": 0.0
+   },
+   {
+    "ticker": "EBAY",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-16",
+    "r_day": -0.008808139309008811,
+    "r_to_end": 0.04367297814380944,
+    "regret": 0.0
+   },
+   {
+    "ticker": "F",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.025974001846660322,
+    "r_to_end": -0.014546808045731163,
+    "regret": 0.0
+   },
+   {
+    "ticker": "F",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.011111082854094345,
+    "r_to_end": -0.03927272449840202,
+    "regret": 0.0
+   },
+   {
+    "ticker": "FCX",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": 0.0005768808428028294,
+    "r_to_end": 0.027578295253193552,
+    "regret": 0.0
+   },
+   {
+    "ticker": "FCX",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.002017863868415515,
+    "r_to_end": 0.005269457114133846,
+    "regret": 0.0
+   },
+   {
+    "ticker": "GOOGL",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.012622008292214049,
+    "r_to_end": 0.007929895743596482,
+    "regret": 0.0
+   },
+   {
+    "ticker": "GOOGL",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.006116342402297192,
+    "r_to_end": 0.014232473616788477,
+    "regret": 0.0
+   },
+   {
+    "ticker": "GS",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.011917678336178406,
+    "r_to_end": -0.02841524418544683,
+    "regret": 0.0
+   },
+   {
+    "ticker": "GS",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.03961420246184155,
+    "r_to_end": 0.009862778730703292,
+    "regret": 0.0
+   },
+   {
+    "ticker": "HAL",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.032520322594858375,
+    "r_to_end": -0.01981353759765625,
+    "regret": 0.0
+   },
+   {
+    "ticker": "HAL",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.013908999292440494,
+    "r_to_end": -0.004586495349950148,
+    "regret": 0.0
+   },
+   {
+    "ticker": "HD",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.017338386513717885,
+    "r_to_end": -0.024835800707599942,
+    "regret": 0.0
+   },
+   {
+    "ticker": "HD",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.009853377168300925,
+    "r_to_end": -0.023756798404295232,
+    "regret": 0.0
+   },
+   {
+    "ticker": "HD",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": 0.00013227277006122584,
+    "r_to_end": 0.003076342494242379,
+    "regret": 0.0
+   },
+   {
+    "ticker": "HON",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.00563420084904287,
+    "r_to_end": 0.007343108066976578,
+    "regret": 0.0
+   },
+   {
+    "ticker": "HPQ",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.00587891711488242,
+    "r_to_end": 0.01775152443428718,
+    "regret": 0.0
+   },
+   {
+    "ticker": "HPQ",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.03311646782942368,
+    "r_to_end": 0.047662601671353944,
+    "regret": 0.0
+   },
+   {
+    "ticker": "IBM",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.0028905264414008647,
+    "r_to_end": -0.0481028279006519,
+    "regret": 0.0
+   },
+   {
+    "ticker": "IBM",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.04380557167901855,
+    "r_to_end": -0.047095194787115546,
+    "regret": 0.0
+   },
+   {
+    "ticker": "IBM",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": 0.001094759782821253,
+    "r_to_end": -0.002086671078738389,
+    "regret": 0.0
+   },
+   {
+    "ticker": "JD",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-18",
+    "r_day": -0.006236246326727146,
+    "r_to_end": 0.003728563620206682,
+    "regret": 0.0
+   },
+   {
+    "ticker": "JD",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-18",
+    "r_day": -0.0070136778511411535,
+    "r_to_end": 0.0031675079669812867,
+    "regret": 0.0
+   },
+   {
+    "ticker": "JD",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-18",
+    "r_day": -0.009665436154977947,
+    "r_to_end": -0.0022238667051910355,
+    "regret": 0.0
+   },
+   {
+    "ticker": "JPM",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.010127881374069392,
+    "r_to_end": 0.005694766682200703,
+    "regret": 0.0
+   },
+   {
+    "ticker": "KO",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.0012384666823859192,
+    "r_to_end": -0.00045305244082005647,
+    "regret": 0.0
+   },
+   {
+    "ticker": "KO",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.009469015292072669,
+    "r_to_end": 0.003068879290747839,
+    "regret": 0.0
+   },
+   {
+    "ticker": "LLY",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": -0.0019064236299155546,
+    "r_to_end": 0.006530231534276787,
+    "regret": 0.0
+   },
+   {
+    "ticker": "LOW",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.01796436186853445,
+    "r_to_end": -0.021427998814651072,
+    "regret": 0.0
+   },
+   {
+    "ticker": "LOW",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.002620597632374766,
+    "r_to_end": -0.01895925032789325,
+    "regret": 0.0
+   },
+   {
+    "ticker": "LOW",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": 0.0004636596345217736,
+    "r_to_end": -0.001193412758592416,
+    "regret": 0.0
+   },
+   {
+    "ticker": "M",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-18",
+    "r_day": -0.007794593326763244,
+    "r_to_end": -0.0004555565349604329,
+    "regret": 0.0
+   },
+   {
+    "ticker": "MA",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.002001955734687755,
+    "r_to_end": -0.010295576701262465,
+    "regret": 0.0
+   },
+   {
+    "ticker": "MA",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.009629004383943873,
+    "r_to_end": -0.0006365094866072063,
+    "regret": 0.0
+   },
+   {
+    "ticker": "MA",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.0035579384081901866,
+    "r_to_end": 0.00028312846742939435,
+    "regret": 0.0
+   },
+   {
+    "ticker": "MCD",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.018291940012079455,
+    "r_to_end": -0.00453139714815709,
+    "regret": 0.0
+   },
+   {
+    "ticker": "MCD",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.016694363640644028,
+    "r_to_end": -0.005886806723142679,
+    "regret": 0.0
+   },
+   {
+    "ticker": "MCD",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.00032186124815125616,
+    "r_to_end": 0.0009475836905064039,
+    "regret": 0.0
+   },
+   {
+    "ticker": "MDLZ",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.005131489603787731,
+    "r_to_end": -2.5076070775398307e-08,
+    "regret": 0.0
+   },
+   {
+    "ticker": "MDT",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": 0.001835833388191821,
+    "r_to_end": -0.002706243197467262,
+    "regret": 0.0
+   },
+   {
+    "ticker": "MET",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.010079391686678707,
+    "r_to_end": 0.00020615249976652095,
+    "regret": 0.0
+   },
+   {
+    "ticker": "MET",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": 0.0012341367175212614,
+    "r_to_end": 0.004710885909068097,
+    "regret": 0.0
+   },
+   {
+    "ticker": "MGM",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.002083824371692855,
+    "r_to_end": 0.003983042307249551,
+    "regret": 0.0
+   },
+   {
+    "ticker": "MMM",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.012266984240738799,
+    "r_to_end": 0.018261052632651653,
+    "regret": 0.0
+   },
+   {
+    "ticker": "MO",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.0057061559855322574,
+    "r_to_end": 0.0028851217984191546,
+    "regret": 0.0
+   },
+   {
+    "ticker": "MOS",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.026315718501102592,
+    "r_to_end": -0.025089623965100394,
+    "regret": 0.0
+   },
+   {
+    "ticker": "MRK",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot, sell on 2026-09-18",
+    "r_day": -0.001458379957411049,
+    "r_to_end": 0.01759852502728121,
+    "regret": 0.0
+   },
+   {
+    "ticker": "MS",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.0014522366593991975,
+    "r_to_end": -0.020121883374989435,
+    "regret": 0.0
+   },
+   {
+    "ticker": "MS",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.018712432776778587,
+    "r_to_end": 0.005210151496326532,
+    "regret": 0.0
+   },
+   {
+    "ticker": "MSFT",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.01640254147099185,
+    "r_to_end": -0.0023235633740188444,
+    "regret": 0.0
+   },
+   {
+    "ticker": "MSFT",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.013719036432262244,
+    "r_to_end": -0.0030084624966242313,
+    "regret": 0.0
+   },
+   {
+    "ticker": "NEM",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.019566794890130357,
+    "r_to_end": -0.011454632632895145,
+    "regret": 0.0
+   },
+   {
+    "ticker": "NFLX",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.030129459389194424,
+    "r_to_end": -0.0722408772870593,
+    "regret": 0.0
+   },
+   {
+    "ticker": "NFLX",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.019127058210320347,
+    "r_to_end": -0.0552082527403126,
+    "regret": 0.0
+   },
+   {
+    "ticker": "NFLX",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.014396100651688615,
+    "r_to_end": -0.003746864896928326,
+    "regret": 0.0
+   },
+   {
+    "ticker": "NOV",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.0009731655064479927,
+    "r_to_end": -0.005204476092975585,
+    "regret": 0.0
+   },
+   {
+    "ticker": "NTES",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.014227106692062619,
+    "r_to_end": -0.007135206653225867,
+    "regret": 0.0
+   },
+   {
+    "ticker": "NTES",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.009932915865960235,
+    "r_to_end": -0.006838170429897761,
+    "regret": 0.0
+   },
+   {
+    "ticker": "ORCL",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-16",
+    "r_day": -0.030665014078997355,
+    "r_to_end": 0.012761582232257762,
+    "regret": 0.0
+   },
+   {
+    "ticker": "OXY",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.06549118100492168,
+    "r_to_end": 0.000169983895765613,
+    "regret": 0.0
+   },
+   {
+    "ticker": "OXY",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.0011792401297922028,
+    "r_to_end": -0.0013577706621200614,
+    "regret": 0.0
+   },
+   {
+    "ticker": "PDD",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-16",
+    "r_day": -0.016376864038091243,
+    "r_to_end": 0.015705477933559475,
+    "regret": 0.0
+   },
+   {
+    "ticker": "PDD",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-18",
+    "r_day": -0.013077688564752665,
+    "r_to_end": -0.006172042752501494,
+    "regret": 0.0
+   },
+   {
+    "ticker": "PEP",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.0061610412238010115,
+    "r_to_end": -0.04094907236307188,
+    "regret": 0.0
+   },
+   {
+    "ticker": "PEP",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.008560912635493523,
+    "r_to_end": -0.03207758299142116,
+    "regret": 0.0
+   },
+   {
+    "ticker": "PEP",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.0050617291522842,
+    "r_to_end": -0.009919877909195018,
+    "regret": 0.0
+   },
+   {
+    "ticker": "PFE",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.0061327590369760765,
+    "r_to_end": 0.004539671233416032,
+    "regret": 0.0
+   },
+   {
+    "ticker": "PFE",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.003266793287849623,
+    "r_to_end": -0.001263771532330371,
+    "regret": 0.0
+   },
+   {
+    "ticker": "PM",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.003848917159246623,
+    "r_to_end": -0.028458136355881014,
+    "regret": 0.0
+   },
+   {
+    "ticker": "PM",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.01236409195269661,
+    "r_to_end": -0.012925872012206296,
+    "regret": 0.0
+   },
+   {
+    "ticker": "PM",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.006415997826153874,
+    "r_to_end": -0.0017993484484150057,
+    "regret": 0.0
+   },
+   {
+    "ticker": "PSKY",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.046678675200881536,
+    "r_to_end": -0.011138010833222967,
+    "regret": 0.0
+   },
+   {
+    "ticker": "QCOM",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.01576148384327447,
+    "r_to_end": -0.061569325057011626,
+    "regret": 0.0
+   },
+   {
+    "ticker": "QQQ",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-16",
+    "r_day": -0.006542788426574742,
+    "r_to_end": 0.01647037337555135,
+    "regret": 0.0
+   },
+   {
+    "ticker": "RTX",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-18",
+    "r_day": -0.016714974924126658,
+    "r_to_end": 0.006746237675142819,
+    "regret": 0.0
+   },
+   {
+    "ticker": "RY.TO",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.0034363441142347684,
+    "r_to_end": 0.0008445190498909128,
+    "regret": 0.0
+   },
+   {
+    "ticker": "RY.TO",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.004046282435732573,
+    "r_to_end": 0.004910671449256165,
+    "regret": 0.0
+   },
+   {
+    "ticker": "SBUX",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.006883071647337924,
+    "r_to_end": 0.0021962124142929085,
+    "regret": 0.0
+   },
+   {
+    "ticker": "SCHW",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-18",
+    "r_day": -0.005039999907135551,
+    "r_to_end": 0.004389731844641531,
+    "regret": 0.0
+   },
+   {
+    "ticker": "SHOP.TO",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-16",
+    "r_day": -0.02889671197587962,
+    "r_to_end": -0.008075258236855398,
+    "regret": 0.0
+   },
+   {
+    "ticker": "SHOP.TO",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.00968261937754522,
+    "r_to_end": 0.401531700046035,
+    "regret": 0.0
+   },
+   {
+    "ticker": "SLB",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.03505537821280025,
+    "r_to_end": -0.02758229157533265,
+    "regret": 0.0
+   },
+   {
+    "ticker": "SLB",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.004206451419027313,
+    "r_to_end": -0.0018549461703648573,
+    "regret": 0.0
+   },
+   {
+    "ticker": "SPY",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.004586752409134642,
+    "r_to_end": 0.0021116091508268653,
+    "regret": 0.0
+   },
+   {
+    "ticker": "SPY",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.0044098804847823025,
+    "r_to_end": 0.0016437883875206616,
+    "regret": 0.0
+   },
+   {
+    "ticker": "SU.TO",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.03530351889902317,
+    "r_to_end": 0.006531176232608793,
+    "regret": 0.0
+   },
+   {
+    "ticker": "T",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.032185581029304466,
+    "r_to_end": -0.010325360665097483,
+    "regret": 0.0
+   },
+   {
+    "ticker": "T",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.01817483409165066,
+    "r_to_end": 0.0021700382138596375,
+    "regret": 0.0
+   },
+   {
+    "ticker": "TCOM",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": -0.0017313800221578912,
+    "r_to_end": -0.0063507497514464495,
+    "regret": 0.0
+   },
+   {
+    "ticker": "TD.TO",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 1.0,
+    "verdict": "missed",
+    "better": "hold 100% of a slot",
+    "r_day": -0.0010651987024025145,
+    "r_to_end": 0.01581658792464924,
+    "regret": 0.0
+   },
+   {
+    "ticker": "TGT",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-16",
+    "r_day": -0.027095167828895428,
+    "r_to_end": 0.02600857725649397,
+    "regret": 0.0
+   },
+   {
+    "ticker": "TPR",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.016109898987180737,
+    "r_to_end": 0.0003479471120391153,
+    "regret": 0.0
+   },
+   {
+    "ticker": "TSLA",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-16",
+    "r_day": -0.006657978773463191,
+    "r_to_end": 0.01006540875574502,
+    "regret": 0.0
+   },
+   {
+    "ticker": "TXN",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-18",
+    "r_day": 3.7883408769978644e-05,
+    "r_to_end": 0.002651078829178255,
+    "regret": 0.0
+   },
+   {
+    "ticker": "TXN",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-18",
+    "r_day": -0.010477088125055434,
+    "r_to_end": 0.017263470798838165,
+    "regret": 0.0
+   },
+   {
+    "ticker": "TXN",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-18",
+    "r_day": -0.00970575305547472,
+    "r_to_end": 0.014225997141261049,
+    "regret": 0.0
+   },
+   {
+    "ticker": "UNH",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-18",
+    "r_day": -0.019867019579467682,
+    "r_to_end": -0.0069296395634484975,
+    "regret": 0.0
+   },
+   {
+    "ticker": "UNH",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-18",
+    "r_day": -0.0017822012694105327,
+    "r_to_end": -0.0023822289664257035,
+    "regret": 0.0
+   },
+   {
+    "ticker": "UNH",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-18",
+    "r_day": -0.00013328974376491942,
+    "r_to_end": 0.006233881693389343,
+    "regret": 0.0
+   },
+   {
+    "ticker": "USB",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.0073388494293716855,
+    "r_to_end": -0.033161600558740845,
+    "regret": 0.0
+   },
+   {
+    "ticker": "USB",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-17",
+    "r_day": -0.040019312594263834,
+    "r_to_end": 0.004851955383821549,
+    "regret": 0.0
+   },
+   {
+    "ticker": "V",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.012486029770441331,
+    "r_to_end": -0.0038408251198996934,
+    "regret": 0.0
+   },
+   {
+    "ticker": "V",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.0026959265083588146,
+    "r_to_end": -0.0006240949068655466,
+    "regret": 0.0
+   },
+   {
+    "ticker": "VZ",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.032847471649088744,
+    "r_to_end": -0.025136830476628957,
+    "regret": 0.0
+   },
+   {
+    "ticker": "VZ",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.02873787256258198,
+    "r_to_end": 0.006382759288226403,
+    "regret": 0.0
+   },
+   {
+    "ticker": "WFC",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.029759230189680408,
+    "r_to_end": 0.0016283175922542359,
+    "regret": 0.0
+   },
+   {
+    "ticker": "WFC",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.001838066128662219,
+    "r_to_end": -0.005657513606026621,
+    "regret": 0.0
+   },
+   {
+    "ticker": "WMT",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.009075957797446743,
+    "r_to_end": -0.008085470660468386,
+    "regret": 0.0
+   },
+   {
+    "ticker": "WMT",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.005458380589136946,
+    "r_to_end": -0.002616546519637497,
+    "regret": 0.0
+   },
+   {
+    "ticker": "WMT",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.006604642646257264,
+    "r_to_end": -0.007993276727078835,
+    "regret": 0.0
+   },
+   {
+    "ticker": "WYNN",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.011964482978565671,
+    "r_to_end": -0.048074117998068044,
+    "regret": 0.0
+   },
+   {
+    "ticker": "WYNN",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.028601035102342243,
+    "r_to_end": -0.03679244923141767,
+    "regret": 0.0
+   },
+   {
+    "ticker": "WYNN",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.015077813390071415,
+    "r_to_end": -0.006869714813353078,
+    "regret": 0.0
+   },
+   {
+    "ticker": "XOM",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-18",
+    "r_day": -0.03543585955858741,
+    "r_to_end": 0.006245151737473087,
+    "regret": 0.0
+   },
+   {
+    "ticker": "XOM",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-18",
+    "r_day": -0.00030616611263400983,
+    "r_to_end": 0.005781016519881943,
+    "regret": 0.0
+   },
+   {
+    "ticker": "YUM",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out until 2026-09-18",
+    "r_day": -0.016019183867182596,
+    "r_to_end": 0.026100576243040408,
+    "regret": 0.0
+   },
+   {
+    "ticker": "YUMC",
+    "date": "2026-09-15",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.02616217497439266,
+    "r_to_end": -0.011063036751208122,
+    "regret": 0.0
+   },
+   {
+    "ticker": "YUMC",
+    "date": "2026-09-16",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.007915519962286788,
+    "r_to_end": -0.013908898515952894,
+    "regret": 0.0
+   },
+   {
+    "ticker": "YUMC",
+    "date": "2026-09-17",
+    "action": "HOLD",
+    "level_ours": 0.0,
+    "level_best": 0.0,
+    "verdict": "right",
+    "better": "stay out for the whole unit",
+    "r_day": -0.00024183114320275312,
+    "r_to_end": -0.003151541045217754,
+    "regret": 0.0
+   }
+  ]
+ },
+ "regime": {
+  "benchmark_return": -0.0009270593988092157,
+  "benchmark_vol": 0.10954464617344954,
+  "label": "flat-calm"
+ },
+ "tearsheet": "/home/runner/work/canadaweatherreader/canadaweatherreader/data/experience/small/reviews/week_2026-09-18_tearsheet.html"
+}

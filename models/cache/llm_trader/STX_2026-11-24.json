@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 98, "reasoning": "The long position is down -31.7%, far exceeding the -8% loss rule which mandates closure. Protecting capital overrides any profit considerations. Peak PnL never turned positive, so no partial take-profit logic applies. Full exit is required."}

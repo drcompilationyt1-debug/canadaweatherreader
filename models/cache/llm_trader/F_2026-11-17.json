@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 95, "reasoning": "Position violates mandatory -8% stop loss rule at -10.61% unrealized PnL. Strong downtrend across all horizons (60d -18.7%, 120d -25.5%), price near 52-week low (only 6.9% above), bearish technical consensus (vote -0.06). Capital protection requires immediate exit."}

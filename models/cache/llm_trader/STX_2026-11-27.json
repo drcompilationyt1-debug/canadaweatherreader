@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 95, "reasoning": "The long position is at -32.66% unrealised loss, far exceeding the -8% stop\u2011loss rule. Capital protection overrides any profit considerations, so the position must be exited immediately."}

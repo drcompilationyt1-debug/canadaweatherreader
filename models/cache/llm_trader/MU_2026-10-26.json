@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 95, "reasoning": "Unrealised PnL is -14.53%, exceeding the -8% stop\u2011loss rule. Capital protection overrides any other signal, so the long position must be fully closed."}

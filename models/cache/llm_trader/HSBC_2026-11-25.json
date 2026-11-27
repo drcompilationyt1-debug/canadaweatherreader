@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 95, "reasoning": "The position has lost 17.55% from entry, exceeding the -8% stop\u2011loss threshold, and the unrealised PnL has retraced far from its peak, indicating a clear breach of the risk rule requiring immediate full exit."}

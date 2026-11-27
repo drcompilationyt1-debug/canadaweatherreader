@@ -1,0 +1,40 @@
+{
+ "features": [
+  "ret_open",
+  "ret_max",
+  "ret_min",
+  "dd_from_max",
+  "gain_vs_max",
+  "time_frac",
+  "vol",
+  "last_ret",
+  "last4",
+  "gap"
+ ],
+ "fitted_at": "2026-11-27T13:26:23.150884+00:00",
+ "metrics": {
+  "kind": "lightgbm",
+  "n_train": 274243,
+  "n_holdout": 34283,
+  "days": 45,
+  "holdout_days": [
+   "2026-11-19",
+   "2026-11-20",
+   "2026-11-23",
+   "2026-11-24",
+   "2026-11-25"
+  ],
+  "base_rate": 0.4694632132816517,
+  "auc": 0.46107727404826604,
+  "hit_rate": 0.42965901467199485,
+  "exit_rate": 0.03768631683341598,
+  "gain_when_exit": -0.004073706645379086,
+  "gain_all": 0.0019593931042500216
+ },
+ "tickers": 288,
+ "timeframe": "15Min",
+ "fee_rt": 0.000398,
+ "start": "2026-09-24",
+ "end": "2026-11-26",
+ "file": "model.txt"
+}

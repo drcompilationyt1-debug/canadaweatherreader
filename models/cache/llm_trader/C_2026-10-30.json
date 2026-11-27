@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 95, "reasoning": "The long position is down -9.38%, exceeding the -8% stop\u2011loss rule which mandates closing any position that falls below that threshold. Despite mixed strategy signals, risk protection takes priority, so the position must be fully exited."}

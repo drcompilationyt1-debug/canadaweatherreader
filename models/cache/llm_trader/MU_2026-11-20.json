@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 100, "reasoning": "The current unrealised PnL is -38.31%, which significantly exceeds the maximum allowable loss of -8% per position. Adhering to capital protection rules requires an immediate full close of the position."}

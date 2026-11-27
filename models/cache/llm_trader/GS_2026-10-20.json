@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 95, "reasoning": "The long position is down -8.22% from entry, exceeding the -8% loss limit that mandates a full close. Peak PnL was only -1.87% (no profit) and the trend signals are mixed but the risk rule overrides. Closing now protects capital."}

@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 95, "reasoning": "Position unrealized PnL of -8.96% exceeds the mandatory -8% stop-loss rule. All return horizons (1d through 120d) are negative, confirming downtrend. Textbook strategies vote is neutral (+0.12). Capital protection requires immediate exit."}

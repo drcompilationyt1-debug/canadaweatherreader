@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 95, "reasoning": "The position has an unrealised loss of -19.65%, which exceeds the -8% stop\u2011loss threshold. According to risk management rules, any single position losing more than 8% from entry must be closed to protect capital. Therefore the entire position should be exited."}

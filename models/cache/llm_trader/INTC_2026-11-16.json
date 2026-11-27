@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 100, "reasoning": "Position violates the -8% stop-loss rule with a -47.26% unrealized loss. Strong downtrend across all horizons (20d -33.6%, 60d -35.2%, 120d -51.7%). Capital protection requires immediate full exit."}

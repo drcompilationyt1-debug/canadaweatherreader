@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 97, "reasoning": "The position is down -14.85%, which breaches the mandatory -8% stop-loss rule from entry. Capital protection takes precedence; exit the entire position despite the recent +4.2% rebound."}

@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 0, "confidence": 95, "reasoning": "The long position is down -11.27%, exceeding the -8% loss threshold which mandates closure. Capital protection overrides any other considerations."}

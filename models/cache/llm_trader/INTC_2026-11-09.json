@@ -1,0 +1,1 @@
+{"action": "FULL_CLOSE", "direction": "none", "position_size_pct": 100, "confidence": 95, "reasoning": "The long position is down 46.89%, far exceeding the -8% loss limit requiring closure. Risk management mandates closing losing positions before considering any profit or scaling. Hence a full exit is required."}
